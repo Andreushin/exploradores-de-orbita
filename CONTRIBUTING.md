@@ -24,7 +24,7 @@
 1. **Rama** desde `main` actualizado: `feat/…`, `fix/…`, `data/…`, `docs/…` o `chore/…`.
 2. **Commits** pequeños con el formato de abajo.
 3. **PR** a `main` usando la plantilla. El **título del PR** también sigue el formato, porque se convierte en el commit final.
-4. **Revisión:** 1 aprobación de otro integrante (código del core → Rol 1).
+4. **Revisión:** aprobación de @Andreushin (CODEOWNERS). Sus propios PRs los fusiona él como admin.
 5. **Check automático** `Formato del título del PR` en verde.
 6. **Merge:** solo *Squash and merge* (1 PR = 1 commit en `main`). La rama se borra sola.
 
