@@ -9,5 +9,10 @@
     "workshop": "Taller",
     "journey": "Travesía",
     "report": "Reporte"
-  }
+  },
+  "stepsLabel": "Progreso de la misión",
+  "stepGoBack": "Volver a este paso",
+  "stepLocked": "Completa el paso anterior para desbloquear",
+  "stepInFlight": "Vuelo en curso: termina la inserción orbital",
+  "stepNoRefly": "La travesía ya se voló; rediseña desde el Taller"
 }
