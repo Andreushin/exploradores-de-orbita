@@ -1,0 +1,47 @@
+name: E2E checkpoint
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+  page_build:            # cada vez que GitHub Pages publica, prueba el sitio en vivo
+  workflow_dispatch:     # botón manual: Actions → E2E checkpoint → Run workflow
+    inputs:
+      base_url:
+        description: "URL a probar (vacío = servidor local del repo)"
+        required: false
+        default: "https://andreushin.github.io/exploradores-de-orbita/"
+
+permissions:
+  contents: read
+
+concurrency:
+  group: e2e-${{ github.event_name }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  e2e:
+    name: E2E (3 misiones + idioma + móvil)
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - run: npx playwright install --with-deps chromium
+      - name: Esperar a que Pages sirva la versión nueva
+        if: github.event_name == 'page_build'
+        run: sleep 30
+      - name: Correr pruebas
+        env:
+          BASE_URL: ${{ github.event_name == 'page_build' && 'https://andreushin.github.io/exploradores-de-orbita/' || inputs.base_url }}
+        run: npx playwright test
+      - uses: actions/upload-artifact@v4
+        if: failure()
+        with:
+          name: playwright-report
+          path: playwright-report/
+          retention-days: 7

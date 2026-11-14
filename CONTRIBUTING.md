@@ -6,7 +6,7 @@
 
 | Rol | Responsable | Rama | Archivos |
 |---|---|---|---|
-| 1 · Core e integración | @Andreushin | `feat/core` | `index.html`, `js/main.js`, `js/state.js`, `js/i18n.js`, `css/base.css`, `data/i18n/*/common.json`, `README.md`, `CONTRIBUTING.md` |
+| 1 · Core e integración | @Andreushin | `feat/core` | `index.html`, `e2e/`, `playwright.config.mjs`, `package.json`, `.github/`, `js/main.js`, `js/state.js`, `js/i18n.js`, `css/base.css`, `data/i18n/*/common.json`, `README.md`, `CONTRIBUTING.md` |
 | 2 · Datos y física | @tommycc2010-hub | `feat/data-physics` | `data/{missions,rockets,pieces,events}.json`, `js/physics.js`, `tests/`, `docs/fuentes.md` |
 | 3 · Pantallas 1–2 | @JU4NMAX | `feat/screens-1-2` | `js/screens/{mission,workshop}.js`, `css/screens/{mission,workshop}.css`, `data/i18n/*/{mission,workshop}.json` |
 | 4 · Pantallas 3–4 | @AslanCM | `feat/screens-3-4` | `js/screens/{journey,report}.js`, `js/canvas/*`, `css/screens/{journey,report}.css`, `data/i18n/*/{journey,report}.json` |
@@ -65,6 +65,18 @@ Ejemplos: `feat(travesia): quemado de inserción con barra de precisión` · `fi
 - Solo tocas archivos de tu rol (ver tabla). Si no, avisa en la descripción.
 - Antes de pedir revisión: juegas el flujo completo en local, en ES y EN, sin errores en consola.
 - Después del **H24 (feature freeze)** solo se aceptan `fix`, `data`, `style`, `i18n` y `docs`.
+
+## Pruebas
+| Qué | Comando | Cuándo |
+|---|---|---|
+| Física y diseños de referencia | abrir `http://localhost:8000/tests/physics.test.html` | antes de un PR de datos |
+| E2E: Luna, Marte y Europa de punta a punta, idioma y móvil | `npm install` (una vez) → `npx playwright install chromium` (una vez) → `npm run e2e` | antes de pedir revisión |
+| E2E contra el sitio publicado | `npm run e2e:live` | en cada checkpoint (H12, H24) |
+
+- La CI corre el E2E en **cada PR** y **cada vez que GitHub Pages publica**. Si falla, revisa el reporte en la pestaña *Actions*.
+- La prueba usa los textos e ids de los JSON, no el HTML: si cambias una pantalla, mantén botones con su texto visible.
+- **Bug encontrado** → issue nuevo asignado al dueño del archivo; la prueba afectada se agrega a `KNOWN_BUGS` en `e2e/checkpoint.spec.mjs` hasta que se arregle.
+- Si cambias el balance de datos (Rol 2), actualiza `REFERENCE` en el E2E y los diseños de `docs/fuentes.md`.
 
 ## Checkpoints (≤36 h)
 - **H12:** flujo de 4 pantallas navegable en `main` + primer deploy a GitHub Pages.
