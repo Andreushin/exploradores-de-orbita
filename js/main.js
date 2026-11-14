@@ -4,6 +4,7 @@ import { getState, update, subscribe, reset } from './state.js';
 import { loadTranslations, getSavedLang, setLang, t, tx, applyStatic } from './i18n.js';
 import * as physics from './physics.js';
 import { LEVELS } from './levels.js';
+import { loadMission, saveMission, pickSections } from './mision-store.js';
 import startScreen from './screens/start.js';
 import levelsScreen from './screens/levels.js';
 
@@ -144,6 +145,10 @@ async function boot() {
   const lang = getSavedLang();
   setLang(lang);
   update({ lang });
+  // Contrato entre niveles (docs/contrato-niveles.md): retoma la misión guardada y guarda cada cambio.
+  const saved = loadMission();
+  if (saved) update(pickSections(saved));
+  subscribe((st) => saveMission(pickSections(st)));
   subscribe(renderChrome);
   document.getElementById('lang-toggle').addEventListener('click', toggleLang);
   document.getElementById('nav-levels').addEventListener('click', () => void goTo('levels'));
