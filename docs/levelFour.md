@@ -35,7 +35,7 @@
 
 En orden, de arriba abajo:
 
-1. **Título**, nombre del proyecto (si el jugador lo escribió) y resultado de la inserción: órbita, excéntrica, sobrevuelo o choque.
+1. **Título**, nombre del proyecto (si el jugador lo escribió) y resultado de la inserción: órbita, excéntrica, sobrevuelo, choque o sin propelente (`no-fuel`, del Nivel 3).
 2. **Barra CML 1–4**: cada nivel con su nombre y una explicación corta.
    - Los niveles alcanzados se llenan en orden, con animación. Si el sistema tiene activado «reducir movimiento», aparecen sin animación.
    - El nivel final queda resaltado (`aria-current="step"`).
@@ -61,13 +61,13 @@ Se calcula en `finalCml()` (`js/science-data.js`):
   | CML | Condición |
   |---|---|
   | 1 · Idea en servilleta | El diseño no cumple las restricciones del Taller |
-  | 2 · Factibilidad inicial | Diseño válido, pero sobrevuelo o choque |
+  | 2 · Factibilidad inicial | Diseño válido, pero no quedó en órbita: sobrevuelo, choque, sin propelente o cualquier otro resultado. Es una lista blanca: solo `orbit` y `eccentric` cuentan como «en órbita» |
   | 3 · Espacio de compromisos | En órbita, pero excéntrica o con puntaje < 50 (`CML4_MIN_SCORE`) |
   | 4 · Diseño puntual | Órbita estable y puntaje ≥ 50 |
 
 - **Tope del Nivel 1** (`plan.cmlCap`): sale de la madurez del plan (100 − penalizaciones). ≥ 90 → 4 · ≥ 65 → 3 · ≥ 40 → 2 · si no, 1. Ver `levelOne.md` §4.3.
 
-**Puntaje científico del reporte** = `scienceScore()` + la suma de `science` de los eventos elegidos, limitado a **0..100** (`reportScore()`). La fórmula de `scienceScore` está en `fuentes.md` → «Puntaje científico y CML».
+**Puntaje científico del reporte** = `scienceScore()` + la suma de `science` de los eventos elegidos, limitado a **0..100** (`reportScore()`). Acepta los dos formatos de evento: el del Nivel 3 (`{ id, choice: <índice>, hit, dv, science }`, ver `contrato-niveles.md`) y el de la travesía de la app principal (`{ id, choice: { science } }`). La fórmula de `scienceScore` está en `fuentes.md` → «Puntaje científico y CML».
 
 **Motivo** (`reason`), que decide el texto y las sugerencias:
 
@@ -76,7 +76,7 @@ Se calcula en `finalCml()` (`js/science-data.js`):
 | `max` | Llegó a CML 4 |
 | `budget` | El tope del Nivel 1 es menor que el CML por desempeño |
 | `design` | El diseño no es válido |
-| `insertion` | Sobrevuelo o choque |
+| `insertion` | Sobrevuelo, choque o sin propelente |
 | `eccentric` | Órbita excéntrica |
 | `science` | Órbita estable, pero puntaje < 50 |
 
@@ -93,7 +93,7 @@ Si el tope es **igual** al CML por desempeño, manda el motivo del desempeño: l
 | `max` | Probar un destino más difícil o lograr más ciencia con menos presupuesto |
 | `budget` | Volver al Nivel 1 y no sobredimensionar ni pasarse del presupuesto (muestra madurez y penalización) |
 | `design` | Una por cada check del Taller que falló, con su texto de `workshop.json → checks` |
-| `insertion` | Sobrevuelo: frenar más tiempo o llevar más propelente. Choque: soltar el quemado antes |
+| `insertion` | Sobrevuelo: frenar más tiempo o llevar más propelente. Choque: soltar el quemado antes. Sin propelente: aligerar el satélite, llevar más propelente o subir el Isp |
 | `eccentric` | Afinar el quemado: una órbita estable necesita del 95% al 110% del Δv requerido |
 | `science` | Según el caso: agregar un instrumento (si hay menos de 4), invertir más en Tierra (hasta `GROUND_FULL`), más en Usuario (hasta `USER_FULL`), o cuidar los eventos si restaron ciencia |
 
@@ -135,7 +135,7 @@ Cada destino tiene un modelo con componentes opcionales que se suman:
 | Resultado | Datos medidos |
 |---|---|
 | Órbita / excéntrica | Todos los puntos, con ruido = `MAX_NOISE` (0.5) × rango de la señal × (1 − puntaje/100). Con 100 puntos coincide con la referencia. |
-| Sobrevuelo | Solo una ventana corta, el 30% central (`FLYBY_WINDOW`), con el mismo ruido |
+| Sobrevuelo o sin propelente (`PASSED_BY`) | Solo una ventana corta, el 30% central (`FLYBY_WINDOW`), con el mismo ruido |
 | Choque | Ningún dato: la gráfica dice «Sin señal» |
 
 El ruido es **reproducible**: la semilla sale de la misión, las piezas, el propelente y el resultado (`hashSeed` + `seededRandom`), así que la gráfica no cambia al recargar o al cambiar de idioma.
@@ -147,7 +147,7 @@ El ruido es **reproducible**: la semilla sale de la misión, las piezas, el prop
 | Campo | Uso |
 |---|---|
 | `missionId`, `satellite.*`, `budget.*` | Diseño, validación (`validateDesign`) y puntaje (`scienceScore`) |
-| `journey.outcome`, `journey.events`, `journey.dvAvailable`, `journey.dvUsed` | Resultado, efecto de los eventos y resumen |
+| `journey.outcome`, `journey.events`, `journey.dvAvailable`, `journey.dvUsed` | Resultado, efecto de los eventos y resumen. Si el jugador viene de `nivel3/`, la app retoma todo de `eo-mision` (`js/mision-store.js`) y abre `#report` |
 | `plan.cmlCap`, `plan.maturity`, `plan.penalty` | Tope de CML y sugerencia de presupuesto |
 | `plan.projectName`, `plan.scienceTargetIdx` | Encabezado y objetivo resaltado |
 | **Escribe** `report.score`, `report.cml` | `report.cml > 0` marca el Nivel 4 como completado (`js/levels.js`) |
@@ -164,7 +164,7 @@ El ruido es **reproducible**: la semilla sale de la misión, las piezas, el prop
 | `data/science.json` | Modelos de señal y referencias NASA por instrumento y destino (ES/EN) |
 | `data/i18n/{es,en}/report.json` | Todos los textos del nivel |
 | `css/screens/report.css` | Estilos del nivel, todos bajo `#screen-report`. Solo se carga al abrir el nivel (`js/levels.js`) |
-| `tests/report.test.html` | 62 pruebas: CML final, sugerencias, puntaje, series y datos completos en ES/EN |
+| `tests/report.test.html` | 69 pruebas: CML final, sugerencias, puntaje, series y datos completos en ES/EN |
 
 `science.json` se carga con una ruta relativa al módulo (`new URL('../../data/science.json', import.meta.url)`). Así funciona igual en la raíz, en GitHub Pages (`/exploradores-de-orbita/`) o en Firebase Hosting, sin tocar `main.js`.
 
@@ -175,7 +175,7 @@ El ruido es **reproducible**: la semilla sale de la misión, las piezas, el prop
 ```bash
 python3 -m http.server 8000
 # Juego:   http://localhost:8000
-# Pruebas: http://localhost:8000/tests/report.test.html   (deben salir 62 PASS)
+# Pruebas: http://localhost:8000/tests/report.test.html   (deben salir 69 PASS)
 #          http://localhost:8000/tests/science.test.html
 #          http://localhost:8000/tests/physics.test.html
 ```
@@ -227,4 +227,5 @@ Recorrido manual sugerido (en ES y EN, escritorio y celular):
 
 - [ ] La prueba E2E (`e2e/checkpoint.spec.mjs`, de Rol 1) todavía entra directo a la pantalla de Misión. Desde el PR #45 el juego empieza en Inicio → Niveles, así que hay que actualizar el recorrido para que llegue al reporte.
 - [ ] Prueba visual en celular real (táctil), en ES y EN.
+- [ ] Opcional: mover el reporte a su carpeta `nivel4/` (forma de trabajo de `contrato-niveles.md`). Al hacerlo, agregar `4` a `FOLDER_LEVELS` en `js/mision-store.js` y `folder: 4` en `js/levels.js`: el Nivel 3 lo detecta solo. Hoy funciona dentro de la app principal (`../#report`).
 - [ ] Opcional: botón para descargar el reporte (imagen o PDF) y compartirlo.

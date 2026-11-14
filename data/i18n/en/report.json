@@ -6,7 +6,8 @@
     "orbit": "Your CubeSat is orbiting {dest} and returning data.",
     "eccentric": "Your CubeSat ended in an eccentric orbit around {dest}.",
     "flyby": "Your CubeSat flew past {dest}.",
-    "crash": "Your CubeSat impacted {dest}."
+    "crash": "Your CubeSat impacted {dest}.",
+    "no-fuel": "Your CubeSat ran out of propellant before entering orbit around {dest}."
   },
   "cmlTitle": "Concept Maturity Level (NASA CML)",
   "cml": {
@@ -44,7 +45,8 @@
     "ground": "Invest more in the Ground segment (up to ${full}M): more antennas = more data received.",
     "user": "Invest more in the User segment (up to ${full}M): processed, archived data gets used better.",
     "events": "During the cruise you lost {lost} science points to events: choose carefully.",
-    "general": "Aim for a science score of {min} or more with a stable orbit."
+    "general": "Aim for a science score of {min} or more with a stable orbit.",
+    "noFuel": "You ran out of propellant: lighten the spacecraft (less dry mass), carry more propellant or use higher-Isp propulsion."
   },
   "scienceTitle": "Simulated science data",
   "score": "Science score: {score} / 100",
@@ -55,6 +57,7 @@
   "dataError": "Science data couldn't be loaded.",
   "noInstruments": "Your CubeSat carried no instruments, so there is no science data.",
   "flybyData": "Flyby: there were only a few minutes of observation, so data is sparse.",
+  "noFuelData": "With no propellant to brake, the CubeSat flew past: it only took a few measurements on the way.",
   "crashData": "The CubeSat was lost before sending data.",
   "noSignal": "No signal",
   "legendRef": "NASA reference (conceptual)",

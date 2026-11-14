@@ -80,13 +80,14 @@ export const CML4_MIN_SCORE = 50;
 /**
  * Nivel CML alcanzado (1-4), inspirado en NASA Concept Maturity Levels.
  * 1 Concepto: el diseño no cumple las restricciones.
- * 2 Factibilidad inicial: diseño válido, pero no quedó en órbita (sobrevuelo o choque).
+ * 2 Factibilidad inicial: diseño válido, pero no quedó en órbita (sobrevuelo, choque o sin propelente).
  * 3 Trade space: en órbita, pero excéntrica o con poca ciencia (< CML4_MIN_SCORE).
  * 4 Diseño puntual: órbita estable y ciencia ≥ CML4_MIN_SCORE.
  */
 export function computeCML({ designValid, launched, outcome, scienceScore }) {
   if (!designValid) return 1;
-  if (!launched || outcome === 'flyby' || outcome === 'crash' || !outcome) return 2;
+  // Lista blanca: cualquier resultado que no sea quedar en órbita (sobrevuelo, choque, sin propelente…) es CML 2.
+  if (!launched || !['orbit', 'eccentric'].includes(outcome)) return 2;
   if (outcome === 'eccentric' || scienceScore < CML4_MIN_SCORE) return 3;
   return 4;
 }

@@ -195,6 +195,7 @@ function renderCharts(container, { science, instruments, missionId, score, outco
     return scienceData;
   }
   if (outcome === 'flyby') container.append(el('p', 'warn', t('report.flybyData')));
+  if (outcome === 'no-fuel') container.append(el('p', 'warn', t('report.noFuelData')));
   if (outcome === 'crash') container.append(el('p', 'warn', t('report.crashData')));
 
   const grid = el('div', 'chart-grid');

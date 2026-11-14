@@ -87,6 +87,8 @@ check('diseño inválido → CML 1', cml(false, 'orbit', 100) === 1);
 check('válido sin lanzar → CML 2', cml(true, null, 0, false) === 2);
 check('válido con sobrevuelo → CML 2', cml(true, 'flyby', 100) === 2);
 check('válido con choque → CML 2', cml(true, 'crash', 100) === 2);
+check('válido sin propelente (Nivel 3: no-fuel) → CML 2', cml(true, 'no-fuel', 100) === 2);
+check('resultado desconocido → CML 2 (lista blanca: solo órbita y excéntrica quedan en órbita)', cml(true, 'algo-nuevo', 100) === 2);
 check('órbita excéntrica → CML 3', cml(true, 'eccentric', 100) === 3);
 check(`órbita estable con ciencia < ${p.CML4_MIN_SCORE} → CML 3`, cml(true, 'orbit', p.CML4_MIN_SCORE - 1) === 3);
 check(`órbita estable con ciencia ≥ ${p.CML4_MIN_SCORE} → CML 4`, cml(true, 'orbit', p.CML4_MIN_SCORE) === 4);

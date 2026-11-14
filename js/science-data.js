@@ -42,6 +42,11 @@ export function signalAt(model, x, [x0, x1]) {
 
 /** Fracción del recorrido observada en un sobrevuelo: solo una ventana corta alrededor del máximo acercamiento. */
 export const FLYBY_WINDOW = 0.3;
+/** Resultados en que el CubeSat quedó en órbita (los demás cuentan como fracaso de la inserción). */
+export const IN_ORBIT = ['orbit', 'eccentric'];
+/** Resultados en que el CubeSat pasó de largo y solo observa una ventana corta. */
+export const PASSED_BY = ['flyby', 'no-fuel'];
+
 /** Ruido máximo (con puntaje 0), como fracción del rango de la señal de referencia. */
 export const MAX_NOISE = 0.5;
 
@@ -65,7 +70,7 @@ export function instrumentSeries(def, missionId, score, outcome, rnd = Math.rand
   const span = Math.max(...ys) - Math.min(...ys) || 1;
   const noise = MAX_NOISE * span * (1 - Math.max(0, Math.min(100, score)) / 100);
   let points = reference;
-  if (outcome === 'flyby') {
+  if (PASSED_BY.includes(outcome)) {
     const from = Math.floor(n * (0.5 - FLYBY_WINDOW / 2));
     points = reference.slice(from, from + Math.max(2, Math.round(n * FLYBY_WINDOW)));
   }
@@ -85,7 +90,7 @@ export function finalCml({ designValid, outcome, score, cmlCap = 4 }) {
   if (cml === 4) reason = 'max';
   else if (cap < base) reason = 'budget';
   else if (!designValid) reason = 'design';
-  else if (!outcome || outcome === 'flyby' || outcome === 'crash') reason = 'insertion';
+  else if (!IN_ORBIT.includes(outcome)) reason = 'insertion';
   else if (outcome === 'eccentric') reason = 'eccentric';
   else reason = 'science';
   return { cml, base, cap, reason };
@@ -108,7 +113,7 @@ export function improvementHints({ reason, checks = [], outcome, instruments = 0
       for (const c of checks.filter((c) => !c.ok)) hints.push({ key: 'design', vars: { check: c.id } });
       break;
     case 'insertion':
-      hints.push({ key: outcome === 'crash' ? 'crash' : 'flyby' });
+      hints.push({ key: { crash: 'crash', 'no-fuel': 'noFuel' }[outcome] ?? 'flyby' });
       break;
     case 'eccentric':
       hints.push({ key: 'eccentric' });
@@ -126,8 +131,12 @@ export function improvementHints({ reason, checks = [], outcome, instruments = 0
   return hints;
 }
 
-/** Puntaje final del reporte: ciencia base + efectos de los eventos, siempre en 0..100. */
+/**
+ * Puntaje final del reporte: ciencia base + efectos de los eventos, siempre en 0..100.
+ * Acepta los dos formatos de evento: Nivel 3 (nivel3/) guarda { id, choice: <índice>, science };
+ * la travesía de la app principal guarda { id, choice: { science } }.
+ */
 export function reportScore(baseScore, events = []) {
-  const eventScience = events.reduce((s, e) => s + (e.choice?.science || 0), 0);
+  const eventScience = events.reduce((s, e) => s + (e.science ?? e.choice?.science ?? 0), 0);
   return { score: Math.min(100, Math.max(0, baseScore + eventScience)), eventScience };
 }

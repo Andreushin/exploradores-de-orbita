@@ -6,7 +6,8 @@
     "orbit": "Tu CubeSat orbita {dest} y envía datos.",
     "eccentric": "Tu CubeSat quedó en una órbita excéntrica alrededor de {dest}.",
     "flyby": "Tu CubeSat pasó de largo junto a {dest}.",
-    "crash": "Tu CubeSat impactó contra {dest}."
+    "crash": "Tu CubeSat impactó contra {dest}.",
+    "no-fuel": "Tu CubeSat se quedó sin propelente antes de entrar en órbita alrededor de {dest}."
   },
   "cmlTitle": "Nivel de madurez del concepto (CML de la NASA)",
   "cml": {
@@ -44,7 +45,8 @@
     "ground": "Invierte más en el segmento Tierra (hasta ${full}M): más antenas = más datos recibidos.",
     "user": "Invierte más en el segmento Usuario (hasta ${full}M): datos procesados y archivados se aprovechan mejor.",
     "events": "En la travesía perdiste {lost} pts de ciencia por los eventos: elige con cuidado.",
-    "general": "Busca un puntaje científico de {min} o más con órbita estable."
+    "general": "Busca un puntaje científico de {min} o más con órbita estable.",
+    "noFuel": "Te quedaste sin propelente: aligera el satélite (menos masa seca), lleva más propelente o usa una propulsión con más Isp."
   },
   "scienceTitle": "Datos científicos simulados",
   "score": "Puntaje científico: {score} / 100",
@@ -55,6 +57,7 @@
   "dataError": "No se pudieron cargar los datos científicos.",
   "noInstruments": "Tu CubeSat no llevaba instrumentos, así que no hay datos científicos.",
   "flybyData": "Sobrevuelo: solo hubo unos minutos de observación, así que hay pocos datos.",
+  "noFuelData": "Sin propelente para frenar, el CubeSat pasó de largo: solo tomó unos pocos datos al pasar.",
   "crashData": "El CubeSat se perdió antes de enviar datos.",
   "noSignal": "Sin señal",
   "legendRef": "Referencia NASA (conceptual)",

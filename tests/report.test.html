@@ -16,6 +16,7 @@ const cases = [
   ['diseño inválido', { designValid: false, outcome: 'orbit', score: 90, cmlCap: 4 }, 1, 'design'],
   ['sobrevuelo', { designValid: true, outcome: 'flyby', score: 90, cmlCap: 4 }, 2, 'insertion'],
   ['choque', { designValid: true, outcome: 'crash', score: 90, cmlCap: 4 }, 2, 'insertion'],
+  ['sin propelente (Nivel 3: no-fuel)', { designValid: true, outcome: 'no-fuel', score: 90, cmlCap: 4 }, 2, 'insertion'],
   ['órbita excéntrica', { designValid: true, outcome: 'eccentric', score: 90, cmlCap: 4 }, 3, 'eccentric'],
   ['órbita estable con poca ciencia', { designValid: true, outcome: 'orbit', score: 30, cmlCap: 4 }, 3, 'science'],
   ['órbita estable con buena ciencia', { designValid: true, outcome: 'orbit', score: 70, cmlCap: 4 }, 4, 'max'],
@@ -42,11 +43,20 @@ check('ciencia ya al máximo → sugerencia general', full.length === 1 && full[
 check('las sugerencias de diseño nombran checks que existen en el Taller',
   s.improvementHints({ reason: 'design', checks: [{ id: 'deltaV', ok: false }, { id: 'mass', ok: true }] }).every((h) => workshopEs.checks[h.vars.check]));
 check('choque sugiere frenar menos', s.improvementHints({ reason: 'insertion', outcome: 'crash' })[0].key === 'crash');
+check('sin propelente sugiere aligerar o subir el Isp', s.improvementHints({ reason: 'insertion', outcome: 'no-fuel' })[0].key === 'noFuel');
+check('resultado no-fuel tiene texto ES y EN', !!(reportEs.outcomes['no-fuel'] && reportEn.outcomes['no-fuel']));
 
 // 3) Puntaje final entre 0 y 100 con los eventos (issue #44).
 check('bonos de eventos no pasan de 100', s.reportScore(98, [{ choice: { science: 8 } }, { choice: { science: 5 } }]).score === 100);
 check('penalizaciones no bajan de 0', s.reportScore(5, [{ choice: { science: -10 } }]).score === 0);
 check('eventScience suma bonos y penalizaciones', s.reportScore(50, [{ choice: { science: 8 } }, { choice: { science: -3 } }, { choice: {} }]).eventScience === 5);
+// Formato del Nivel 3 (nivel3/): choice es el índice y la ciencia va en el evento (docs/contrato-niveles.md).
+check('formato del Nivel 3: órbita + bono del asteroide → 39 + 8 = 47',
+  s.reportScore(39, [{ id: 'asteroid-flyby', choice: 0, hit: false, dv: 40, science: 8 }]).score === 47);
+check('formato del Nivel 3: evento sin ciencia suma 0',
+  s.reportScore(39, [{ id: 'valve-leak', choice: 0, hit: false, dv: 50, science: 0 }]).score === 39);
+check('formatos mezclados se suman bien',
+  s.reportScore(50, [{ id: 'solar-storm', choice: 0, science: -10 }, { id: 'x', choice: { science: 5 } }]).eventScience === -5);
 
 // 4) Series simuladas.
 const def = science['inst-spectro'];
@@ -55,6 +65,8 @@ const b = s.instrumentSeries(def, 'europa', 60, 'orbit', s.seededRandom(42));
 check('misma semilla → misma serie', JSON.stringify(a) === JSON.stringify(b));
 check('órbita → una medición por punto', a.measured.length === def.points && a.reference.length === def.points);
 check('choque → sin mediciones', s.instrumentSeries(def, 'europa', 60, 'crash', s.seededRandom(1)).measured.length === 0);
+const nf = s.instrumentSeries(def, 'europa', 60, 'no-fuel', s.seededRandom(1)).measured.length;
+check(`sin propelente → pocas mediciones, como un sobrevuelo (${nf})`, nf > 0 && nf < def.points);
 const fly = s.instrumentSeries(def, 'europa', 60, 'flyby', s.seededRandom(1)).measured.length;
 check(`sobrevuelo → menos mediciones (${fly}) que órbita (${def.points})`, fly > 0 && fly < def.points);
 const err = (score) => {
