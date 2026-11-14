@@ -44,7 +44,7 @@ for (const m of Object.keys(ref)) {
 
 // Diseños inválidos: cada uno debe fallar justo en el check esperado.
 const invalid = [
-  ['exceso de masa (Luna con 3 kg extra de propelente en 6U)', 'moon', { propellantKg: 6 }, 'mass'],
+  ['exceso de masa (Luna con 6 kg de propelente en 6U)', 'moon', { propellantKg: 6 }, 'mass'],
   ['sin energía (Europa sin RTG)', 'europa', { remove: ['rtg-mini'] }, 'power'],
   ['sin radio (Marte sin banda X)', 'mars', { remove: ['comm-x'] }, 'comms'],
   ['radio sin alcance (UHF hacia Europa)', 'europa', { remove: ['comm-x'], add: ['comm-uhf'] }, 'comms'],
