@@ -4,4 +4,32 @@
 .segment-row { display: grid; grid-template-columns: 120px 1fr 70px; align-items: center; gap: 4px 12px; }
 .segment-row small { grid-column: 1 / -1; }
 .segment-row output { text-align: right; font-variant-numeric: tabular-nums; }
+
+/* --- Barra de reparto del presupuesto (#13) --- */
+.seg-launch { --seg: var(--accent); }
+.seg-space { --seg: var(--accent-2); }
+.seg-ground { --seg: #a78bfa; }
+.seg-user { --seg: #2dd4bf; }
+.seg-reserve { --seg: transparent; }
+.seg-excess { --seg: var(--danger); }
+.swatch { display: inline-block; width: 10px; height: 10px; border-radius: 3px; margin-right: 6px; background: var(--seg); vertical-align: baseline; }
+.swatch.seg-reserve { border: 1px dashed var(--muted); }
+.budget-bar-wrap { margin: 0 0 16px; }
+.budget-bar { position: relative; margin-bottom: 30px; }
+.bar-track { position: relative; display: flex; height: 40px; overflow: hidden; border: 1px solid var(--border); border-radius: var(--radius); background: var(--surface); }
+.budget-bar .bar-seg { display: flex; align-items: center; min-width: 0; overflow: hidden; background: var(--seg); color: var(--on-accent); font-size: 0.75rem; font-weight: 600; white-space: nowrap; transition: width 0.15s; }
+.budget-bar .bar-seg span { padding: 0 8px; overflow: hidden; text-overflow: ellipsis; }
+.budget-bar .seg-reserve { color: var(--muted); background: repeating-linear-gradient(135deg, transparent 0 6px, rgba(154, 166, 207, 0.15) 6px 12px); }
+.budget-bar .bar-seg.is-short { background: repeating-linear-gradient(135deg, var(--danger) 0 6px, var(--seg) 6px 12px); }
+.budget-bar.is-over .bar-track { border-color: var(--danger); box-shadow: 0 0 0 1px var(--danger), 0 0 16px -4px var(--danger); }
+.bar-excess { position: absolute; top: 0; bottom: 0; right: 0; background: repeating-linear-gradient(135deg, rgba(255, 122, 122, 0.85) 0 6px, rgba(255, 122, 122, 0.45) 6px 12px); }
+.bar-marker { position: absolute; top: -4px; bottom: -4px; width: 2px; margin-left: -1px; background: var(--text); }
+.marker-total { background: var(--danger); }
+.marker-rocket span { position: absolute; top: 100%; left: 50%; transform: translateX(-50%); margin-top: 4px; font-size: 0.75rem; color: var(--muted); white-space: nowrap; }
+.bar-legend { display: flex; flex-wrap: wrap; gap: 6px 16px; list-style: none; margin: 0; padding: 0; font-size: 0.85rem; }
+.bar-legend b { font-variant-numeric: tabular-nums; }
+.bar-legend small { color: var(--muted); }
+.bar-legend .is-short, .bar-legend .is-over { color: var(--danger); }
+.segment-name { display: inline-flex; align-items: center; }
+@media (max-width: 640px) { .bar-legend { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); } }
 @media (max-width: 640px) { .segment-row { grid-template-columns: 1fr 70px; } .segment-row input { grid-column: 1 / -1; grid-row: 2; } }

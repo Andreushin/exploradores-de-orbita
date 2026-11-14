@@ -11,22 +11,26 @@
   "cantReach": "No alcanza este destino",
   "segmentsTitle": "Reparte el presupuesto",
   "segmentsHelp": "El segmento Espacio paga tu CubeSat; Tierra mejora la recepción de datos; Usuario mejora el análisis científico.",
+  "reserve": "Reserva",
+  "excess": "Exceso",
+  "rocketMarker": "Cohete ${cost}M",
+  "barLabel": "Reparto de ${total}M: {parts}",
   "segments": {
     "launch": {
       "name": "Lanzamiento",
-      "help": "Debe cubrir el costo del cohete."
+      "help": "Cohete, integración y operaciones de lanzamiento. Debe cubrir el costo del cohete."
     },
     "space": {
       "name": "Espacio",
-      "help": "Componentes del CubeSat."
+      "help": "El CubeSat: estructura, energía, propulsión, radio e instrumentos."
     },
     "ground": {
       "name": "Tierra",
-      "help": "Antenas y Red de Espacio Profundo."
+      "help": "Antenas, estaciones y Red de Espacio Profundo para comandar la nave y recibir los datos."
     },
     "user": {
       "name": "Usuario",
-      "help": "Procesamiento y archivo de datos científicos."
+      "help": "Científicos que procesan, analizan y archivan los datos para que se usen."
     }
   },
   "errNoRocket": "Elige un cohete.",
