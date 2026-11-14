@@ -4,7 +4,7 @@
 // Textos de datos (JSON de misiones/piezas) usan objetos { es, en } → usar tx(obj).
 
 export const LANGS = ['es', 'en'];
-export const NAMESPACES = ['common', 'mission', 'workshop', 'journey', 'report'];
+export const NAMESPACES = ['common', 'menu', 'mission', 'workshop', 'journey', 'report'];
 const STORAGE_KEY = 'srl-lang';
 
 const dict = {}; // dict[lang][namespace] = {...}

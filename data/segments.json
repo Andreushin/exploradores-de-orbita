@@ -1,0 +1,100 @@
+{
+  "rules": {
+    "margin": { "launch": 0, "space": 1, "ground": 1, "user": 2 }
+  },
+  "penalty": {
+    "perExcessLevel": 15,
+    "overBudgetPerM": 1,
+    "overBudgetCap": 40
+  },
+  "cmlCap": [
+    { "minMaturity": 90, "cml": 4 },
+    { "minMaturity": 65, "cml": 3 },
+    { "minMaturity": 40, "cml": 2 },
+    { "minMaturity": 0, "cml": 1 }
+  ],
+  "requirements": {
+    "space": { "moon": 1, "mars": 2, "europa": 3 },
+    "user": { "moon": 1, "mars": 1, "europa": 1 }
+  },
+  "cards": {
+    "space": [
+      {
+        "id": "space-near",
+        "level": 1,
+        "cost": 25,
+        "icon": "🛰️",
+        "name": { "es": "Nave de clase cercana", "en": "Near-class spacecraft" },
+        "desc": { "es": "Presupuesto para un CubeSat sencillo: alcanza para órbita lunar con paneles solares.", "en": "Budget for a simple CubeSat: enough for lunar orbit on solar panels." }
+      },
+      {
+        "id": "space-interplanetary",
+        "level": 2,
+        "cost": 50,
+        "icon": "🛰️",
+        "name": { "es": "Nave interplanetaria", "en": "Interplanetary spacecraft" },
+        "desc": { "es": "CubeSat de 12U con paneles desplegables, antena de alta ganancia y control de actitud.", "en": "12U CubeSat with deployable panels, high-gain antenna and attitude control." }
+      },
+      {
+        "id": "space-deep",
+        "level": 3,
+        "cost": 75,
+        "icon": "🛰️",
+        "name": { "es": "Nave de espacio profundo", "en": "Deep-space spacecraft" },
+        "desc": { "es": "Incluye fuente de energía nuclear (RTG) y propulsión iónica para donde casi no llega la luz del Sol.", "en": "Includes a nuclear power source (RTG) and ion propulsion for where sunlight barely reaches." }
+      }
+    ],
+    "ground": [
+      {
+        "id": "ground-uhf",
+        "level": 1,
+        "cost": 8,
+        "icon": "📡",
+        "name": { "es": "Red UHF universitaria", "en": "University UHF network" },
+        "desc": { "es": "Estaciones pequeñas compartidas. Suficientes para distancias cortas.", "en": "Small shared stations. Enough for short distances." }
+      },
+      {
+        "id": "ground-commercial",
+        "level": 2,
+        "cost": 15,
+        "icon": "📡",
+        "name": { "es": "Red comercial banda X", "en": "Commercial X-band network" },
+        "desc": { "es": "Antenas medianas con más ganancia y horas de contacto contratadas.", "en": "Mid-size antennas with more gain and contracted contact hours." }
+      },
+      {
+        "id": "ground-dsn",
+        "level": 3,
+        "cost": 25,
+        "icon": "📡",
+        "name": { "es": "Red de Espacio Profundo (DSN)", "en": "Deep Space Network (DSN)" },
+        "desc": { "es": "Antenas de 34 a 70 m de la NASA, capaces de escuchar naves en el sistema solar exterior.", "en": "NASA's 34–70 m antennas, able to hear spacecraft in the outer solar system." }
+      }
+    ],
+    "user": [
+      {
+        "id": "archive",
+        "level": 1,
+        "cost": 5,
+        "icon": "🗄️",
+        "name": { "es": "Archivo básico", "en": "Basic archive" },
+        "desc": { "es": "Se guardan los datos crudos tal como llegan. Barato, pero los científicos deberán calibrarlos ellos mismos.", "en": "Raw data is stored as received. Cheap, but scientists must calibrate it themselves." }
+      },
+      {
+        "id": "standard",
+        "level": 2,
+        "cost": 8,
+        "icon": "🧪",
+        "name": { "es": "Procesamiento estándar", "en": "Standard processing" },
+        "desc": { "es": "Calibración y productos de datos listos para usar, publicados en un archivo científico abierto.", "en": "Calibrated, ready-to-use data products published in an open science archive." }
+      },
+      {
+        "id": "advanced",
+        "level": 3,
+        "cost": 12,
+        "icon": "🧠",
+        "name": { "es": "Análisis avanzado", "en": "Advanced analysis" },
+        "desc": { "es": "Procesamiento casi en tiempo real, modelos y herramientas para que más equipos exploten la ciencia.", "en": "Near-real-time processing, models and tools so more teams can exploit the science." }
+      }
+    ]
+  }
+}

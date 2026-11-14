@@ -7,23 +7,25 @@
   <meta name="description" content="Space Mission Design Game — NASA Space Apps 2026">
   <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🚀</text></svg>">
   <link rel="stylesheet" href="css/base.css">
-  <link rel="stylesheet" href="css/screens/mission.css">
-  <link rel="stylesheet" href="css/screens/workshop.css">
-  <link rel="stylesheet" href="css/screens/journey.css">
-  <link rel="stylesheet" href="css/screens/report.css">
+  <link rel="stylesheet" href="css/screens/menu.css">
+  <!-- Los CSS de cada nivel se cargan al abrirlo (js/levels.js). -->
 </head>
 <body>
   <!-- OWNER: Rol 1. Las pantallas generan su propio DOM dentro de cada <section>. -->
   <header class="app-header">
-    <div class="brand">🚀 <span data-i18n="common.appName"></span></div>
-    <nav class="steps" id="steps"></nav>
+    <button class="brand" type="button">🚀 <span data-i18n="common.appName"></span></button>
+    <nav class="steps" id="steps" hidden></nav>
     <div class="header-right">
-      <span class="pill" id="hud-budget"></span>
+      <span class="pill" id="hud-budget" hidden></span>
+      <button class="btn btn-ghost" id="nav-levels" type="button" data-i18n="common.levelsNav" hidden></button>
       <button class="btn btn-ghost" id="lang-toggle" type="button">EN</button>
     </div>
   </header>
 
   <main id="app">
+    <p class="error" id="app-error" role="alert" hidden></p>
+    <section class="screen" id="screen-start" hidden></section>
+    <section class="screen" id="screen-levels" hidden></section>
     <section class="screen" id="screen-mission" hidden></section>
     <section class="screen" id="screen-workshop" hidden></section>
     <section class="screen" id="screen-journey" hidden></section>

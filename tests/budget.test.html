@@ -1,0 +1,64 @@
+<!doctype html>
+<!-- OWNER: Rol 3 — abrir en http://localhost:8000/tests/budget.test.html -->
+<html lang="es"><head><meta charset="utf-8"><title>Budget tests</title>
+<style>body{font:14px monospace;background:#111;color:#ddd;padding:16px}.ok{color:#4ade80}.fail{color:#f87171}</style></head>
+<body><h1>budget.js (Nivel 1 · tarjetas)</h1><ul id="out"></ul>
+<script type="module">
+import { evaluatePlan, cardCatalog } from '../js/budget.js';
+import { validateDesign } from '../js/physics.js';
+const out = document.getElementById('out');
+const check = (name, cond) => { const li = document.createElement('li'); li.className = cond ? 'ok' : 'fail'; li.textContent = (cond ? 'PASS ' : 'FAIL ') + name; out.append(li); };
+const load = (f) => fetch(`../data/${f}.json`).then((r) => r.json());
+const [missions, rockets, pieces, segments] = await Promise.all(['missions', 'rockets', 'pieces', 'segments'].map(load));
+const data = { missions, rockets, pieces, segments };
+const plan = (missionId, [launch, space, ground, user], extra = {}) => evaluatePlan({
+  missionId, budget: { total: 0 },
+  plan: { projectName: 'Prueba', scienceTargetIdx: 0, cards: { launch, space, ground, user }, ...extra },
+}, data);
+const kinds = (ev) => ev.flags.map((f) => `${f.kind}${f.segment ? ':' + f.segment : ''}`);
+
+// Punto óptimo: cada destino tiene una misión que pasa sin penalización (CML 4)
+const optimal = {
+  moon: ['pico', 'space-near', 'ground-uhf', 'standard'],
+  mars: ['medio', 'space-interplanetary', 'ground-commercial', 'standard'],
+  europa: ['pesado', 'space-deep', 'ground-dsn', 'standard'],
+};
+for (const [m, cards] of Object.entries(optimal)) {
+  const ev = plan(m, cards);
+  check(`${m}: misión óptima pasa sin penalización, CML 4 (${kinds(ev)})`, ev.ready && ev.penalty === 0 && ev.cmlCap === 4);
+}
+
+// Integración con el Taller: el presupuesto Espacio de la tarjeta mínima alcanza el diseño de referencia (docs/fuentes.md)
+const ref = {
+  moon: ['pico', 'struct-6u', ['solar-body', 'battery', 'prop-green', 'comm-uhf', 'obc', 'inst-camera'], 2.5],
+  mars: ['medio', 'struct-12u', ['solar-deploy', 'solar-body', 'battery', 'prop-green', 'comm-x', 'adcs', 'obc', 'inst-camera', 'inst-mag'], 6],
+  europa: ['pesado', 'struct-12u', ['rtg-mini', 'solar-deploy', 'prop-ion', 'comm-x', 'obc', 'inst-mag', 'inst-camera'], 1.5],
+};
+const catalog = cardCatalog(data);
+for (const [m, [rocketId, ff, list, prop]] of Object.entries(ref)) {
+  const space = catalog.space.find((c) => c.id === optimal[m][1]).cost;
+  const r = validateDesign({ missionId: m, rocketId, budget: { space }, satellite: { formFactor: ff, pieces: list, propellantKg: prop } }, data);
+  check(`${m}: con $${space}M de Espacio el Taller permite el diseño de referencia ${r.valid ? '' : '→ falla: ' + r.checks.filter((c) => !c.ok).map((c) => c.id)}`, r.valid);
+}
+
+// Lo que NO se debe hacer
+const rideshare = plan('moon', ['medio', 'space-near', 'ground-uhf', 'standard']);
+check('cohete más grande de lo necesario → sobredimensionado, pasa pero baja a CML 3', kinds(rideshare).includes('oversized:launch') && rideshare.ready && rideshare.cmlCap === 3);
+const dsnMoon = plan('moon', ['pico', 'space-near', 'ground-dsn', 'standard']);
+check('DSN para la Luna → sobredimensionado (tierra)', kinds(dsnMoon).includes('oversized:ground'));
+const margin = plan('moon', ['pico', 'space-interplanetary', 'ground-uhf', 'standard']);
+check('un nivel por encima en Espacio → "con margen", sin penalización', margin.segments.space.status === 'margin' && margin.penalty === 0);
+const maxed = plan('moon', ['pesado', 'space-deep', 'ground-dsn', 'advanced']);
+check('todo al máximo en la Luna → excede presupuesto, bloquea, CML 1', !maxed.ready && kinds(maxed).includes('overBudget') && maxed.cmlCap === 1);
+
+// Subfinanciación / omisión → no deja avanzar
+const smallRocket = plan('mars', ['pico', 'space-interplanetary', 'ground-commercial', 'standard']);
+check('cohete que no alcanza Marte → insuficiente, bloquea', !smallRocket.ready && smallRocket.blockers.some((b) => b.id === 'insufficient' && b.segment === 'launch'));
+const weakGround = plan('europa', ['pesado', 'space-deep', 'ground-commercial', 'standard']);
+check('antenas insuficientes para Europa → bloquea', !weakGround.ready && weakGround.segments.ground.status === 'insufficient');
+const noGround = plan('europa', ['pesado', 'space-deep', null, 'standard']);
+check('omitir el segmento Tierra → bloquea', !noGround.ready && noGround.blockers.some((b) => b.id === 'missing' && b.segment === 'ground'));
+const empty = plan('moon', [null, null, null, null], { projectName: ' ', scienceTargetIdx: null });
+check('sin nombre, objetivo ni tarjetas → 6 bloqueos', empty.blockers.length === 6 && empty.spent === 0);
+check('madurez siempre en 0..100', [rideshare, dsnMoon, maxed, smallRocket, empty].every((e) => e.maturity >= 0 && e.maturity <= 100));
+</script></body></html>

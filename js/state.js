@@ -6,15 +6,29 @@ export const TOTAL_BUDGET = 150; // millones de USD
 function initialState() {
   return {
     lang: 'es',
-    screen: 'mission',
+    screen: 'start',       // 'start' | 'levels' | id de nivel (js/levels.js)
     missionId: null,       // id de data/missions.json
     rocketId: null,        // id de data/rockets.json
     budget: {              // millones USD; launch+space+ground+user <= total
-      total: TOTAL_BUDGET,
-      launch: 60,
-      space: 50,
-      ground: 25,
-      user: 15,
+      total: TOTAL_BUDGET, // el Nivel 1 lo fija al presupuesto del destino
+      launch: 0,           // cada segmento = costo de la tarjeta elegida en el Nivel 1
+      space: 0,
+      ground: 0,
+      user: 0,
+    },
+    plan: {                // Nivel 1 (Rol 3): decisiones de misión y madurez inicial. Ver docs/levelOne.md
+      projectName: '',
+      scienceTargetIdx: null, // índice en missions[].scienceTargets
+      cards: {                // tarjeta elegida por segmento (ids de js/budget.js → cardCatalog)
+        launch: null,         // id de rockets.json (se copia también en rocketId)
+        space: null,
+        ground: null,
+        user: null,
+      },
+      maturity: 100,          // 0..100 tras penalizaciones por gestión del presupuesto
+      penalty: 0,             // puntos restados
+      cmlCap: 4,              // tope de CML (1..4) que permite el reparto del presupuesto
+      validated: false,       // true al pulsar "Validar misión"
     },
     satellite: {
       formFactor: null,    // id de pieza con category "structure" (ej. "struct-6u")

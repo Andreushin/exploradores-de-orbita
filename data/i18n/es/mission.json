@@ -1,36 +1,127 @@
 {
-  "title": "Elige tu destino",
-  "intro": "Toda misión científica se divide en cuatro segmentos: Lanzamiento, Espacio, Tierra y Usuario. Elige un destino y reparte tu presupuesto.",
+  "title": "Nivel 1 · Diseña tu misión",
+  "intro": "Toda misión científica de la NASA se arma con cuatro segmentos: Lanzamiento, Espacio, Tierra y Usuario. Primero define qué vas a estudiar; luego elige una tarjeta por segmento y llévala a tu misión. Ojo: el presupuesto no lo es todo. Lo que no alcanza pone en riesgo la misión, y lo que sobra sin justificación baja tu madurez (CML).",
+  "projectLabel": "Nombre del proyecto",
+  "projectPlaceholder": "Ej. Colibrí Lunar",
+  "pickMission": "Elige un destino para ver sus requerimientos y desbloquear las tarjetas de la misión.",
+  "sections": {
+    "objective": { "title": "Requerimientos científicos", "question": "¿Qué fenómeno o destino remoto vamos a estudiar, y por qué?" },
+    "segments": { "title": "Segmentos de la misión", "question": "Arrastra (o pulsa «Añadir») una tarjeta por segmento hacia «Misión configurada». Cada costo se descuenta del presupuesto." },
+    "launch": { "question": "¿Qué cohete y servicios de lanzamiento nos llevan a la órbita objetivo?" },
+    "space": { "question": "¿Qué nave (CubeSat) hará la ciencia?" },
+    "ground": { "question": "¿Qué estaciones y antenas recibirán los datos?" },
+    "user": { "question": "¿Cómo procesarán y analizarán los datos los científicos?" }
+  },
   "difficulty": "Dificultad",
-  "distance": "Distancia al Sol",
-  "budget": "Presupuesto",
-  "rocketTitle": "Elige tu cohete",
-  "cost": "Costo",
-  "payload": "Carga útil máx.",
-  "reliability": "Confiabilidad",
-  "cantReach": "No alcanza este destino",
-  "segmentsTitle": "Reparte el presupuesto",
-  "segmentsHelp": "El segmento Espacio paga tu CubeSat; Tierra mejora la recepción de datos; Usuario mejora el análisis científico.",
-  "segments": {
+  "maxBudget": "Presupuesto máximo",
+  "targetTitle": "Elige el objetivo científico:",
+  "reqTitle": "Lo que exige {dest}",
+  "req": {
+    "dv": "Δv de inserción ≥ {dv} m/s",
+    "sun": "Luz solar: {pct}% de la terrestre",
+    "power": "Potencia mínima: {w} W",
+    "travel": "Viaje: {days} días"
+  },
+  "segReq": {
+    "launch": "un cohete capaz de llegar a {dest}.",
+    "atLeast": "{name} o superior.",
+    "user": "cualquier enfoque; más nivel = más ciencia, pero cuesta más."
+  },
+  "reqHelp": "Los requisitos científicos dictan la ingeniería: elige en cada segmento lo que el destino necesita, ni menos (fallaría) ni mucho más (desperdicio).",
+  "bar": {
+    "label": "Presupuesto de la misión",
+    "total": "Presupuesto máximo",
+    "spent": "Asignado",
+    "available": "Disponible",
+    "cml": "Madurez inicial",
+    "cmlValue": "CML {cml} · {maturity}/100"
+  },
+  "cap": {
+    "launch": "Alcanza: {dests} · Carga útil {kg} kg",
+    "space": "Clase de nave: nivel {lvl} de 3",
+    "ground": "Comunicaciones: nivel {lvl} de 3",
+    "user": "Aprovechamiento científico: nivel {lvl} de 3"
+  },
+  "info": {
+    "open": "Información sobre {name}",
+    "considerTitle": "Qué se tiene en cuenta",
+    "avoidTitle": "Qué NO se debe hacer",
+    "close": "Entendido",
     "launch": {
-      "name": "Lanzamiento",
-      "help": "Debe cubrir el costo del cohete."
+      "consider": "El costo real del cohete y sus servicios, la carga útil que puede llevar y, sobre todo, si tiene la energía para enviar la nave a tu destino.",
+      "avoid": "Pagar un cohete mucho más grande de lo necesario: no mejora la ciencia y le quita dinero a los demás segmentos. Tampoco elijas uno que no alcanza el destino."
     },
     "space": {
-      "name": "Espacio",
-      "help": "Componentes del CubeSat."
+      "consider": "La nave debe sobrevivir y operar donde vas: energía disponible (la luz solar cae con la distancia), comunicaciones, propulsión e instrumentos.",
+      "avoid": "Comprar una nave de espacio profundo para un destino cercano (sobrefinanciación sin justificación) o una nave cercana para un destino lejano (fallo técnico)."
     },
     "ground": {
-      "name": "Tierra",
-      "help": "Antenas y Red de Espacio Profundo."
+      "consider": "La distancia define cuánta antena necesitas para escuchar a la nave. Más lejos = antenas más grandes y más horas de contacto.",
+      "avoid": "Contratar la Red de Espacio Profundo para la Luna (capital ocioso) o descuidar este segmento: sin estaciones terrenas, los datos nunca llegan."
     },
     "user": {
-      "name": "Usuario",
-      "help": "Procesamiento y archivo de datos científicos."
+      "consider": "Los datos solo valen si alguien los procesa, calibra y publica. Un mejor enfoque multiplica la ciencia que obtienes.",
+      "avoid": "Olvidar este segmento: una misión sin procesamiento de datos gasta todo su presupuesto y no entrega resultados científicos."
     }
   },
-  "errNoRocket": "Elige un cohete.",
-  "errLaunch": "El segmento Lanzamiento necesita al menos ${cost}M.",
-  "errOver": "Te pasaste: ${spent}M de ${total}M.",
-  "ready": "Listo. Te sobran ${left}M de reserva."
+  "add": "Añadir →",
+  "remove": "← Quitar",
+  "bank": {
+    "title": "Opciones disponibles",
+    "help": "Banco de tarjetas por segmento. Pulsa «?» para saber qué considerar."
+  },
+  "config": {
+    "title": "Misión configurada",
+    "help": "Área de aceptación: una tarjeta por segmento. Suelta aquí una nueva para reemplazar la anterior.",
+    "empty": "Arrastra aquí una tarjeta de {seg}"
+  },
+  "segments": {
+    "launch": { "name": "Lanzamiento" },
+    "space": { "name": "Espacio" },
+    "ground": { "name": "Tierra" },
+    "user": { "name": "Usuario" }
+  },
+  "status": {
+    "empty": "Vacío",
+    "insufficient": "Insuficiente",
+    "optimal": "Justo lo necesario",
+    "margin": "Con margen",
+    "oversized": "Sobredimensionado"
+  },
+  "flagTitle": {
+    "insufficient": "Insuficiente (bloquea)",
+    "oversized": "Sobrefinanciación sin justificación",
+    "overBudget": "Misión sobrefinanciada o financieramente inviable"
+  },
+  "flags": {
+    "insufficient": {
+      "launch": "{name} no tiene la energía para enviar la nave a {dest}. Sin un lanzamiento adecuado, la misión no existe.",
+      "space": "{name} no está pensada para {dest}: le faltaría energía, protección o comunicaciones. Necesitas al menos «{required}». Riesgo de fallo técnico.",
+      "ground": "{dest} exige comunicaciones de nivel {req} y esta red solo llega a nivel {lvl}. Los datos no llegarían a la Tierra. Necesitas al menos «{required}».",
+      "user": "Este enfoque no alcanza para lo que exige {dest}."
+    },
+    "oversized": {
+      "launch": "Para {dest} basta un cohete más pequeño: pagas ${extra}M por capacidad que la misión no usa.",
+      "space": "{dest} no necesita «{name}»: son ${extra}M en capacidad sin justificación técnica.",
+      "ground": "Para {dest} no hace falta «{name}»: ${extra}M en antenas que la misión no aprovecha.",
+      "user": "Gastas ${extra}M más de lo que el equipo de datos puede aprovechar."
+    },
+    "overBudget": "La misión cuesta ${spent}M y el tope es ${total}M (te pasas ${over}M). Ninguna revisión de diseño de la NASA aprueba una misión que excede su presupuesto: cambia o quita tarjetas."
+  },
+  "review": {
+    "title": "Revisión de diseño",
+    "start": "Lleva una tarjeta de cada segmento a «Misión configurada». Aquí verás si la misión pasa la revisión.",
+    "clean": "Misión equilibrada: cada segmento cubre lo que exige el destino, sin capital desperdiciado."
+  },
+  "blockersTitle": "Para continuar te falta:",
+  "blockers": {
+    "name": "Ponerle nombre al proyecto.",
+    "mission": "Elegir un destino.",
+    "science": "Elegir el objetivo científico.",
+    "missing": "Incluir el segmento de {seg} (es obligatorio).",
+    "insufficient": "Cambiar la tarjeta de {seg}: no cumple lo que exige el destino.",
+    "overBudget": "Recortar ${over}M: la misión excede el presupuesto."
+  },
+  "ready": "«{name}» pasa la revisión. CML máximo alcanzable: {cml}.",
+  "validate": "Siguiente: Taller del CubeSat →"
 }

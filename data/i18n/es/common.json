@@ -4,6 +4,7 @@
   "budgetHud": "Presupuesto: ${spent}M / ${total}M",
   "next": "Siguiente →",
   "back": "← Atrás",
+  "levelsNav": "☰ Niveles",
   "steps": {
     "mission": "Misión",
     "workshop": "Taller",
