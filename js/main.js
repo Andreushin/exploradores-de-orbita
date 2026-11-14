@@ -10,7 +10,7 @@ import levelsScreen from './screens/levels.js';
 
 // CONTRATO de pantalla: { id, mount(container, ctx), unmount() }
 const MENUS = { start: startScreen, levels: levelsScreen };
-const DATA_FILES = ['missions', 'rockets', 'pieces', 'events', 'segments', 'workshop'];
+const DATA_FILES = ['missions', 'rockets', 'pieces', 'events', 'segments'];
 
 const data = {};
 const loaded = new Map(); // id de nivel → módulo de pantalla ya descargado

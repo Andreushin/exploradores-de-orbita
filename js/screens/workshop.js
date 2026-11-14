@@ -1,5 +1,9 @@
 // OWNER: Rol 3 — Pantalla 2: Taller CubeSat (CubeSat 101).
 // Estado que escribe: satellite.{formFactor,pieces,propellantKg}, journey.dvAvailable
+import { grams, meterData, rocketOverload } from '../taller-reglas.js';
+
+// Reglas puras en js/taller-reglas.js (las comparte nivel2/). Se reexportan para no romper importaciones.
+export { WARN_AT, DV_MARGIN, limitLevel, dvLevel, meterData, rocketOverload } from '../taller-reglas.js';
 
 const CATEGORIES = ['structure', 'power', 'propulsion', 'comms', 'adcs', 'obc', 'instrument'];
 let ctx;
@@ -13,54 +17,6 @@ function el(tag, cls, html) {
 }
 
 const fmt = (n, d = 1) => Number(n).toFixed(d);
-/** Gramos con separador de miles fino: 15960 → "15 960". */
-const grams = (kg) => String(Math.round(kg * 1000)).replace(/\B(?=(\d{3})+(?!\d))/g, ' ');
-
-// --- Medidores en vivo (#14 · Nivel 2) ---
-export const WARN_AT = 0.85;  // amarillo desde el 85 % del límite
-export const DV_MARGIN = 1.1; // Δv: verde con ≥10 % de margen sobre el requerido
-
-/** Nivel de una métrica con límite superior (masa, costo, consumo): ok | warn | danger. */
-export function limitLevel(value, limit) {
-  if (!(limit > 0)) return value > 0 ? 'danger' : 'ok';
-  const r = value / limit;
-  if (r > 1) return 'danger';
-  return r >= WARN_AT ? 'warn' : 'ok';
-}
-
-/** Nivel del Δv, donde más es mejor. */
-export function dvLevel(dv, required) {
-  if (!(required > 0)) return 'ok';
-  if (dv < required) return 'danger';
-  return dv / required < DV_MARGIN ? 'warn' : 'ok'; // proporción: evita 1800 × 1.1 = 1980.0000000000002
-}
-
-/** Datos de los 4 medidores a partir de physics.validateDesign(...).metrics. */
-export function meterData(m, mission, spaceBudget) {
-  const pct = (v, max) => {
-    if (max > 0) return Math.min(100, (v / max) * 100);
-    return v > 0 ? 100 : 0;
-  };
-  const req = mission?.dvRequired || 0;
-  const dvScale = req > 0 ? Math.max(req * 1.3, m.dv * 1.05) : Math.max(m.dv, 1);
-  const massCap = m.massCap === Infinity ? 0 : m.massCap;
-  const minW = mission?.minPowerW || 0;
-  const powerLow = m.power.generated < minW;
-  return {
-    dv: { pct: pct(m.dv, dvScale), level: dvLevel(m.dv, req), required: req, markerPct: req > 0 ? (req / dvScale) * 100 : null },
-    mass: { pct: pct(m.wet, massCap), level: limitLevel(m.wet, massCap), cap: massCap },
-    power: { pct: pct(m.power.consumed, m.power.generated), level: powerLow ? 'danger' : limitLevel(m.power.consumed, m.power.generated), minW, powerLow },
-    cost: { pct: pct(m.cost, spaceBudget), level: limitLevel(m.cost, spaceBudget) },
-  };
-}
-
-/** ¿El cohete es el límite que manda y la masa lo supera? (si no, lo marca la estructura). */
-export function rocketOverload(m, rocket) {
-  if (!rocket || !(m.capU > 0)) return false;
-  // massCap = min(estructura, carga útil): si es la carga útil, manda el cohete
-  return rocket.maxPayloadKg <= m.massCap && m.wet > rocket.maxPayloadKg;
-}
-
 function meterHTML({ label, value, d, aria, note, marker }) {
   const tight = d.level === 'warn' ? ` · ${ctx.t('workshop.tight')}` : '';
   return `
@@ -110,29 +66,6 @@ function renderMeters(box, state) {
   ].join('');
 }
 
-// --- Compatibilidad de instrumentos con el objetivo científico del Nivel 1 (data/workshop.json) ---
-
-/**
- * ¿Sirve este instrumento para el objetivo elegido? Sin objetivo (o sin datos) todo es compatible.
- * @returns {{ compatible: boolean, why: {es,en} | null }}
- */
-export function instrumentStatus(piece, state, fitData) {
-  if (piece.category !== 'instrument') return { compatible: true, why: null };
-  const entry = fitData?.[state.missionId]?.[state.plan?.scienceTargetIdx]?.[piece.id];
-  if (!entry) return { compatible: true, why: null };
-  return { compatible: entry.ok, why: entry.why };
-}
-
-/** Ids de instrumentos elegidos que no sirven para el objetivo actual. */
-export function incompatibleSelected(state, data) {
-  return state.satellite.pieces.filter((id) => {
-    const p = data.pieces.find((x) => x.id === id);
-    return p && !instrumentStatus(p, state, data.workshop?.instrumentFit).compatible;
-  });
-}
-
-let removedNotice = []; // nombres quitados automáticamente al entrar al taller
-
 function togglePiece(p) {
   const sat = ctx.state.satellite;
   if (p.category === 'structure') {
@@ -157,13 +90,6 @@ function render() {
   root.replaceChildren();
 
   root.append(el('h1', null, t('workshop.title')), el('p', 'lead', t('workshop.intro')));
-  const mission = data.missions.find((x) => x.id === state.missionId);
-  const target = mission?.scienceTargets?.[state.plan?.scienceTargetIdx];
-  if (target) root.append(el('p', 'objective-banner', `🎯 ${t('workshop.objective', { target: tx(target) })}`));
-  if (removedNotice.length) {
-    root.append(el('p', 'warn removed-notice', t('workshop.removedIncompatible', { list: removedNotice.join(', ') })));
-  }
-  const fit = data.workshop?.instrumentFit;
   const layout = el('div', 'workshop-layout');
 
   // --- Catálogo ---
@@ -173,26 +99,12 @@ function render() {
     const list = el('div', 'piece-list');
     for (const p of data.pieces.filter((x) => x.category === cat)) {
       const selected = p.id === sat.formFactor || sat.pieces.includes(p.id);
-      const fitInfo = instrumentStatus(p, state, fit);
-      const b = el('button', 'piece' + (selected ? ' is-selected' : '') + (fitInfo.compatible ? '' : ' is-incompatible'));
+      const b = el('button', 'piece' + (selected ? ' is-selected' : ''));
       b.type = 'button';
       b.title = tx(p.desc);
-      b.disabled = !fitInfo.compatible;
-      // Nombre primero: el E2E busca la pieza por el inicio de su nombre accesible.
-      let extra = '';
-      if (p.category === 'structure') {
-        const form = data.workshop?.formFactors?.[p.id];
-        extra = `<small class="piece-hint">${form ? `${tx(form)} · ` : ''}${t('workshop.maxMass', { n: grams(p.volumeU * physics.KG_PER_U) })}</small>`;
-      } else if (fitInfo.why) {
-        extra = `<small class="piece-why" id="why-${p.id}">${fitInfo.compatible ? '✔' : '✘'} ${tx(fitInfo.why)}</small>`;
-        b.setAttribute('aria-describedby', `why-${p.id}`);
-      }
       b.innerHTML = `<strong>${tx(p.name)}</strong>
-        <small>${grams(p.massKg)} g · ${p.volumeU}U · ${p.powerW > 0 ? '−' : '+'}${Math.abs(p.powerW)} W · $${p.cost}M · TRL ${p.trl}${p.isp ? ` · Isp ${p.isp}s` : ''}</small>${extra}`;
-      b.addEventListener('click', () => {
-        removedNotice = [];
-        togglePiece(p);
-      });
+        <small>${fmt(p.massKg)} kg · ${p.volumeU}U · ${p.powerW > 0 ? '−' : '+'}${Math.abs(p.powerW)} W · $${p.cost}M · TRL ${p.trl}${p.isp ? ` · Isp ${p.isp}s` : ''}</small>`;
+      b.addEventListener('click', () => togglePiece(p));
       list.append(b);
     }
     catalog.append(list);
@@ -251,10 +163,6 @@ export default {
   mount(container, context) {
     ctx = context;
     root = container;
-    // Si el objetivo del Nivel 1 cambió, quitar los instrumentos que ya no sirven y avisar.
-    const bad = incompatibleSelected(ctx.state, ctx.data);
-    removedNotice = bad.map((id) => ctx.tx(ctx.data.pieces.find((p) => p.id === id).name));
-    if (bad.length) ctx.update({ satellite: { pieces: ctx.state.satellite.pieces.filter((id) => !bad.includes(id)) } });
     render();
   },
   unmount() {},

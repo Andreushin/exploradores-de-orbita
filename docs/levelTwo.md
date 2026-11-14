@@ -3,6 +3,7 @@
 > Referencia para revisar y mantener el Nivel 2. **Owner:** Rol 3.
 > **Recurso NASA:** CubeSat 101 — *Basic Concepts and Processes for First-Time CubeSat Developers*.
 > **Inspiración UX:** *A Learning Game About Telescopes* (opciones incompatibles en gris con su explicación).
+> **Página aislada:** `nivel2/` (especificación en [`nivel 2.md`](nivel%202.md) y contrato en [`contrato-niveles.md`](contrato-niveles.md)).
 > **Relacionados:** [`levelOne.md`](levelOne.md) · [`context.md`](context.md) · [`fuentes.md`](fuentes.md)
 
 ## Índice
@@ -26,8 +27,8 @@
 | **Qué enseña** | La ciencia elegida dicta qué instrumentos sirven, y la masa, la energía y el presupuesto limitan lo que se puede llevar. |
 | **Qué hace el jugador** | Elige estructura (3U / 6U / 12U), energía, propulsión, radio, control de actitud, computadora e instrumentos, y carga el propelente. |
 | **Cómo gana** | Pasa las 11 verificaciones de `physics.validateDesign` → **🚀 Lanzar**. |
-| **Cómo entra** | Desde el Nivel 1 validado (**Siguiente: Taller del CubeSat**) o **☰ Niveles → Nivel 2**. |
-| **Cómo sale** | **🚀 Lanzar** guarda `journey.dvAvailable` y abre el Nivel 3 (Travesía). |
+| **Cómo entra** | `nivel2/` (desde el Nivel 1 o el menú, cuando `js/levels.js` tenga `folder: 2`; ver §10). Sin misión guardada abre en **modo demo**. |
+| **Cómo sale** | **🚀 Validar y lanzar** guarda `satellite` con su resumen y abre `nivel3/`. **← Nivel 1** vuelve a la app principal. |
 
 ---
 
@@ -93,18 +94,20 @@ Sin objetivo elegido (`plan.scienceTargetIdx == null`), todo es compatible. Así
 
 ## 5. Datos que lee y guarda
 
-| Lee | De | Para |
-|---|---|---|
-| `missionId`, `plan.scienceTargetIdx` | Nivel 1 | Requisitos del destino y compatibilidad de instrumentos |
-| `rocketId` | Nivel 1 | Carga útil (límite de masa y aviso del cohete) |
-| `budget.space` | Nivel 1 | Límite de costo |
+Usa el helper `js/mision-store.js` (clave `eo-mision`, ver `docs/contrato-niveles.md`). **Solo escribe la sección `satellite`.**
 
-| Escribe | Contenido |
+| Lee | Del Nivel 1 | Para |
+|---|---|---|
+| `missionId`, `plan.scienceTargetIdx` | destino y objetivo | requisitos del destino y compatibilidad de instrumentos |
+| `rocketId` | cohete | carga útil (límite de masa y aviso del cohete) |
+| `budget.space` | segmento Espacio | límite de costo |
+
+| Escribe | Cuándo |
 |---|---|
-| `satellite.formFactor` | Id de la estructura |
-| `satellite.pieces` | Ids de las piezas (quita los instrumentos incompatibles al entrar) |
-| `satellite.propellantKg` | Propelente cargado |
-| `journey.dvAvailable` (al lanzar) | Δv del diseño. Desbloquea el Nivel 3 (`js/levels.js`) |
+| `satellite.{formFactor, pieces, propellantKg}` + `validated: false` | en cada cambio (también si quita instrumentos incompatibles al entrar) |
+| `satellite.{dryKg, wetKg, isp, dvAvailable, maxPayloadKg}` + `validated: true` | al pulsar **🚀 Validar y lanzar** |
+
+**Modo demo:** si no hay misión, o le falta destino, cohete o `budget.space`, usa la Luna con el Colibrí, el objetivo «Hielo en cráteres polares» y el diseño de referencia. Mientras se edita no guarda nada. Al lanzar guarda la misión de ejemplo **solo si `eo-mision` está vacío**, así nunca pisa un Nivel 1 a medias.
 
 ---
 
@@ -112,11 +115,14 @@ Sin objetivo elegido (`plan.scienceTargetIdx == null`), todo es compatible. Así
 
 | Archivo | Responsabilidad |
 |---|---|
-| `js/screens/workshop.js` | UI del taller. Funciones puras exportadas: `limitLevel`, `dvLevel`, `meterData`, `rocketOverload`, `instrumentStatus`, `incompatibleSelected` |
-| `css/screens/workshop.css` | Catálogo, medidores, instrumentos en gris, encabezado del objetivo |
+| `nivel2/index.html` | Página aislada: encabezado, botón ES/EN, catálogo y panel |
+| `nivel2/nivel2.js` | UI, modo demo y lectura/escritura del contrato. Exporta `pickMission`, `satelliteSummary` y `DEMO` para las pruebas |
+| `nivel2/nivel2.css` | Estilos aislados; todas las clases llevan el prefijo `n2-` |
+| `nivel2/textos.js` | Textos ES/EN del nivel |
+| `js/taller-reglas.js` | Reglas puras, sin DOM: `limitLevel`, `dvLevel`, `meterData`, `rocketOverload`, `grams`, `instrumentStatus`, `incompatibleSelected`. También las usa `js/screens/workshop.js` |
 | `data/workshop.json` | Compatibilidad instrumento ↔ objetivo y descripción de 3U / 6U / 12U |
-| `data/i18n/{es,en}/workshop.json` | Textos |
-| `data/pieces.json`, `js/physics.js` | Piezas y reglas físicas (Rol 2) |
+| `js/physics.js`, `data/pieces.json` | Piezas y reglas físicas (Rol 2), importadas sin copiar fórmulas |
+| `js/mision-store.js` | Contrato entre niveles (Rol 1) |
 
 ---
 
@@ -124,16 +130,22 @@ Sin objetivo elegido (`plan.scienceTargetIdx == null`), todo es compatible. Así
 
 ```bash
 python3 -m http.server 8000
-# Juego:   http://localhost:8000
-# Pruebas: http://localhost:8000/tests/physics.test.html
+# Nivel 2: http://localhost:8000/nivel2/
+```
+
+En la consola del navegador:
+```js
+localStorage.removeItem('eo-mision')   // empezar de cero → modo demo
+JSON.parse(localStorage.getItem('eo-mision')).satellite   // ver lo que guardó el nivel
 ```
 
 Recorrido manual sugerido (en ES y EN, escritorio y 360 px):
-1. Completa el Nivel 1 con **Marte · metano** y entra al Taller. Solo el espectrómetro está activo, y el resto aparece en gris con su razón.
-2. Vuelve al Nivel 1, cambia a **campo magnético** y regresa. Si tenías el espectrómetro, se quita y aparece el aviso.
-3. Arrastra el propelente sin soltar: Δv y Masa cambian en vivo. Por debajo del requerido, Δv se pone rojo.
-4. Con el **Colibrí** y una estructura **12U** cargada, aparece el aviso del cohete y Lanzar queda deshabilitado.
-5. Arma un diseño de referencia (`docs/fuentes.md`) → **🚀 Lanzar** abre la Travesía.
+1. Sin datos: aparece el aviso **Modo demo** y el diseño de la Luna ya puede lanzarse.
+2. Completa el Nivel 1 con **Marte · metano** y abre `nivel2/`: solo el espectrómetro está activo, y el resto aparece en gris con su razón.
+3. Vuelve al Nivel 1, cambia a **campo magnético** y regresa: si tenías el espectrómetro, se quita y aparece el aviso.
+4. Arrastra el propelente sin soltar: Δv y Masa cambian en vivo.
+5. Con el **Colibrí** y una estructura **12U** cargada, aparece el aviso del cohete y Lanzar queda deshabilitado.
+6. **🚀 Validar y lanzar** → `satellite.validated: true` con su resumen, y se abre `nivel3/`.
 
 ---
 
@@ -144,14 +156,17 @@ Recorrido manual sugerido (en ES y EN, escritorio y 360 px):
 | Cambiar qué instrumento sirve para un objetivo | `data/workshop.json → instrumentFit` (`ok` + `why` en ES y EN) |
 | Agregar un objetivo a un destino | `missions.json → scienceTargets` (Rol 2) **y** una entrada en el mismo índice de `instrumentFit` |
 | Agregar un instrumento | `pieces.json` (Rol 2) **y** su entrada en cada objetivo de `instrumentFit` |
-| Cambiar los cortes de color | `WARN_AT` y `DV_MARGIN` en `js/screens/workshop.js` |
+| Cambiar los cortes de color | `WARN_AT` y `DV_MARGIN` en `js/taller-reglas.js` |
 | Cambiar la descripción de las estructuras | `data/workshop.json → formFactors` |
 
 ---
 
 ## 9. Decisiones de diseño
 
-- **Integrado en el sistema de niveles, no en una carpeta `nivel2/` aislada.** El borrador de la especificación pedía un `index.html` propio con `localStorage`. Se descartó por la misma razón que en el Nivel 1: el router, el estado compartido, el desbloqueo de niveles y el E2E dependen de que cada nivel sea una pantalla (`js/levels.js`).
+- **Página aislada en `nivel2/`**, como pide el contrato de #49 y como ya hace `nivel3/`. Se pasa la misión por `eo-mision` y no por el estado de la app.
+- **Lógica compartida en `js/taller-reglas.js`:** los medidores (#47) y la compatibilidad viven en un solo lugar. `nivel2/` y la pantalla `workshop` de la app los importan, así que no hay fórmulas copiadas.
+- **Textos propios (`nivel2/textos.js`):** no toca los i18n compartidos ni la prueba de traducciones de la app.
+- **Sin cambios en archivos del Rol 1:** el nivel carga sus propios datos (`../data/*.json`), así que no hace falta tocar `js/main.js`.
 - **3U / 6U / 12U, no 1U / 3U / 6U.** Los diseños viables de Marte y Europa necesitan 12U. Quitar 12U obligaría a rebalancear `pieces.json` (Rol 2) y los diseños de referencia.
 - **La compatibilidad la decide el objetivo científico.** Es la decisión del Nivel 1 que mejor muestra que "la ciencia dicta la ingeniería".
 - **Las incompatibilidades se basan en misiones reales**, para que la razón en gris enseñe algo concreto (por ejemplo, Galileo detectó el océano de Europa con un magnetómetro).
@@ -166,7 +181,9 @@ Recorrido manual sugerido (en ES y EN, escritorio y 360 px):
 
 ## 10. Pendientes
 
-- [ ] **E2E:** los diseños de referencia (`e2e/checkpoint.spec.mjs → REFERENCE`, Rol 1) deben elegir objetivo e instrumentos compatibles. Por ejemplo, Marte con cámara + magnetómetro no sirve para ningún objetivo de Marte: usar magnetómetro con "campo magnético", o espectrómetro con "metano".
+- [ ] **Activar la carpeta en el menú (Rol 1, `js/levels.js`):** en la entrada `workshop`, `folder: 2` y `done: (s) => s.satellite?.validated` (hoy es `s.journey.dvAvailable > 0`, que en el contrato escribe el Nivel 3). Con eso, el «Siguiente» del Nivel 1 y el menú redirigen a `nivel2/`.
+- [ ] Decidir si se retira la pantalla `js/screens/workshop.js` de la app cuando `nivel2/` quede activo. Hoy las dos usan `js/taller-reglas.js`, así que no se contradicen.
+- [ ] **E2E** (pausado en #46): cuando se reactive, los diseños de referencia deben elegir objetivo e instrumentos compatibles. Por ejemplo, Marte con cámara + magnetómetro no sirve para ningún objetivo de Marte: usar magnetómetro con «campo magnético» (sigue siendo válido: Δv 1382 m/s, 14.80 kg).
 - [ ] Prueba visual en navegador real (escritorio y celular, ES y EN).
 - [ ] #15: vista del CubeSat ensamblado con las U ocupadas.
 - [ ] #16: tooltips de CubeSat 101 por subsistema. Este nivel ya cubre instrumentos y estructuras.
