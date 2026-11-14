@@ -1,10 +1,13 @@
 {
   "title": "Mission report",
+  "project": "Mission «{name}»",
+  "noMission": "There is no mission to report yet. Start with Level 1.",
   "outcomes": {
     "orbit": "Your CubeSat is orbiting {dest} and returning data.",
     "eccentric": "Your CubeSat ended in an eccentric orbit around {dest}.",
     "flyby": "Your CubeSat flew past {dest}.",
-    "crash": "Your CubeSat impacted {dest}."
+    "crash": "Your CubeSat impacted {dest}.",
+    "no-fuel": "Your CubeSat ran out of propellant before entering orbit around {dest}."
   },
   "cmlTitle": "Concept Maturity Level (NASA CML)",
   "cml": {
@@ -13,15 +16,64 @@
     "3": "Trade space",
     "4": "Point design"
   },
+  "cmlExplain": {
+    "1": "The idea exists, but the design doesn't meet the constraints yet.",
+    "2": "The design is feasible, but the mission didn't stay in orbit.",
+    "3": "The mission works; there are still trade-offs to improve (orbit or science).",
+    "4": "A concrete design that meets its science goals with a good margin."
+  },
+  "cmlReached": "You reached CML {cml}: {name}.",
+  "cappedStep": "Capped by the Level 1 budget",
+  "hintsTitle": "How to reach a higher CML",
+  "hintsTitleMax": "Point design achieved!",
+  "reasons": {
+    "max": "You reached the highest maturity level in the game.",
+    "budget": "Your performance earned CML {base}, but the Level 1 budget split capped it at CML {cap}.",
+    "design": "The CubeSat doesn't meet every Workshop constraint.",
+    "insertion": "The insertion burn didn't leave the CubeSat in orbit.",
+    "eccentric": "You're in orbit, but it's eccentric: data arrives with gaps.",
+    "science": "The orbit is stable, but the science isn't enough for a point design."
+  },
+  "hints": {
+    "max": "Try a harder destination or get more science with less budget.",
+    "budget": "Go back to Level 1 and pick cards without oversizing or going over budget (maturity {maturity}/100, −{penalty} pts).",
+    "design": "Fix in the Workshop: {check}.",
+    "flyby": "Not enough braking: hold the insertion burn longer or carry more propellant.",
+    "crash": "Too much braking: release the burn before exceeding the required Δv.",
+    "eccentric": "Fine-tune the burn: a stable orbit needs 95% to 110% of the required Δv.",
+    "instruments": "Add another instrument: each one adds science, though a bit less every time.",
+    "ground": "Invest more in the Ground segment (up to ${full}M): more antennas = more data received.",
+    "user": "Invest more in the User segment (up to ${full}M): processed, archived data gets used better.",
+    "events": "During the cruise you lost {lost} science points to events: choose carefully.",
+    "general": "Aim for a science score of {min} or more with a stable orbit.",
+    "noFuel": "You ran out of propellant: lighten the spacecraft (less dry mass), carry more propellant or use higher-Isp propulsion."
+  },
   "scienceTitle": "Simulated science data",
   "score": "Science score: {score} / 100",
+  "eventScience": "events: {n}",
+  "targetsTitle": "Destination science goals",
+  "yourTarget": "your goal",
+  "loadingData": "Loading CubeSat data…",
+  "dataError": "Science data couldn't be loaded.",
+  "noInstruments": "Your CubeSat carried no instruments, so there is no science data.",
+  "flybyData": "Flyby: there were only a few minutes of observation, so data is sparse.",
+  "noFuelData": "With no propellant to brake, the CubeSat flew past: it only took a few measurements on the way.",
+  "crashData": "The CubeSat was lost before sending data.",
+  "noSignal": "No signal",
+  "legendRef": "NASA reference (conceptual)",
+  "legendYou": "Your CubeSat (simulated)",
+  "inspiredBy": "Inspired by {mission} · {instrument} ({year})",
+  "chartLabel": "{instrument} chart: {title}. {points} simulated measurements compared with a conceptual NASA reference.",
+  "simulatedNote": "Simulated data for educational purposes. Reference curves are a conceptual comparison with real NASA missions, not their original data. Lower science score = more noise.",
   "summaryTitle": "Engineering summary",
   "dvBudget": "Δv at launch",
   "dvUsed": "Δv used",
   "massLaunched": "Launch mass",
   "events": "Events faced",
+  "planMaturity": "Level 1 maturity: {maturity}/100 (CML cap {cap})",
   "learnTitle": "What you learned",
   "learn": "Every extra kilogram demands more propellant (rocket equation), solar power falls with the square of distance, and the Ground and User budgets decide how much science actually reaches scientists.",
+  "mainMenu": "Main menu",
   "redesign": "Redesign CubeSat",
   "newMission": "New mission"
 }

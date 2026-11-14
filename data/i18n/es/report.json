@@ -1,10 +1,13 @@
 {
   "title": "Reporte de misión",
+  "project": "Misión «{name}»",
+  "noMission": "Todavía no hay una misión para reportar. Empieza por el Nivel 1.",
   "outcomes": {
     "orbit": "Tu CubeSat orbita {dest} y envía datos.",
     "eccentric": "Tu CubeSat quedó en una órbita excéntrica alrededor de {dest}.",
     "flyby": "Tu CubeSat pasó de largo junto a {dest}.",
-    "crash": "Tu CubeSat impactó contra {dest}."
+    "crash": "Tu CubeSat impactó contra {dest}.",
+    "no-fuel": "Tu CubeSat se quedó sin propelente antes de entrar en órbita alrededor de {dest}."
   },
   "cmlTitle": "Nivel de madurez del concepto (CML de la NASA)",
   "cml": {
@@ -13,15 +16,64 @@
     "3": "Espacio de compromisos",
     "4": "Diseño puntual"
   },
+  "cmlExplain": {
+    "1": "La idea existe, pero el diseño todavía no cumple las restricciones.",
+    "2": "El diseño es posible, pero la misión no logró quedarse en órbita.",
+    "3": "La misión funciona; aún hay compromisos por mejorar (órbita o ciencia).",
+    "4": "Diseño concreto que cumple objetivos científicos con buen margen."
+  },
+  "cmlReached": "Alcanzaste CML {cml}: {name}.",
+  "cappedStep": "Limitado por el presupuesto del Nivel 1",
+  "hintsTitle": "Qué mejorar para subir de CML",
+  "hintsTitleMax": "¡Diseño puntual logrado!",
+  "reasons": {
+    "max": "Llegaste al nivel más alto de madurez del juego.",
+    "budget": "Tu desempeño daba CML {base}, pero el reparto del presupuesto del Nivel 1 lo limitó a CML {cap}.",
+    "design": "El CubeSat no cumple todas las restricciones del Taller.",
+    "insertion": "El quemado de inserción no dejó al CubeSat en órbita.",
+    "eccentric": "Quedaste en órbita, pero excéntrica: los datos llegan con interrupciones.",
+    "science": "La órbita es estable, pero la ciencia no alcanza para un diseño puntual."
+  },
+  "hints": {
+    "max": "Prueba un destino más difícil o consigue más ciencia con menos presupuesto.",
+    "budget": "Vuelve al Nivel 1 y elige tarjetas sin sobredimensionar ni pasarte del presupuesto (madurez {maturity}/100, −{penalty} pts).",
+    "design": "Corrige en el Taller: {check}.",
+    "flyby": "Faltó frenar: mantén el quemado de inserción más tiempo o lleva más propelente.",
+    "crash": "Frenaste de más: suelta el quemado antes de pasar el Δv requerido.",
+    "eccentric": "Afina el quemado: una órbita estable necesita entre 95% y 110% del Δv requerido.",
+    "instruments": "Agrega otro instrumento: cada uno suma ciencia, aunque cada vez un poco menos.",
+    "ground": "Invierte más en el segmento Tierra (hasta ${full}M): más antenas = más datos recibidos.",
+    "user": "Invierte más en el segmento Usuario (hasta ${full}M): datos procesados y archivados se aprovechan mejor.",
+    "events": "En la travesía perdiste {lost} pts de ciencia por los eventos: elige con cuidado.",
+    "general": "Busca un puntaje científico de {min} o más con órbita estable.",
+    "noFuel": "Te quedaste sin propelente: aligera el satélite (menos masa seca), lleva más propelente o usa una propulsión con más Isp."
+  },
   "scienceTitle": "Datos científicos simulados",
   "score": "Puntaje científico: {score} / 100",
+  "eventScience": "eventos: {n}",
+  "targetsTitle": "Objetivos científicos del destino",
+  "yourTarget": "tu objetivo",
+  "loadingData": "Cargando datos del CubeSat…",
+  "dataError": "No se pudieron cargar los datos científicos.",
+  "noInstruments": "Tu CubeSat no llevaba instrumentos, así que no hay datos científicos.",
+  "flybyData": "Sobrevuelo: solo hubo unos minutos de observación, así que hay pocos datos.",
+  "noFuelData": "Sin propelente para frenar, el CubeSat pasó de largo: solo tomó unos pocos datos al pasar.",
+  "crashData": "El CubeSat se perdió antes de enviar datos.",
+  "noSignal": "Sin señal",
+  "legendRef": "Referencia NASA (conceptual)",
+  "legendYou": "Tu CubeSat (simulado)",
+  "inspiredBy": "Inspirado en {mission} · {instrument} ({year})",
+  "chartLabel": "Gráfica de {instrument}: {title}. {points} mediciones simuladas comparadas con una referencia conceptual de la NASA.",
+  "simulatedNote": "Datos simulados con fines educativos. Las curvas de referencia son una comparación conceptual con misiones reales de la NASA, no sus datos originales. Menos puntaje científico = más ruido.",
   "summaryTitle": "Resumen de ingeniería",
   "dvBudget": "Δv al lanzar",
   "dvUsed": "Δv usado",
   "massLaunched": "Masa lanzada",
   "events": "Eventos enfrentados",
+  "planMaturity": "Madurez del Nivel 1: {maturity}/100 (tope CML {cap})",
   "learnTitle": "Lo que aprendiste",
   "learn": "Cada kilo extra exige más propelente (ecuación del cohete), la energía solar cae con el cuadrado de la distancia y el presupuesto de Tierra y Usuario decide cuánta ciencia llega realmente a los científicos.",
+  "mainMenu": "Menú principal",
   "redesign": "Rediseñar CubeSat",
   "newMission": "Nueva misión"
 }
