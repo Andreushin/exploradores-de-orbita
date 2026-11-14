@@ -1,0 +1,87 @@
+<!doctype html>
+<!-- OWNER: Rol 2 — abrir en http://localhost:8000/tests/report.test.html -->
+<html lang="es"><head><meta charset="utf-8"><title>Report (Nivel 4) tests</title>
+<style>body{font:14px monospace;background:#111;color:#ddd;padding:16px}.ok{color:#4ade80}.fail{color:#f87171}</style></head>
+<body><h1>Nivel 4 · science-data.js</h1><ul id="out"></ul>
+<script type="module">
+import * as s from '../js/science-data.js';
+const out = document.getElementById('out');
+const check = (name, cond) => { const li = document.createElement('li'); li.className = cond ? 'ok' : 'fail'; li.textContent = (cond ? 'PASS ' : 'FAIL ') + name; out.append(li); };
+const load = (f) => fetch(`../data/${f}`).then((r) => r.json());
+const [science, pieces, missions, reportEs, reportEn, workshopEs] = await Promise.all(
+  ['science.json', 'pieces.json', 'missions.json', 'i18n/es/report.json', 'i18n/en/report.json', 'i18n/es/workshop.json'].map(load));
+
+// 1) CML final: desempeño limitado por el tope del Nivel 1, con su motivo.
+const cases = [
+  ['diseño inválido', { designValid: false, outcome: 'orbit', score: 90, cmlCap: 4 }, 1, 'design'],
+  ['sobrevuelo', { designValid: true, outcome: 'flyby', score: 90, cmlCap: 4 }, 2, 'insertion'],
+  ['choque', { designValid: true, outcome: 'crash', score: 90, cmlCap: 4 }, 2, 'insertion'],
+  ['órbita excéntrica', { designValid: true, outcome: 'eccentric', score: 90, cmlCap: 4 }, 3, 'eccentric'],
+  ['órbita estable con poca ciencia', { designValid: true, outcome: 'orbit', score: 30, cmlCap: 4 }, 3, 'science'],
+  ['órbita estable con buena ciencia', { designValid: true, outcome: 'orbit', score: 70, cmlCap: 4 }, 4, 'max'],
+  ['buen desempeño pero tope 3 del Nivel 1', { designValid: true, outcome: 'orbit', score: 70, cmlCap: 3 }, 3, 'budget'],
+  ['tope 1 del Nivel 1', { designValid: true, outcome: 'orbit', score: 70, cmlCap: 1 }, 1, 'budget'],
+  ['tope igual al desempeño: manda el motivo del desempeño', { designValid: true, outcome: 'eccentric', score: 70, cmlCap: 3 }, 3, 'eccentric'],
+  ['sin tope definido = 4', { designValid: true, outcome: 'orbit', score: 70 }, 4, 'max'],
+];
+for (const [name, input, cml, reason] of cases) {
+  const r = s.finalCml(input);
+  check(`finalCml ${name} → CML ${cml} (${reason}) ${r.cml === cml && r.reason === reason ? '' : `→ obtuvo CML ${r.cml} (${r.reason})`}`, r.cml === cml && r.reason === reason);
+}
+
+// 2) Sugerencias: nunca vacías y con texto en ES y EN para cada clave.
+const reasons = ['design', 'insertion', 'eccentric', 'science', 'budget', 'max'];
+for (const reason of reasons) {
+  const hints = s.improvementHints({ reason, checks: [{ id: 'mass', ok: false }], outcome: 'flyby', instruments: 1, budget: { ground: 0, user: 0 }, eventScience: -10, plan: { maturity: 70, penalty: 30 } });
+  check(`sugerencias para "${reason}" no están vacías (${hints.map((h) => h.key)})`, hints.length > 0);
+  check(`sugerencias para "${reason}" tienen texto ES y EN`, hints.every((h) => reportEs.hints[h.key] && reportEn.hints[h.key]));
+  check(`motivo "${reason}" tiene texto ES y EN`, !!(reportEs.reasons[reason] && reportEn.reasons[reason]));
+}
+const full = s.improvementHints({ reason: 'science', instruments: 4, budget: { ground: 999, user: 999 }, eventScience: 0 });
+check('ciencia ya al máximo → sugerencia general', full.length === 1 && full[0].key === 'general');
+check('las sugerencias de diseño nombran checks que existen en el Taller',
+  s.improvementHints({ reason: 'design', checks: [{ id: 'deltaV', ok: false }, { id: 'mass', ok: true }] }).every((h) => workshopEs.checks[h.vars.check]));
+check('choque sugiere frenar menos', s.improvementHints({ reason: 'insertion', outcome: 'crash' })[0].key === 'crash');
+
+// 3) Puntaje final entre 0 y 100 con los eventos (issue #44).
+check('bonos de eventos no pasan de 100', s.reportScore(98, [{ choice: { science: 8 } }, { choice: { science: 5 } }]).score === 100);
+check('penalizaciones no bajan de 0', s.reportScore(5, [{ choice: { science: -10 } }]).score === 0);
+check('eventScience suma bonos y penalizaciones', s.reportScore(50, [{ choice: { science: 8 } }, { choice: { science: -3 } }, { choice: {} }]).eventScience === 5);
+
+// 4) Series simuladas.
+const def = science['inst-spectro'];
+const a = s.instrumentSeries(def, 'europa', 60, 'orbit', s.seededRandom(42));
+const b = s.instrumentSeries(def, 'europa', 60, 'orbit', s.seededRandom(42));
+check('misma semilla → misma serie', JSON.stringify(a) === JSON.stringify(b));
+check('órbita → una medición por punto', a.measured.length === def.points && a.reference.length === def.points);
+check('choque → sin mediciones', s.instrumentSeries(def, 'europa', 60, 'crash', s.seededRandom(1)).measured.length === 0);
+const fly = s.instrumentSeries(def, 'europa', 60, 'flyby', s.seededRandom(1)).measured.length;
+check(`sobrevuelo → menos mediciones (${fly}) que órbita (${def.points})`, fly > 0 && fly < def.points);
+const err = (score) => {
+  const r = s.instrumentSeries(def, 'europa', score, 'orbit', s.seededRandom(7));
+  return r.measured.reduce((m, p, i) => m + Math.abs(p.y - r.reference[i].y), 0) / r.measured.length;
+};
+check(`más puntaje → menos ruido (100: ${err(100).toFixed(3)} < 20: ${err(20).toFixed(3)})`, err(100) < err(20));
+check('puntaje 100 → medición igual a la referencia', err(100) === 0);
+const ice = s.instrumentSeries(def, 'europa', 100, 'orbit').reference;
+const at = (x) => ice.reduce((best, p) => (Math.abs(p.x - x) < Math.abs(best.x - x) ? p : best)).y;
+check('espectro de Europa: banda de hielo a 2.0 µm más baja que a 2.5 µm', at(2.0) < at(2.5));
+
+// 5) Datos: cada instrumento tiene modelo y referencia NASA para cada destino, con textos ES y EN.
+const bi = (o) => !!(o && o.es && o.en);
+for (const inst of pieces.filter((p) => p.category === 'instrument')) {
+  const d = science[inst.id];
+  check(`${inst.id} tiene entrada en science.json`, !!d);
+  if (!d) continue;
+  check(`${inst.id}: título y ejes en ES y EN`, bi(d.title) && bi(d.xLabel) && bi(d.yLabel));
+  for (const m of missions) {
+    const ref = d.reference?.[m.id];
+    check(`${inst.id} · ${m.id}: modelo y referencia NASA completos`, !!d.model?.[m.id] && !!ref?.mission && !!ref?.instrument && Number.isInteger(ref?.year) && bi(ref?.fact));
+  }
+}
+
+// 6) Textos del reporte: mismas claves en ES y EN.
+const keys = (o, p = '') => Object.entries(o).flatMap(([k, v]) => (typeof v === 'object' ? keys(v, `${p}${k}.`) : [`${p}${k}`])).sort();
+const ke = keys(reportEs), kn = keys(reportEn);
+check(`report.json ES y EN tienen las mismas claves (${ke.length})`, JSON.stringify(ke) === JSON.stringify(kn));
+</script></body></html>

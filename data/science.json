@@ -1,0 +1,71 @@
+{
+  "_comment": "OWNER: Rol 2 — Datos científicos simulados del Nivel 4. Un modelo de señal por instrumento y destino, y la misión real de la NASA que lo inspira. Comparación conceptual: no son datos reales. Ver js/science-data.js → signalAt().",
+  "inst-camera": {
+    "title": { "es": "Reflectancia por banda", "en": "Reflectance by band" },
+    "xLabel": { "es": "Longitud de onda (nm)", "en": "Wavelength (nm)" },
+    "yLabel": { "es": "Reflectancia", "en": "Reflectance" },
+    "x": [400, 1000],
+    "points": 24,
+    "model": {
+      "moon": { "base": 0.12, "slope": 0.1 },
+      "mars": { "base": 0.08, "slope": 0.3, "bands": [{ "at": 860, "depth": 0.04, "width": 60 }] },
+      "europa": { "base": 0.62, "slope": -0.08, "bands": [{ "at": 900, "depth": 0.06, "width": 80 }] }
+    },
+    "reference": {
+      "moon": { "mission": "Lunar Reconnaissance Orbiter", "instrument": "LROC", "year": 2009, "fact": { "es": "Mapea la Luna con detalles de hasta ~0.5 m por píxel.", "en": "Maps the Moon with details down to ~0.5 m per pixel." } },
+      "mars": { "mission": "Mars Reconnaissance Orbiter", "instrument": "HiRISE", "year": 2006, "fact": { "es": "La cámara más potente enviada a otro planeta: ~0.3 m por píxel.", "en": "The most powerful camera sent to another planet: ~0.3 m per pixel." } },
+      "europa": { "mission": "Galileo", "instrument": "SSI", "year": 1995, "fact": { "es": "Fotografió la corteza de hielo fracturada y los «terrenos caóticos» de Europa.", "en": "Imaged Europa's fractured ice crust and its «chaos terrain»." } }
+    }
+  },
+  "inst-spectro": {
+    "title": { "es": "Espectro infrarrojo", "en": "Infrared spectrum" },
+    "xLabel": { "es": "Longitud de onda (µm)", "en": "Wavelength (µm)" },
+    "yLabel": { "es": "Reflectancia relativa", "en": "Relative reflectance" },
+    "x": [1, 4],
+    "points": 40,
+    "model": {
+      "moon": { "base": 0.7, "slope": 0.15, "bands": [{ "at": 2.9, "depth": 0.18, "width": 0.18 }] },
+      "mars": { "base": 0.6, "slope": 0.05, "bands": [{ "at": 1.9, "depth": 0.15, "width": 0.07 }, { "at": 2.3, "depth": 0.1, "width": 0.06 }, { "at": 3.0, "depth": 0.2, "width": 0.25 }] },
+      "europa": { "base": 0.85, "slope": -0.3, "bands": [{ "at": 1.5, "depth": 0.28, "width": 0.08 }, { "at": 2.0, "depth": 0.35, "width": 0.1 }, { "at": 3.0, "depth": 0.2, "width": 0.15 }] }
+    },
+    "reference": {
+      "moon": { "mission": "Chandrayaan-1", "instrument": "Moon Mineralogy Mapper (M3, NASA)", "year": 2009, "fact": { "es": "Detectó la huella de agua e hidroxilo (OH) cerca de 3 µm en la superficie lunar.", "en": "Detected the signature of water and hydroxyl (OH) near 3 µm on the lunar surface." } },
+      "mars": { "mission": "Mars Reconnaissance Orbiter", "instrument": "CRISM", "year": 2006, "fact": { "es": "Mapeó minerales hidratados, como arcillas y sulfatos, que se formaron con agua líquida.", "en": "Mapped hydrated minerals, like clays and sulfates, that formed with liquid water." } },
+      "europa": { "mission": "Galileo", "instrument": "NIMS", "year": 1995, "fact": { "es": "Vio las bandas del hielo de agua a 1.5 y 2.0 µm, y sales hidratadas en la superficie.", "en": "Saw water-ice bands at 1.5 and 2.0 µm, and hydrated salts on the surface." } }
+    }
+  },
+  "inst-mag": {
+    "title": { "es": "Campo magnético medido", "en": "Measured magnetic field" },
+    "xLabel": { "es": "Tiempo de órbita (h)", "en": "Orbit time (h)" },
+    "yLabel": { "es": "Intensidad (relativa)", "en": "Strength (relative)" },
+    "x": [0, 12],
+    "points": 48,
+    "model": {
+      "moon": { "base": 0.2, "bumps": [{ "at": 3, "height": 0.25, "width": 0.4 }, { "at": 8.5, "height": 0.18, "width": 0.5 }] },
+      "mars": { "base": 0.25, "bumps": [{ "at": 2, "height": 0.2, "width": 0.3 }, { "at": 4.5, "height": 0.45, "width": 0.4 }, { "at": 9, "height": 0.3, "width": 0.35 }] },
+      "europa": { "base": 0.5, "wave": { "amp": 0.3, "period": 11 } }
+    },
+    "reference": {
+      "moon": { "mission": "Lunar Prospector", "instrument": "MAG/ER", "year": 1998, "fact": { "es": "Mapeó «anomalías magnéticas» en la corteza, aunque la Luna ya no tiene un campo global.", "en": "Mapped crustal «magnetic anomalies», even though the Moon no longer has a global field." } },
+      "mars": { "mission": "Mars Global Surveyor / MAVEN", "instrument": "MAG", "year": 1997, "fact": { "es": "MGS descubrió campos fósiles en la corteza; MAVEN estudia cómo el viento solar arranca la atmósfera.", "en": "MGS discovered fossil crustal fields; MAVEN studies how the solar wind strips the atmosphere." } },
+      "europa": { "mission": "Galileo", "instrument": "MAG", "year": 1995, "fact": { "es": "Midió un campo inducido que cambia con la rotación de Júpiter: evidencia de un océano salado bajo el hielo.", "en": "Measured an induced field that changes with Jupiter's rotation: evidence of a salty ocean under the ice." } }
+    }
+  },
+  "inst-radar": {
+    "title": { "es": "Eco de radar bajo la superficie", "en": "Subsurface radar echo" },
+    "xLabel": { "es": "Profundidad (relativa)", "en": "Depth (relative)" },
+    "yLabel": { "es": "Potencia del eco", "en": "Echo power" },
+    "x": [0, 10],
+    "points": 40,
+    "model": {
+      "moon": { "base": 0.05, "decay": { "amp": 0.9, "scale": 1.2 }, "bumps": [{ "at": 1.5, "height": 0.15, "width": 0.3 }] },
+      "mars": { "base": 0.05, "decay": { "amp": 0.9, "scale": 1.5 }, "bumps": [{ "at": 3, "height": 0.2, "width": 0.3 }, { "at": 5, "height": 0.15, "width": 0.3 }] },
+      "europa": { "base": 0.05, "decay": { "amp": 0.9, "scale": 2.5 }, "bumps": [{ "at": 7.5, "height": 0.3, "width": 0.4 }] }
+    },
+    "reference": {
+      "moon": { "mission": "Lunar Reconnaissance Orbiter", "instrument": "Mini-RF", "year": 2009, "fact": { "es": "Usa radar para buscar hielo en cráteres polares que nunca reciben luz solar.", "en": "Uses radar to search for ice in polar craters that never see sunlight." } },
+      "mars": { "mission": "Mars Reconnaissance Orbiter", "instrument": "SHARAD", "year": 2006, "fact": { "es": "Encontró capas de hielo enterradas bajo la superficie de Marte.", "en": "Found ice layers buried under the surface of Mars." } },
+      "europa": { "mission": "Europa Clipper", "instrument": "REASON", "year": 2024, "fact": { "es": "Sondeará la corteza de hielo de Europa en busca de agua debajo (llega en 2030).", "en": "Will sound Europa's ice shell looking for water beneath it (arrives in 2030)." } }
+    }
+  }
+}
