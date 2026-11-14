@@ -2,7 +2,36 @@
 // Estado que escribe: missionId, rocketId, budget.{total,launch,space,ground,user}
 
 const SEGMENTS = ['launch', 'space', 'ground', 'user'];
+// Reparto inicial sugerido: 40% lanzamiento, 35% espacio, 15% tierra, 10% usuario
+const SPLIT = { launch: 0.4, space: 0.35, ground: 0.15, user: 0.1 };
 let ctx;
+
+/** Reparto inicial que suma exactamente `total`: floor en 3 segmentos, el resto a Usuario. */
+export function initialSplit(total) {
+  const launch = Math.floor(total * SPLIT.launch);
+  const space = Math.floor(total * SPLIT.space);
+  const ground = Math.floor(total * SPLIT.ground);
+  return { launch, space, ground, user: total - launch - space - ground };
+}
+
+/**
+ * Sube Lanzamiento hasta `cost` sin pasarse del total: usa primero lo libre
+ * y luego descuenta de Usuario → Tierra → Espacio (sin bajar de 0).
+ */
+export function fitLaunch(budget, cost) {
+  const b = { ...budget };
+  if (b.launch >= cost) return b;
+  const free = b.total - SEGMENTS.reduce((s, k) => s + b[k], 0);
+  let missing = cost - b.launch - Math.max(0, free);
+  b.launch = cost;
+  for (const k of ['user', 'ground', 'space']) {
+    if (missing <= 0) break;
+    const take = Math.min(b[k], missing);
+    b[k] -= take;
+    missing -= take;
+  }
+  return b;
+}
 let root;
 
 function el(tag, cls, html) {
@@ -59,8 +88,7 @@ function render() {
       </ul>
       ${capable ? '' : `<p class="warn">${t('mission.cantReach')}</p>`}`;
     card.addEventListener('click', () => {
-      const budget = { ...ctx.state.budget, launch: Math.max(ctx.state.budget.launch, r.cost) };
-      ctx.update({ rocketId: r.id, budget });
+      ctx.update({ rocketId: r.id, budget: fitLaunch(ctx.state.budget, r.cost) });
       render();
     });
     rgrid.append(card);
@@ -108,17 +136,10 @@ function render() {
 
 function selectMission(m) {
   const total = m.budget;
-  // Reparto inicial sugerido: 40% lanzamiento, 35% espacio, 15% tierra, 10% usuario
   ctx.update({
     missionId: m.id,
     rocketId: null,
-    budget: {
-      total,
-      launch: Math.round(total * 0.4),
-      space: Math.round(total * 0.35),
-      ground: Math.round(total * 0.15),
-      user: Math.round(total * 0.1),
-    },
+    budget: { total, ...initialSplit(total) },
   });
   render();
 }
