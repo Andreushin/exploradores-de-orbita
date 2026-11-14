@@ -3,8 +3,6 @@
 /* Clases con display propio (ej. .steps { display: flex }) anulan [hidden]: lo forzamos. */
 [hidden] { display: none !important; }
 
-.brand { font: inherit; font-weight: 700; color: inherit; background: none; border: 0; padding: 0; cursor: pointer; }
-.brand:focus-visible { outline: 2px solid var(--accent-2); outline-offset: 4px; border-radius: 6px; }
 #app[aria-busy="true"] { cursor: progress; }
 
 /* ---- Inicio ---- */
