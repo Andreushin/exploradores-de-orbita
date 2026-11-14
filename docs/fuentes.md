@@ -32,9 +32,35 @@ Con el reparto inicial del presupuesto, los diseños de referencia en órbita es
 | Inserción Luna / Marte / Europa | 850 / 1200 / 1800 m/s | Ludificado (valores reales de captura mayores en Júpiter) |
 | Niveles CML 1–4 | Napkin · Feasibility · Trade space · Point design | NASA Concept Maturity Levels |
 
+## Piezas (CubeSat 101 / SmallSat SOA)
+Fuentes generales:
+- NASA, *CubeSat 101: Basic Concepts and Processes for First-Time CubeSat Developers* (2017): unidades U, 1.33 kg/U y subsistemas típicos.
+- NASA Ames, *State-of-the-Art of Small Spacecraft Technology* (SOA): rangos de masa, potencia y TRL por subsistema.
+
+Masa, potencia y TRL tienen orden de magnitud real. El **costo** está ludificado en $M (desarrollo + integración), pero conserva el orden relativo de precios reales: UHF, OBC y batería son lo más barato; espectrómetro, radar, iónico y RTG lo más caro.
+
+| Pieza | Masa | Potencia | TRL | Referencia |
+|---|---|---|---|---|
+| `struct-3u` / `6u` / `12u` | 0.4 / 1.1 / 2.0 kg | — | 9 | SOA, cap. Estructuras: estructuras comerciales 3U de 0.3–0.5 kg, 6U ~1 kg y 12U ~2 kg |
+| `solar-body` | 0.3 kg | +8 W a 1 UA | 9 | CubeSat 101 / SOA, cap. Energía: paneles fijos de 3U–6U entregan ~7–10 W |
+| `solar-deploy` | 0.9 kg | +36 W a 1 UA | 9 | Alas desplegables de MarCO (~35 W, volaron en 2018) |
+| `battery` | 0.5 kg | — | 9 | Ion-litio a ~150 Wh/kg → 80 Wh ≈ 0.5 kg |
+| `rtg-mini` | 3.0 kg | +35 W | 4 | **Ludificado.** No hay RTG para CubeSat. El MMRTG da ~2 W/kg, así que 35 W reales pesarían más de 10 kg |
+| `prop-cold` | 1.0 kg | 2 W (en quemados) | 9 | SOA, cap. Propulsión: gas frío de 40–70 s de Isp (sistema de MarCO) |
+| `prop-green` | 1.5 kg + 7 kg máx. | 10 W (precalentado) | 7 | AF-M315E / ASCENT (GPIM, Lunar Flashlight), Isp ~220 s. **Ludificado:** 7 kg de propelente no caben en 3U reales |
+| `prop-ion` | 2.0 kg | 20 W | 6 | Electrospray/iónico para CubeSat (Accion TILE, Enpulsion IFM): Isp 1000–2000 s, 10–30 W |
+| `comm-uhf` | 0.2 kg | 2 W | 9 | Transceptores UHF comerciales (~0.1–0.2 kg, ~4 W al transmitir) |
+| `comm-x` | 1.2 kg | 8 W (promedio) | 9 | JPL Iris v2 (MarCO): 1.2 kg, 0.5U. Gasta más al transmitir; 8 W es el promedio por ciclo de trabajo |
+| `adcs` | 0.9 kg | 3 W | 9 | BCT XACT: ~0.9 kg, 0.5U, ~3 W (voló en MarCO) |
+| `obc` | 0.2 kg | 1 W | 9 | SOA, cap. Aviónica: OBC comerciales de 0.1–0.2 kg y menos de 1 W |
+| `inst-camera` | 0.6 kg | 4 W | 8 | Cámaras multiespectrales para CubeSat (0.5–1 kg, 3–5 W) |
+| `inst-spectro` | 1.5 kg | 10 W | 6 | BIRCHES (Lunar IceCube): espectrómetro IR de ~1.5U con criocooler |
+| `inst-mag` | 0.3 kg | 1 W | 9 | Magnetómetros fluxgate para CubeSat (0.1–0.3 kg, menos de 1 W) |
+| `inst-radar` | 2.5 kg | 25 W | 5 | RainCube (radar Ka en 6U, ~20+ W). Un radar penetrante para CubeSat sigue en concepto |
+
 ## Diseños de referencia (todos válidos con los datos actuales)
 - **Luna:** cohete `pico`, `struct-6u`, `solar-body`, `battery`, `prop-green` (2.5 kg), `comm-uhf`, `obc`, `inst-camera`.
-- **Marte:** cohete `medio`, `struct-12u`, `solar-deploy`, `solar-body`, `battery`, `prop-green` (6 kg), `comm-x`, `adcs`, `obc`, `inst-camera`, `inst-mag`.
+- **Marte:** cohete `medio`, `struct-12u`, `solar-deploy`, `solar-body`, `battery`, `prop-green` (7 kg), `comm-x`, `adcs`, `obc`, `inst-camera`, `inst-mag`.
 - **Europa:** cohete `pesado`, `struct-12u`, `rtg-mini`, `solar-deploy`, `prop-ion` (1.5 kg), `comm-x`, `obc`, `inst-mag`, `inst-camera`.
 
 Si cambias datos, verifica que estos diseños sigan pasando en `tests/physics.test.html`.
