@@ -1,4 +1,4 @@
-// OWNER: Rol 3 (@JU4NMAX) — Nivel 2 · Taller del CubeSat (docs/nivel 2.md, docs/levelTwo.md).
+// OWNER: Rol 3 (@JU4NMAX) — Nivel 2 · Taller del CubeSat (docs/niveles/nivel-2.md).
 // Lee la misión del Nivel 1 de `eo-mision` (docs/contrato-niveles.md), deja armar el CubeSat bajo
 // los límites de masa, energía y presupuesto, y escribe solo la sección `satellite`.
 import { validateDesign, KG_PER_U } from '../js/physics.js';

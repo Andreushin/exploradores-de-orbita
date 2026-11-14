@@ -1,4 +1,4 @@
-/* OWNER: Rol 3 — Pantalla 1 (Nivel 1, asistente por pasos). Ver docs/levelOne.md */
+/* OWNER: Rol 3 — Pantalla 1 (Nivel 1, asistente por pasos). Ver docs/niveles/nivel-1.md */
 .planet-dot { display: block; width: 36px; height: 36px; border-radius: 50%; background: var(--c); box-shadow: 0 0 18px var(--c); margin-bottom: 10px; }
 /* .segments y .segment-row los usa el Taller (slider de propelente): no borrar. */
 .segments { display: grid; gap: 12px; background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); padding: 16px; }
