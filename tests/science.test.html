@@ -8,13 +8,21 @@ import * as p from '../js/physics.js';
 const out = document.getElementById('out');
 const check = (name, cond) => { const li = document.createElement('li'); li.className = cond ? 'ok' : 'fail'; li.textContent = (cond ? 'PASS ' : 'FAIL ') + name; out.append(li); };
 const load = (f) => fetch(`../data/${f}.json`).then((r) => r.json());
-const [missions, rockets, pieces] = await Promise.all(['missions', 'rockets', 'pieces'].map(load));
+const [missions, rockets, pieces, segments] = await Promise.all(['missions', 'rockets', 'pieces', 'segments'].map(load));
 const data = { missions, rockets, pieces };
 
-// Reparto inicial de la pantalla Misión (js/screens/mission.js → initialSplit): 40% / 35% / 15% / resto.
-const split = (total) => {
-  const launch = Math.floor(total * 0.4), space = Math.floor(total * 0.35), ground = Math.floor(total * 0.15);
-  return { total, launch, space, ground, user: total - launch - space - ground };
+// Presupuesto con las tarjetas del Nivel 1 (data/segments.json). `extra` = niveles por encima del exigido.
+// Tierra exige commsDifficulty y tolera +1 sin penalización; Usuario tolera +2 (rules.margin).
+const card = (seg, level) => segments.cards[seg].find((c) => c.level === Math.min(3, level));
+const cardsBudget = (m, rocketId, { ground = 0, user = 0 } = {}) => {
+  const mission = missions.find((x) => x.id === m);
+  return {
+    total: mission.budget,
+    launch: rockets.find((r) => r.id === rocketId).cost,
+    space: card('space', segments.requirements.space[m]).cost,
+    ground: card('ground', mission.commsDifficulty + ground).cost,
+    user: card('user', segments.requirements.user[m] + user).cost,
+  };
 };
 const ids = (list) => p.resolvePieces(list, pieces);
 const score = (list, budget, outcome = 'orbit') => p.scienceScore(ids(list), budget, outcome);
@@ -26,14 +34,19 @@ const ref = {
   europa: ['pesado', 'struct-12u', ['rtg-mini', 'solar-deploy', 'prop-ion', 'comm-x', 'obc', 'inst-mag', 'inst-camera'], 1.5],
 };
 
-// 1) Un diseño básico con órbita estable llega a CML 3 o 4 (con el reparto inicial del presupuesto).
-for (const [m, [rocketId, formFactor, list, prop]] of Object.entries(ref)) {
-  const budget = split(missions.find((x) => x.id === m).budget);
-  const propellantKg = prop === 'max' ? pieces.find((x) => x.id === 'prop-green').maxPropellantKg : prop;
+// 1) Un diseño básico con órbita estable llega a CML 3 o 4 con las tarjetas mínimas del Nivel 1,
+//    y a CML 4 con las mejores tarjetas que no penalizan (Tierra +1, Usuario +2).
+const cmlOf = (m, rocketId, formFactor, list, propellantKg, budget) => {
   const design = p.validateDesign({ missionId: m, rocketId, budget, satellite: { formFactor, pieces: list, propellantKg } }, data);
   const s = p.scienceScore(ids([formFactor, ...list]), budget, 'orbit');
-  const cml = p.computeCML({ designValid: design.valid, launched: true, outcome: 'orbit', scienceScore: s });
-  check(`diseño básico ${m} en órbita → CML ${cml} (puntaje ${s}) es 3 o 4`, design.valid && cml >= 3);
+  return { valid: design.valid, s, cml: p.computeCML({ designValid: design.valid, launched: true, outcome: 'orbit', scienceScore: s }) };
+};
+for (const [m, [rocketId, formFactor, list, prop]] of Object.entries(ref)) {
+  const propellantKg = prop === 'max' ? pieces.find((x) => x.id === 'prop-green').maxPropellantKg : prop;
+  const min = cmlOf(m, rocketId, formFactor, list, propellantKg, cardsBudget(m, rocketId));
+  check(`diseño básico ${m} en órbita, tarjetas mínimas → CML ${min.cml} (puntaje ${min.s}) es 3 o 4`, min.valid && min.cml >= 3);
+  const best = cmlOf(m, rocketId, formFactor, list, propellantKg, cardsBudget(m, rocketId, { ground: 1, user: 2 }));
+  check(`diseño básico ${m} en órbita, mejores tarjetas sin penalización → CML 4 (puntaje ${best.s})`, best.valid && best.cml === 4);
 }
 
 // 2) Más instrumentos suben el puntaje.
@@ -45,16 +58,20 @@ for (let i = 1; i < chain.length; i++) {
 }
 check('piezas que no son instrumentos no suman ciencia', score(['inst-camera', 'adcs', 'comm-x'], base) === score(['inst-camera'], base));
 
-// 3) Más presupuesto de Tierra y de Usuario sube el puntaje (hasta su máximo).
+// 3) Cada tarjeta más cara de Tierra y de Usuario sube el puntaje; la más cara da el factor completo.
 const inst = ['inst-camera', 'inst-mag'];
-for (const [g1, g2] of [[0, 10], [10, 20], [20, 30], [30, 40]]) {
-  const a = score(inst, { ground: g1, user: 10 }), b = score(inst, { ground: g2, user: 10 });
-  check(`Tierra $${g2}M (${b}) > $${g1}M (${a})`, b > a);
+const steps = (seg) => [0, ...segments.cards[seg].map((c) => c.cost).sort((a, b) => a - b)];
+const g = steps('ground'), u = steps('user');
+for (let i = 1; i < g.length; i++) {
+  const a = score(inst, { ground: g[i - 1], user: 5 }), b = score(inst, { ground: g[i], user: 5 });
+  check(`Tierra $${g[i]}M (${b}) > $${g[i - 1]}M (${a})`, b > a);
 }
-for (const [u1, u2] of [[0, 10], [10, 20], [20, 30]]) {
-  const a = score(inst, { ground: 15, user: u1 }), b = score(inst, { ground: 15, user: u2 });
-  check(`Usuario $${u2}M (${b}) > $${u1}M (${a})`, b > a);
+for (let i = 1; i < u.length; i++) {
+  const a = score(inst, { ground: 15, user: u[i - 1] }), b = score(inst, { ground: 15, user: u[i] });
+  check(`Usuario $${u[i]}M (${b}) > $${u[i - 1]}M (${a})`, b > a);
 }
+check(`la tarjeta más cara de Tierra ($${g.at(-1)}M) da el factor completo`, p.GROUND_FULL === g.at(-1));
+check(`la tarjeta más cara de Usuario ($${u.at(-1)}M) da el factor completo`, p.USER_FULL === u.at(-1));
 
 // 4) El resultado de la inserción ordena el puntaje y siempre queda entre 0 y 100.
 const full = chain[chain.length - 1], rich = { ground: 60, user: 60 };

@@ -139,9 +139,9 @@ export function validateDesign(state, data) {
 
 /** Pesos de rendimientos decrecientes: el instrumento más valioso cuenta completo, los siguientes cada vez menos. */
 export const INSTRUMENT_WEIGHTS = [1, 0.6, 0.4, 0.25];
-/** Inversión ($M) con la que cada segmento llega a su máximo (factor 1). */
-export const GROUND_FULL = 40; // antenas y tiempo de DSN
-export const USER_FULL = 30;   // procesamiento, calibración y archivo de datos (PDS)
+/** Inversión ($M) con la que cada segmento llega a su máximo (factor 1) = tarjeta más cara del Nivel 1 (data/segments.json). */
+export const GROUND_FULL = 25; // antenas y tiempo de DSN (tarjeta ground-dsn)
+export const USER_FULL = 12;   // procesamiento, calibración y archivo de datos PDS (tarjeta advanced)
 
 /** Factor de un segmento: 0.6 sin inversión → 1 al llegar a `full` $M. Crece de forma lineal hasta ahí. */
 function segmentFactor(amount, full) {
