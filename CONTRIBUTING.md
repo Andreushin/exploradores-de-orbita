@@ -67,6 +67,8 @@ Ejemplos: `feat(travesia): quemado de inserción con barra de precisión` · `fi
 - Después del **H24 (feature freeze)** solo se aceptan `fix`, `data`, `style`, `i18n` y `docs`.
 
 ## Pruebas
+> ⏸ **El E2E está en pausa hasta el H32.** El flujo cambió con #45 (Inicio → Niveles → asistente). Ya no corre en cada PR ni bloquea fusiones; se adapta y se reactiva al cierre (issue #3). Las pruebas de física y ciencia siguen vigentes.
+
 | Qué | Comando | Cuándo |
 |---|---|---|
 | Física y diseños de referencia | abrir `http://localhost:8000/tests/physics.test.html` | antes de un PR de datos |
