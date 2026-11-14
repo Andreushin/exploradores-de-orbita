@@ -1,11 +1,9 @@
 name: E2E checkpoint
 
+# ⏸ En pausa hasta el cierre (H32): el flujo cambió con #45 y la prueba se adapta al final.
+# Solo se corre a mano: Actions → E2E checkpoint → Run workflow. No bloquea PRs.
 on:
-  pull_request:
-  push:
-    branches: [main]
-  page_build:            # cada vez que GitHub Pages publica, prueba el sitio en vivo
-  workflow_dispatch:     # botón manual: Actions → E2E checkpoint → Run workflow
+  workflow_dispatch:
     inputs:
       base_url:
         description: "URL a probar (vacío = servidor local del repo)"
@@ -33,12 +31,9 @@ jobs:
           cache: npm
       - run: npm ci
       - run: npx playwright install --with-deps chromium
-      - name: Esperar a que Pages sirva la versión nueva
-        if: github.event_name == 'page_build'
-        run: sleep 30
       - name: Correr pruebas
         env:
-          BASE_URL: ${{ github.event_name == 'page_build' && 'https://andreushin.github.io/exploradores-de-orbita/' || inputs.base_url }}
+          BASE_URL: ${{ inputs.base_url }}
         run: npx playwright test
       - uses: actions/upload-artifact@v4
         if: failure()
