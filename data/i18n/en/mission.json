@@ -1,52 +1,146 @@
 {
-  "title": "Choose your destination",
-  "intro": "Every science mission is split into four segments: Launch, Space, Ground and User. Pick a destination and split your budget.",
-  "difficulty": "Difficulty",
-  "distance": "Distance from Sun",
-  "budget": "Budget",
-  "selected": "Selected",
-  "levels": {
-    "1": "Easy",
-    "2": "Medium",
-    "3": "Hard"
+  "title": "Level 1 · Design your mission",
+  "intro": "A NASA mission is built step by step: first what you'll study, then its four segments. Pick one card in each step. Budget isn't everything: falling short puts the mission at risk, and spending on what isn't justified lowers your maturity (CML).",
+  "stepsLabel": "Level 1 steps",
+  "stepOf": "Step {n} of {total}",
+  "steps": {
+    "project": "Project",
+    "launch": "Launch",
+    "space": "Space",
+    "ground": "Ground",
+    "user": "User",
+    "review": "Review"
   },
-  "scienceTargets": "Science objectives",
-  "dv": "Insertion Δv",
-  "travel": "Cruise",
-  "sunlight": "Sunlight",
-  "days": "{n} days",
-  "years": "~{n} years",
-  "rocketTitle": "Choose your launcher",
-  "cost": "Cost",
-  "payload": "Max payload",
-  "reliability": "Reliability",
-  "cantReach": "Cannot reach this destination",
-  "segmentsTitle": "Split the budget",
-  "segmentsHelp": "The Space segment pays for your CubeSat; Ground improves data reception; User improves science analysis.",
-  "reserve": "Reserve",
-  "excess": "Over",
-  "rocketMarker": "Launcher ${cost}M",
-  "barLabel": "${total}M split: {parts}",
-  "segments": {
+  "sections": {
+    "project": { "title": "Your science project", "question": "What phenomenon or remote destination will we study, and why?" },
+    "launch": { "title": "Launch Segment", "question": "Which rocket and launch services take us to the target orbit?" },
+    "space": { "title": "Space Segment", "question": "Which spacecraft (CubeSat) will do the science?" },
+    "ground": { "title": "Ground Segment", "question": "Which stations and antennas will receive the data?" },
+    "user": { "title": "User Segment", "question": "How will scientists process and analyze the data?" },
+    "review": { "title": "Design review", "question": "Would your mission pass a NASA review? Check every segment before heading to the Workshop." }
+  },
+  "projectLabel": "Project name",
+  "projectPlaceholder": "e.g. Lunar Hummingbird",
+  "pickMission": "Pick a destination to see what it demands and its max budget.",
+  "difficulty": "Difficulty",
+  "maxBudget": "Max budget",
+  "targetTitle": "Choose the science objective:",
+  "reqTitle": "What {dest} demands",
+  "reqShort": "What {dest} demands:",
+  "req": {
+    "dv": "Insertion Δv ≥ {dv} m/s",
+    "sun": "Sunlight: {pct}% of Earth's",
+    "power": "Minimum power: {w} W",
+    "travel": "Cruise: {days} days"
+  },
+  "segReq": {
+    "launch": "a rocket able to reach {dest}.",
+    "atLeast": "{name} or better.",
+    "user": "any approach; higher level = more science, but it costs more."
+  },
+  "reqHelp": "Science requirements drive the engineering: in each step pick what the destination needs, no less (it would fail) and not much more (waste).",
+  "bar": {
+    "label": "Mission budget",
+    "total": "Max budget",
+    "spent": "Allocated",
+    "available": "Available",
+    "cml": "Initial maturity",
+    "cmlValue": "CML {cml} · {maturity}/100"
+  },
+  "cap": {
+    "launch": "Reaches: {dests} · Payload {kg} kg",
+    "space": "Spacecraft class: level {lvl} of 3",
+    "ground": "Communications: level {lvl} of 3",
+    "user": "Science return: level {lvl} of 3"
+  },
+  "info": {
+    "open": "Information about {name}",
+    "considerTitle": "What is taken into account",
+    "avoidTitle": "What NOT to do",
+    "close": "Got it",
     "launch": {
-      "name": "Launch",
-      "help": "Launcher, integration and launch operations. Must cover the launcher cost."
+      "consider": "The real cost of the rocket and its services, the payload it can carry and, above all, whether it has the energy to send the spacecraft to your destination.",
+      "avoid": "Paying for a much bigger rocket than needed: it doesn't improve the science and takes money from the other segments. Don't pick one that can't reach the destination either."
     },
     "space": {
-      "name": "Space",
-      "help": "The CubeSat: structure, power, propulsion, radio and instruments."
+      "consider": "The spacecraft must survive and operate where you're going: available power (sunlight drops with distance), communications, propulsion and instruments.",
+      "avoid": "Buying a deep-space spacecraft for a nearby target (unjustified overfunding) or a near-class one for a distant target (technical failure)."
     },
     "ground": {
-      "name": "Ground",
-      "help": "Antennas, stations and the Deep Space Network to command the spacecraft and receive data."
+      "consider": "Distance defines how much antenna you need to hear the spacecraft. Farther = bigger antennas and more contact hours.",
+      "avoid": "Booking the Deep Space Network for the Moon (idle capital) or neglecting this segment: without ground stations, the data never arrives."
     },
     "user": {
-      "name": "User",
-      "help": "Scientists who process, analyze and archive the data so it gets used."
+      "consider": "Data is only worth something if someone processes, calibrates and publishes it. A better approach multiplies the science you get.",
+      "avoid": "Forgetting this segment: a mission without data processing spends its whole budget and delivers no science results."
     }
   },
-  "errNoRocket": "Choose a launcher.",
-  "errLaunch": "The Launch segment needs at least ${cost}M.",
-  "errOver": "Over budget: ${spent}M of ${total}M.",
-  "ready": "Ready. You have ${left}M in reserve."
+  "add": "Add →",
+  "remove": "← Remove",
+  "bank": {
+    "title": "Available options",
+    "help": "Drag a card into your mission or press \"Add\". Press \"?\" to see what to consider."
+  },
+  "config": {
+    "title": "Configured mission",
+    "help": "Acceptance area: one card per segment. Drop another to replace it.",
+    "empty": "Drag a {seg} card here"
+  },
+  "segments": {
+    "launch": { "name": "Launch" },
+    "space": { "name": "Space" },
+    "ground": { "name": "Ground" },
+    "user": { "name": "User" }
+  },
+  "status": {
+    "empty": "Empty",
+    "insufficient": "Insufficient",
+    "optimal": "Just what's needed",
+    "margin": "With margin",
+    "oversized": "Oversized"
+  },
+  "feedback": {
+    "optimal": "Exactly what {dest} needs: not a dollar wasted.",
+    "margin": "One level above what {dest} demands: a reasonable margin to reduce risk, no penalty."
+  },
+  "flagTitle": {
+    "insufficient": "Insufficient (blocks)",
+    "oversized": "Unjustified overfunding",
+    "overBudget": "Mission overfunded or financially unviable"
+  },
+  "flags": {
+    "insufficient": {
+      "launch": "{name} doesn't have the energy to send the spacecraft to {dest}. Without a proper launch, there is no mission.",
+      "space": "{name} isn't built for {dest}: it would lack power, protection or communications. You need at least \"{required}\". Risk of technical failure.",
+      "ground": "{dest} requires level {req} communications and this network only reaches level {lvl}. The data wouldn't reach Earth. You need at least \"{required}\".",
+      "user": "This approach falls short of what {dest} demands."
+    },
+    "oversized": {
+      "launch": "A smaller rocket is enough for {dest}: you're paying ${extra}M for capability the mission won't use.",
+      "space": "{dest} doesn't need \"{name}\": that's ${extra}M of capability without technical justification.",
+      "ground": "{dest} doesn't need \"{name}\": ${extra}M in antennas the mission won't use.",
+      "user": "You're spending ${extra}M more than the data team can use."
+    },
+    "overBudget": "The mission costs ${spent}M and the cap is ${total}M (${over}M over). No NASA design review approves a mission that exceeds its budget: swap a card."
+  },
+  "review": {
+    "change": "Change",
+    "clean": "Balanced mission: every segment covers what the destination demands, with no wasted capital."
+  },
+  "nav": {
+    "prev": "← Back",
+    "next": "Next: {step} →",
+    "needCard": "Pick a {seg} card to continue.",
+    "needBetter": "The {seg} card falls short for {dest}: swap it to continue."
+  },
+  "blockers": {
+    "name": "Name the project.",
+    "mission": "Pick a destination.",
+    "science": "Pick the science objective.",
+    "missing": "The {seg} segment is missing.",
+    "insufficient": "The {seg} card doesn't meet the destination's requirements.",
+    "overBudget": "Cut ${over}M: the mission exceeds its budget."
+  },
+  "ready": "\"{name}\" passes the review. Max reachable CML: {cml}.",
+  "validate": "Next: CubeSat Workshop →"
 }

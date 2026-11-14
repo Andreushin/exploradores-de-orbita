@@ -1,18 +1,20 @@
 // OWNER: Rol 1 — Bootstrap y router de pantallas.
+// Flujo: Inicio → Niveles → (cada nivel se descarga al seleccionarlo, ver js/levels.js).
 import { getState, update, subscribe, reset } from './state.js';
 import { loadTranslations, getSavedLang, setLang, t, tx, applyStatic } from './i18n.js';
 import * as physics from './physics.js';
-import missionScreen from './screens/mission.js';
-import workshopScreen from './screens/workshop.js';
-import journeyScreen from './screens/journey.js';
-import reportScreen from './screens/report.js';
+import { LEVELS } from './levels.js';
+import startScreen from './screens/start.js';
+import levelsScreen from './screens/levels.js';
 
 // CONTRATO de pantalla: { id, mount(container, ctx), unmount() }
-const SCREENS = [missionScreen, workshopScreen, journeyScreen, reportScreen];
-const DATA_FILES = ['missions', 'rockets', 'pieces', 'events'];
+const MENUS = { start: startScreen, levels: levelsScreen };
+const DATA_FILES = ['missions', 'rockets', 'pieces', 'events', 'segments'];
 
 const data = {};
+const loaded = new Map(); // id de nivel → módulo de pantalla ya descargado
 let active = null;
+let navToken = 0;
 
 async function loadData() {
   await Promise.all(DATA_FILES.map(async (name) => {
@@ -20,6 +22,33 @@ async function loadData() {
     if (!res.ok) throw new Error(`No se pudo cargar data/${name}.json`);
     data[name] = await res.json();
   }));
+}
+
+/** Inserta una hoja de estilos una sola vez y espera a que cargue (evita ver el nivel sin estilos). */
+function loadCss(href) {
+  const existing = document.querySelector(`link[data-level-css="${href}"]`);
+  if (existing) return existing.ready;
+  const link = document.createElement('link');
+  link.rel = 'stylesheet';
+  link.href = href;
+  link.dataset.levelCss = href;
+  link.ready = new Promise((resolve, reject) => {
+    link.onload = resolve;
+    link.onerror = () => reject(new Error(`No se pudo cargar ${href}`));
+  });
+  document.head.append(link);
+  return link.ready;
+}
+
+/** Devuelve la pantalla; si es un nivel, descarga su JS y CSS la primera vez. */
+async function resolveScreen(screenId) {
+  if (MENUS[screenId]) return MENUS[screenId];
+  if (loaded.has(screenId)) return loaded.get(screenId);
+  const level = LEVELS.find((l) => l.id === screenId);
+  if (!level) throw new Error(`Pantalla desconocida: ${screenId}`);
+  const [mod] = await Promise.all([level.load(), ...level.css.map(loadCss)]);
+  loaded.set(screenId, mod.default);
+  return mod.default;
 }
 
 /** Contexto que recibe cada pantalla en mount(). */
@@ -37,66 +66,61 @@ function makeCtx() {
   };
 }
 
-function goTo(screenId) {
-  const next = SCREENS.find((s) => s.id === screenId);
-  if (!next) throw new Error(`Pantalla desconocida: ${screenId}`);
-  if (active) {
-    active.unmount?.();
-    const old = document.getElementById(`screen-${active.id}`);
-    old.hidden = true;
-    old.replaceChildren();
+/** Navega a una pantalla. Nunca rechaza: los errores de carga se muestran en pantalla. */
+async function goTo(screenId) {
+  const token = ++navToken;
+  const app = document.getElementById('app');
+  app.setAttribute('aria-busy', 'true');
+  try {
+    const next = await resolveScreen(screenId);
+    if (token !== navToken) return; // llegó otra navegación mientras cargaba
+    if (active) {
+      active.unmount?.();
+      const old = document.getElementById(`screen-${active.id}`);
+      old.hidden = true;
+      old.replaceChildren();
+    }
+    active = next;
+    update({ screen: screenId });
+    const container = document.getElementById(`screen-${screenId}`);
+    container.hidden = false;
+    next.mount(container, makeCtx());
+    document.getElementById('app-error').hidden = true;
+    renderChrome();
+    window.scrollTo(0, 0);
+  } catch (err) {
+    console.error(err);
+    if (token === navToken) showError(err);
+  } finally {
+    if (token === navToken) app.removeAttribute('aria-busy');
   }
-  active = next;
-  update({ screen: screenId });
-  const container = document.getElementById(`screen-${screenId}`);
-  container.hidden = false;
-  next.mount(container, makeCtx());
-  renderChrome();
-  window.scrollTo(0, 0);
+}
+
+function showError(err) {
+  const box = document.getElementById('app-error');
+  box.hidden = false;
+  box.textContent = t('menu.loadError', { msg: err.message });
 }
 
 function renderChrome() {
   const s = getState();
   applyStatic();
-  document.title = t('common.appName');
-  const toggle = document.getElementById('lang-toggle');
-  toggle.textContent = s.lang === 'es' ? 'EN' : 'ES';
-  toggle.setAttribute('aria-label', t('common.switchLang'));
-  const b = s.budget;
-  const spent = b.launch + b.space + b.ground + b.user;
-  document.getElementById('hud-budget').textContent = t('common.budgetHud', { spent, total: b.total });
-  renderSteps(s);
-}
+  const inLevel = LEVELS.some((l) => l.id === s.screen);
+  document.getElementById('lang-toggle').textContent = s.lang === 'es' ? 'EN' : 'ES';
+  document.getElementById('nav-levels').hidden = !inLevel;
 
-/**
- * Indicador de progreso: pasos completados (clicables para volver), activo y bloqueados.
- * Reglas: no se salta hacia adelante; no se puede volver a "Travesía" (reiniciaría el vuelo)
- * ni salir de ella mientras el vuelo está en curso.
- */
-function renderSteps(s) {
-  const current = SCREENS.findIndex((sc) => sc.id === s.screen);
-  const inFlight = s.screen === 'journey' && !s.journey.outcome;
-  const nav = document.getElementById('steps');
-  nav.setAttribute('aria-label', t('common.stepsLabel'));
-  nav.replaceChildren(...SCREENS.map((sc, i) => {
-    const state = i < current ? 'done' : i === current ? 'active' : 'locked';
-    const canGo = state === 'done' && sc.id !== 'journey' && !inFlight;
-    const btn = document.createElement('button');
-    btn.type = 'button';
-    btn.className = `step is-${state}`;
-    btn.innerHTML = `<span class="step-num" aria-hidden="true">${state === 'done' ? '✓' : i + 1}</span>
-      <span class="step-label">${t(`common.steps.${sc.id}`)}</span>`;
-    if (state === 'active') btn.setAttribute('aria-current', 'step');
-    if (canGo) {
-      btn.title = t('common.stepGoBack');
-      btn.addEventListener('click', () => goTo(sc.id));
-    } else {
-      btn.setAttribute('aria-disabled', 'true');
-      if (state === 'locked') btn.title = t('common.stepLocked');
-      else if (inFlight) btn.title = t('common.stepInFlight');
-      else if (sc.id === 'journey' && state === 'done') btn.title = t('common.stepNoRefly');
-    }
-    return btn;
+  const hud = document.getElementById('hud-budget');
+  hud.hidden = !inLevel;
+  const b = s.budget;
+  hud.textContent = t('common.budgetHud', { spent: b.launch + b.space + b.ground + b.user, total: b.total });
+
+  const steps = document.getElementById('steps');
+  steps.hidden = !inLevel;
+  steps.replaceChildren(...LEVELS.map((lv, i) => {
+    const el = document.createElement('span');
+    el.className = 'step' + (lv.id === s.screen ? ' is-active' : '');
+    el.textContent = `${i + 1}. ${t(`common.steps.${lv.id}`)}`;
+    return el;
   }));
 }
 
@@ -105,20 +129,16 @@ function toggleLang() {
   setLang(lang);
   update({ lang });
   // Re-montar la pantalla activa para que re-renderice en el nuevo idioma.
-  if (active) goTo(active.id);
+  if (active) void goTo(active.id);
 }
 
 async function boot() {
   try {
     await Promise.all([loadData(), loadTranslations()]);
   } catch (err) {
-    // Las traducciones pueden no haber cargado: mensaje bilingüe fijo.
-    const es = getSavedLang() === 'es';
-    document.getElementById('app').innerHTML = es
-      ? `<p class="error">Error cargando datos: ${err.message}.<br>
-         Si abriste el archivo directamente, ejecuta <code>python3 -m http.server</code> y entra a http://localhost:8000</p>`
-      : `<p class="error">Error loading data: ${err.message}.<br>
-         If you opened the file directly, run <code>python3 -m http.server</code> and open http://localhost:8000</p>`;
+    document.getElementById('app').innerHTML =
+      `<p class="error">Error cargando datos: ${err.message}.<br>
+       Si abriste el archivo directamente, ejecuta <code>python3 -m http.server</code> y entra a http://localhost:8000</p>`;
     throw err;
   }
   const lang = getSavedLang();
@@ -126,7 +146,9 @@ async function boot() {
   update({ lang });
   subscribe(renderChrome);
   document.getElementById('lang-toggle').addEventListener('click', toggleLang);
-  goTo('mission');
+  document.getElementById('nav-levels').addEventListener('click', () => void goTo('levels'));
+  document.querySelector('.brand').addEventListener('click', () => void goTo('start'));
+  void goTo('start');
 }
 
 boot();
