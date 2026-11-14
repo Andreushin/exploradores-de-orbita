@@ -2,6 +2,27 @@
 
 Valores ludificados: conservan el orden de magnitud real pero se ajustan para que cada destino tenga al menos un diseño ganador.
 
+## Puntaje científico y CML
+`scienceScore` (js/physics.js) da de 0 a 100:
+
+**puntaje = (40 + instrumentos) × resultado × Tierra × Usuario** (con tope de 100)
+
+- **Instrumentos:** los `scienceValue` se ordenan de mayor a menor y se multiplican por 1 · 0.6 · 0.4 · 0.25 (`INSTRUMENT_WEIGHTS`). Cada instrumento extra suma, pero menos que el anterior (rendimientos decrecientes, como cuando varios instrumentos comparten masa, energía y enlace de datos).
+- **Resultado de la inserción:** órbita estable 1 · excéntrica 0.5 · sobrevuelo 0.15 · choque 0.
+- **Tierra y Usuario** (segmentos de *Design and Develop Science Missions*): cada uno va de 0.6 sin inversión a 1, de forma lineal, hasta $40M en Tierra (antenas y tiempo de DSN) y $30M en Usuario (procesamiento, calibración y archivo PDS). Sin estos segmentos, los datos se pierden o no se aprovechan.
+- Después, el Reporte suma las penalizaciones de los eventos (por ejemplo, modo seguro −10).
+
+`computeCML` (NASA Concept Maturity Levels):
+
+| CML | Condición |
+|---|---|
+| 1 · Concepto | El diseño no cumple las restricciones |
+| 2 · Factibilidad | Diseño válido, pero sobrevuelo o choque |
+| 3 · Trade space | En órbita, pero excéntrica o con ciencia < 50 (`CML4_MIN_SCORE`) |
+| 4 · Diseño puntual | Órbita estable y ciencia ≥ 50 |
+
+Con el reparto inicial del presupuesto, los diseños de referencia en órbita estable dan: Luna 39 (CML 3), Marte 56 (CML 4) y Europa 71 (CML 4). En la Luna se llega a CML 4 pasando a Tierra y Usuario el dinero que sobra de Lanzamiento y Espacio (por ejemplo 25 / 25 / 30 / 20 → 55 puntos). Pruebas: `tests/science.test.html`.
+
 | Dato | Valor en el juego | Referencia |
 |---|---|---|
 | Masa por unidad U | 1.33 kg/U | CubeSat 101 / CubeSat Design Specification |
