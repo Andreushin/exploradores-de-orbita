@@ -62,12 +62,38 @@ function renderChrome() {
   const b = s.budget;
   const spent = b.launch + b.space + b.ground + b.user;
   document.getElementById('hud-budget').textContent = t('common.budgetHud', { spent, total: b.total });
-  const steps = document.getElementById('steps');
-  steps.replaceChildren(...SCREENS.map((sc, i) => {
-    const el = document.createElement('span');
-    el.className = 'step' + (sc.id === s.screen ? ' is-active' : '');
-    el.textContent = `${i + 1}. ${t(`common.steps.${sc.id}`)}`;
-    return el;
+  renderSteps(s);
+}
+
+/**
+ * Indicador de progreso: pasos completados (clicables para volver), activo y bloqueados.
+ * Reglas: no se salta hacia adelante; no se puede volver a "Travesía" (reiniciaría el vuelo)
+ * ni salir de ella mientras el vuelo está en curso.
+ */
+function renderSteps(s) {
+  const current = SCREENS.findIndex((sc) => sc.id === s.screen);
+  const inFlight = s.screen === 'journey' && !s.journey.outcome;
+  const nav = document.getElementById('steps');
+  nav.setAttribute('aria-label', t('common.stepsLabel'));
+  nav.replaceChildren(...SCREENS.map((sc, i) => {
+    const state = i < current ? 'done' : i === current ? 'active' : 'locked';
+    const canGo = state === 'done' && sc.id !== 'journey' && !inFlight;
+    const btn = document.createElement('button');
+    btn.type = 'button';
+    btn.className = `step is-${state}`;
+    btn.innerHTML = `<span class="step-num" aria-hidden="true">${state === 'done' ? '✓' : i + 1}</span>
+      <span class="step-label">${t(`common.steps.${sc.id}`)}</span>`;
+    if (state === 'active') btn.setAttribute('aria-current', 'step');
+    if (canGo) {
+      btn.title = t('common.stepGoBack');
+      btn.addEventListener('click', () => goTo(sc.id));
+    } else {
+      btn.setAttribute('aria-disabled', 'true');
+      if (state === 'locked') btn.title = t('common.stepLocked');
+      else if (inFlight) btn.title = t('common.stepInFlight');
+      else if (sc.id === 'journey' && state === 'done') btn.title = t('common.stepNoRefly');
+    }
+    return btn;
   }));
 }
 

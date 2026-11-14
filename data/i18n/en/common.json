@@ -9,5 +9,10 @@
     "workshop": "Workshop",
     "journey": "Journey",
     "report": "Report"
-  }
+  },
+  "stepsLabel": "Mission progress",
+  "stepGoBack": "Go back to this step",
+  "stepLocked": "Finish the previous step to unlock",
+  "stepInFlight": "Flight in progress: finish orbit insertion first",
+  "stepNoRefly": "The journey was already flown; redesign from the Workshop"
 }
