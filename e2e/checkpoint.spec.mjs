@@ -101,7 +101,6 @@ async function playMission(page, missionId) {
 // Bugs conocidos: la prueba se marca como "falla esperada" hasta que se arregle.
 // Cuando el bug se corrija, Playwright avisará ("expected to fail") → borrar la entrada.
 const KNOWN_BUGS = {
-  europa: '#29 reparto inicial excede el presupuesto por redondeo',
 };
 
 for (const id of Object.keys(REFERENCE)) {
