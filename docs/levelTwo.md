@@ -27,8 +27,8 @@
 | **Qué enseña** | La ciencia elegida dicta qué instrumentos sirven, y la masa, la energía y el presupuesto limitan lo que se puede llevar. |
 | **Qué hace el jugador** | Elige estructura (3U / 6U / 12U), energía, propulsión, radio, control de actitud, computadora e instrumentos, y carga el propelente. |
 | **Cómo gana** | Pasa las 11 verificaciones de `physics.validateDesign` → **🚀 Lanzar**. |
-| **Cómo entra** | `nivel2/` (desde el Nivel 1 o el menú, cuando `js/levels.js` tenga `folder: 2`; ver §10). Sin misión guardada abre en **modo demo**. |
-| **Cómo sale** | **🚀 Validar y lanzar** guarda `satellite` con su resumen y abre `nivel3/`. **← Nivel 1** vuelve a la app principal. |
+| **Cómo entra** | `nivel2/`: desde el «Siguiente» del Nivel 1, desde **☰ Niveles → Nivel 2** o desde el Nivel 3 (`levelHref(2)`). Sin misión guardada abre en **modo demo**. |
+| **Cómo sale** | **🚀 Validar y lanzar** guarda `satellite` con su resumen y abre `nivel3/`. **← Nivel 1** vuelve a la app principal (`levelHref(1)`). |
 
 ---
 
@@ -181,7 +181,7 @@ Recorrido manual sugerido (en ES y EN, escritorio y 360 px):
 
 ## 10. Pendientes
 
-- [ ] **Activar la carpeta en el menú (Rol 1, `js/levels.js`):** en la entrada `workshop`, `folder: 2` y `done: (s) => s.satellite?.validated` (hoy es `s.journey.dvAvailable > 0`, que en el contrato escribe el Nivel 3). Con eso, el «Siguiente» del Nivel 1 y el menú redirigen a `nivel2/`.
+- [x] **Carpeta publicada (contrato, #52):** `2` está en `FOLDER_LEVELS` (`js/mision-store.js`) y la entrada `workshop` de `js/levels.js` tiene `folder: 2` y `done: satellite.validated`. El «Siguiente» del Nivel 1, el menú y el «Volver al taller» del Nivel 3 llevan a `nivel2/`.
 - [ ] Decidir si se retira la pantalla `js/screens/workshop.js` de la app cuando `nivel2/` quede activo. Hoy las dos usan `js/taller-reglas.js`, así que no se contradicen.
 - [ ] **E2E** (pausado en #46): cuando se reactive, los diseños de referencia deben elegir objetivo e instrumentos compatibles. Por ejemplo, Marte con cámara + magnetómetro no sirve para ningún objetivo de Marte: usar magnetómetro con «campo magnético» (sigue siendo válido: Δv 1382 m/s, 14.80 kg).
 - [ ] Prueba visual en navegador real (escritorio y celular, ES y EN).

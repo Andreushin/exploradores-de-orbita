@@ -2,7 +2,7 @@
 // Lee la misión del Nivel 1 de `eo-mision` (docs/contrato-niveles.md), deja armar el CubeSat bajo
 // los límites de masa, energía y presupuesto, y escribe solo la sección `satellite`.
 import { validateDesign, KG_PER_U } from '../js/physics.js';
-import { loadMission, saveMission, levelUrl } from '../js/mision-store.js';
+import { loadMission, saveMission, levelHref } from '../js/mision-store.js';
 import { grams, meterData, rocketOverload, instrumentStatus, incompatibleSelected } from '../js/taller-reglas.js';
 import { TEXTOS } from './textos.js';
 
@@ -203,7 +203,7 @@ function renderPanel() {
   footer.className = 'n2-footer';
   const back = document.createElement('a');
   back.className = 'n2-btn n2-btn-ghost';
-  back.href = levelUrl(1);
+  back.href = levelHref(1);
   back.textContent = t('back');
   const launch = document.createElement('button');
   launch.type = 'button';
@@ -223,18 +223,8 @@ function renderPanel() {
   panel.append(h, list, footer);
 }
 
-/** Navega a otro nivel; si su carpeta aún no existe, vuelve al menú con un aviso. */
-async function goLevel(n) {
-  const url = levelUrl(n);
-  try {
-    const res = await fetch(`${url}index.html`, { method: 'HEAD' });
-    if (!res.ok) throw new Error();
-    location.href = url;
-  } catch {
-    alert(t('missingLevel'));
-    location.href = levelUrl(1);
-  }
-}
+/** Navega a otro nivel: su carpeta si ya está publicada, o su pantalla en la app (contrato, #52). */
+const goLevel = (n) => { location.href = levelHref(n); };
 
 // --- Pantalla -----------------------------------------------------------------
 function render() {
