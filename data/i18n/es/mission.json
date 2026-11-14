@@ -4,6 +4,18 @@
   "difficulty": "Dificultad",
   "distance": "Distancia al Sol",
   "budget": "Presupuesto",
+  "selected": "Elegido",
+  "levels": {
+    "1": "Fácil",
+    "2": "Media",
+    "3": "Difícil"
+  },
+  "scienceTargets": "Objetivos científicos",
+  "dv": "Δv de inserción",
+  "travel": "Viaje",
+  "sunlight": "Luz solar",
+  "days": "{n} días",
+  "years": "~{n} años",
   "rocketTitle": "Elige tu cohete",
   "cost": "Costo",
   "payload": "Carga útil máx.",

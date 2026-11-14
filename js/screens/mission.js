@@ -34,6 +34,17 @@ export function fitLaunch(budget, cost) {
   return b;
 }
 
+/** Luz solar relativa a la Tierra (∝ 1/d²), en %. */
+export function sunlightPct(distanceAU) {
+  return Math.round(100 / distanceAU ** 2);
+}
+
+/** Duración del viaje: en días si es menos de un año, si no en años (~6 años). */
+function travelText(days) {
+  if (days < 365) return ctx.t('mission.days', { n: days });
+  return ctx.t('mission.years', { n: Math.round((days / 365) * 10) / 10 });
+}
+
 function el(tag, cls, html) {
   const e = document.createElement(tag);
   if (cls) e.className = cls;
@@ -51,18 +62,32 @@ function render() {
   // --- Destinos ---
   const grid = el('div', 'card-grid');
   for (const m of data.missions) {
-    const card = el('button', 'card mission-card' + (m.id === state.missionId ? ' is-selected' : ''));
+    const selected = m.id === state.missionId;
+    const card = el('button', 'card mission-card' + (selected ? ' is-selected' : ''));
     card.type = 'button';
+    card.style.setProperty('--c', m.color);
+    card.setAttribute('aria-pressed', String(selected));
+    // El nombre va primero: es el inicio del nombre accesible del botón (lo usa el E2E).
     card.innerHTML = `
-      <span class="planet-dot" style="--c:${m.color}"></span>
-      <h3>${tx(m.name)}</h3>
+      <div class="mission-head">
+        <span class="planet-dot" aria-hidden="true"></span>
+        <h3>${tx(m.name)}</h3>
+        ${selected ? `<span class="selected-badge">✓ ${t('mission.selected')}</span>` : ''}
+      </div>
+      <p class="difficulty diff-${m.difficulty}">
+        <span class="pips" aria-hidden="true">${[1, 2, 3].map((i) => `<i class="${i <= m.difficulty ? 'on' : ''}"></i>`).join('')}</span>
+        ${t('mission.difficulty')}: <strong>${t(`mission.levels.${m.difficulty}`)}</strong>
+      </p>
       <p class="muted">${tx(m.desc)}</p>
-      <ul class="stats">
-        <li>${t('mission.difficulty')}: ${'★'.repeat(m.difficulty)}</li>
-        <li>Δv: ${m.dvRequired} m/s</li>
-        <li>${t('mission.distance')}: ${m.distanceAU} AU</li>
-        <li>${t('mission.budget')}: $${m.budget}M</li>
-      </ul>`;
+      <h4 class="targets-title">🔬 ${t('mission.scienceTargets')}</h4>
+      <ul class="targets">${m.scienceTargets.map((s) => `<li>${tx(s)}</li>`).join('')}</ul>
+      <dl class="mission-stats">
+        <div><dt>${t('mission.dv')}</dt><dd>${m.dvRequired} m/s</dd></div>
+        <div><dt>${t('mission.travel')}</dt><dd>${travelText(m.travelDays)}</dd></div>
+        <div><dt>${t('mission.distance')}</dt><dd>${m.distanceAU} AU</dd></div>
+        <div><dt>${t('mission.sunlight')}</dt><dd>${sunlightPct(m.distanceAU)} %</dd></div>
+        <div><dt>${t('mission.budget')}</dt><dd>$${m.budget}M</dd></div>
+      </dl>`;
     card.addEventListener('click', () => selectMission(m));
     grid.append(card);
   }

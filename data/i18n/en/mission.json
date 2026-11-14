@@ -4,6 +4,18 @@
   "difficulty": "Difficulty",
   "distance": "Distance from Sun",
   "budget": "Budget",
+  "selected": "Selected",
+  "levels": {
+    "1": "Easy",
+    "2": "Medium",
+    "3": "Hard"
+  },
+  "scienceTargets": "Science objectives",
+  "dv": "Insertion Δv",
+  "travel": "Cruise",
+  "sunlight": "Sunlight",
+  "days": "{n} days",
+  "years": "~{n} years",
   "rocketTitle": "Choose your launcher",
   "cost": "Cost",
   "payload": "Max payload",
