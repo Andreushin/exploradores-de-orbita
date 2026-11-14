@@ -22,8 +22,44 @@ const ref = {
   mars: ['medio', 'struct-12u', ['solar-deploy', 'solar-body', 'battery', 'prop-green', 'comm-x', 'adcs', 'obc', 'inst-camera', 'inst-mag'], 6, 60],
   europa: ['pesado', 'struct-12u', ['rtg-mini', 'solar-deploy', 'prop-ion', 'comm-x', 'obc', 'inst-mag', 'inst-camera'], 1.5, 85],
 };
-for (const [m, [rocketId, ff, list, prop, space]] of Object.entries(ref)) {
-  const r = p.validateDesign({ missionId: m, rocketId, budget: { space }, satellite: { formFactor: ff, pieces: list, propellantKg: prop } }, data);
-  check(`diseño de referencia ${m} es válido ${r.valid ? '' : '→ falla: ' + r.checks.filter((c) => !c.ok).map((c) => c.id)}`, r.valid);
+const design = (m, changes = {}) => {
+  const [rocketId, formFactor, pieces, propellantKg, space] = ref[m];
+  const d = { missionId: m, rocketId, budget: { space }, satellite: { formFactor, pieces: [...pieces], propellantKg } };
+  if (changes.remove) d.satellite.pieces = d.satellite.pieces.filter((id) => !changes.remove.includes(id));
+  if (changes.add) d.satellite.pieces.push(...changes.add);
+  if ('formFactor' in changes) d.satellite.formFactor = changes.formFactor;
+  if ('propellantKg' in changes) d.satellite.propellantKg = changes.propellantKg;
+  if ('missionId' in changes) d.missionId = changes.missionId;
+  if ('rocketId' in changes) d.rocketId = changes.rocketId;
+  if ('space' in changes) d.budget.space = changes.space;
+  return d;
+};
+const failed = (r) => r.checks.filter((c) => !c.ok).map((c) => c.id);
+
+// Los 3 diseños ganadores deben pasar.
+for (const m of Object.keys(ref)) {
+  const r = p.validateDesign(design(m), data);
+  check(`diseño de referencia ${m} es válido ${r.valid ? '' : '→ falla: ' + failed(r)}`, r.valid);
+}
+
+// Diseños inválidos: cada uno debe fallar justo en el check esperado.
+const invalid = [
+  ['exceso de masa (Luna con 3 kg extra de propelente en 6U)', 'moon', { propellantKg: 6 }, 'mass'],
+  ['sin energía (Europa sin RTG)', 'europa', { remove: ['rtg-mini'] }, 'power'],
+  ['sin radio (Marte sin banda X)', 'mars', { remove: ['comm-x'] }, 'comms'],
+  ['radio sin alcance (UHF hacia Europa)', 'europa', { remove: ['comm-x'], add: ['comm-uhf'] }, 'comms'],
+  ['sin Δv (Luna con 0.5 kg de propelente)', 'moon', { propellantKg: 0.5 }, 'deltaV'],
+  ['sin propulsión (Luna sin motor)', 'moon', { remove: ['prop-green'], propellantKg: 0 }, 'propellant'],
+  ['sin estructura', 'moon', { formFactor: null }, 'structure'],
+  ['sin computadora de vuelo', 'moon', { remove: ['obc'] }, 'obc'],
+  ['monopropelente sin batería', 'moon', { remove: ['battery'] }, 'battery'],
+  ['sin instrumentos', 'moon', { remove: ['inst-camera'] }, 'science'],
+  ['sin presupuesto (costo > segmento Espacio)', 'moon', { space: 10 }, 'cost'],
+  ['exceso de volumen (diseño de Marte en 3U)', 'mars', { formFactor: 'struct-3u' }, 'volume'],
+];
+for (const [name, m, changes, expected] of invalid) {
+  const r = p.validateDesign(design(m, changes), data);
+  const ids = failed(r);
+  check(`diseño inválido: ${name} → falla "${expected}" ${ids.includes(expected) ? '' : '(fallaron: ' + (ids.join(', ') || 'ninguno') + ')'}`, !r.valid && ids.includes(expected));
 }
 </script></body></html>
