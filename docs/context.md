@@ -1,5 +1,5 @@
 # CONTEXT.MD — Siderense Rocket Labs (NASA Space Apps Challenge)
- 
+
 ## 🎯 1. Visión General del Proyecto (Qué se quiere)
 **Siderense Rocket Labs** es un juego web interactivo de un solo jugador ejecutado directamente en el navegador (Vanilla HTML, CSS y JavaScript moderno). El juego enseña ingeniería de sistemas espaciales mediante la toma de decisiones basada en restricciones reales. 
 El usuario asume el rol de director de misión, debiendo gestionar un presupuesto inicial, diseñar un satélite CubeSat, gestionar combustible finito y lograr una inserción orbital exitosa alrededor de un destino remoto, cerrando con un reporte de madurez técnica (CML).
