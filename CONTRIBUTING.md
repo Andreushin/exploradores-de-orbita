@@ -6,7 +6,7 @@
 
 | Rol | Responsable | Rama | Archivos |
 |---|---|---|---|
-| 1 · Core e integración | @Andreushin | `feat/core` | `index.html`, `e2e/`, `playwright.config.mjs`, `package.json`, `.github/`, `js/main.js`, `js/state.js`, `js/i18n.js`, `css/base.css`, `data/i18n/*/common.json`, `README.md`, `CONTRIBUTING.md` |
+| 1 · Core e integración | @Andreushin | `feat/core` | `index.html`, `assets/`, `e2e/`, `playwright.config.mjs`, `package.json`, `.github/`, `js/main.js`, `js/state.js`, `js/i18n.js`, `css/base.css`, `data/i18n/*/common.json`, `README.md`, `CONTRIBUTING.md` |
 | 2 · Datos y física | @tommycc2010-hub | `feat/data-physics` | `data/{missions,rockets,pieces,events}.json`, `js/physics.js`, `tests/`, `docs/fuentes.md` |
 | 3 · Pantallas 1–2 | @JU4NMAX | `feat/screens-1-2` | `js/screens/{mission,workshop}.js`, `css/screens/{mission,workshop}.css`, `data/i18n/*/{mission,workshop}.json` |
 | 4 · Pantallas 3–4 | @AslanCM | `feat/screens-3-4` | `js/screens/{journey,report}.js`, `js/canvas/*`, `css/screens/{journey,report}.css`, `data/i18n/*/{journey,report}.json` |

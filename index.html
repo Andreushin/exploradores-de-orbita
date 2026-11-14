@@ -5,7 +5,11 @@
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>Exploradores de Órbita</title>
   <meta name="description" content="Space Mission Design Game — NASA Space Apps 2026">
-  <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🚀</text></svg>">
+  <meta name="theme-color" content="#070b1a">
+  <link rel="icon" type="image/svg+xml" href="assets/logo.svg">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@500&family=Space+Grotesk:wght@400;600;700&display=swap">
   <link rel="stylesheet" href="css/base.css">
   <link rel="stylesheet" href="css/screens/mission.css">
   <link rel="stylesheet" href="css/screens/workshop.css">
@@ -15,7 +19,7 @@
 <body>
   <!-- OWNER: Rol 1. Las pantallas generan su propio DOM dentro de cada <section>. -->
   <header class="app-header">
-    <div class="brand">🚀 <span data-i18n="common.appName"></span></div>
+    <div class="brand"><img src="assets/logo.svg" alt="" width="32" height="32"><span data-i18n="common.appName"></span></div>
     <nav class="steps" id="steps"></nav>
     <div class="header-right">
       <span class="pill" id="hud-budget"></span>

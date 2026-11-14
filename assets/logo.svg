@@ -1,0 +1,28 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" role="img" aria-label="Exploradores de Órbita">
+  <!-- OWNER: Rol 1 — Logo original: planeta, órbita inclinada y CubeSat. -->
+  <defs>
+    <radialGradient id="planet" cx="38%" cy="34%" r="70%">
+      <stop offset="0" stop-color="#7fd6ff"/>
+      <stop offset="0.55" stop-color="#2f6fd6"/>
+      <stop offset="1" stop-color="#14245c"/>
+    </radialGradient>
+    <clipPath id="front"><rect x="0" y="32" width="64" height="32"/></clipPath>
+  </defs>
+  <rect width="64" height="64" rx="14" fill="#070b1a"/>
+  <circle cx="13" cy="14" r="1.2" fill="#eef2ff" opacity=".8"/>
+  <circle cx="52" cy="50" r="1" fill="#eef2ff" opacity=".6"/>
+  <circle cx="22" cy="54" r=".9" fill="#eef2ff" opacity=".7"/>
+  <!-- órbita detrás del planeta -->
+  <ellipse cx="32" cy="32" rx="26" ry="9" transform="rotate(-24 32 32)" fill="none" stroke="#4fc3f7" stroke-width="2.2" opacity=".55"/>
+  <circle cx="32" cy="32" r="13" fill="url(#planet)"/>
+  <!-- órbita delante del planeta -->
+  <g clip-path="url(#front)" transform="rotate(-24 32 32)">
+    <ellipse cx="32" cy="32" rx="26" ry="9" fill="none" stroke="#4fc3f7" stroke-width="2.2"/>
+  </g>
+  <!-- CubeSat con paneles, sobre la órbita -->
+  <g transform="translate(48 13) rotate(-24)" stroke="#070b1a" stroke-width="1">
+    <rect x="-10" y="-2" width="6" height="4" rx=".6" fill="#cfe9ff"/>
+    <rect x="4" y="-2" width="6" height="4" rx=".6" fill="#cfe9ff"/>
+    <rect x="-4" y="-4" width="8" height="8" rx="1.5" fill="#ff6b35"/>
+  </g>
+</svg>
