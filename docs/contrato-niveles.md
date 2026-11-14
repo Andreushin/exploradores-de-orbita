@@ -66,6 +66,14 @@ location.href = levelUrl(4);           // ../nivel4/  (funciona desde la raíz o
 }
 ```
 
+## Navegar entre niveles
+
+```js
+import { levelHref } from '../js/mision-store.js';
+location.href = levelHref(4); // nivel4/ si ya está publicado; si no, ../#report en la app principal
+```
+Cuando publiques tu carpeta, **agrega tu número a `FOLDER_LEVELS`** en `js/mision-store.js` y `folder: N` a tu entrada en `js/levels.js`. Hoy solo está el 3.
+
 ## Quién escribe qué
 
 | Nivel | Lee | Escribe | Al terminar va a |

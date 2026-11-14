@@ -2,7 +2,7 @@
 // Lee el satélite de `eo-mision` (docs/contrato-niveles.md), simula el viaje con combustible
 // finito en kg (depende de la masa, ecuación del cohete) y escribe `journey`.
 import { G0, deltaV, propellantFor, resolvePieces, dryMass, systemIsp, insertionOutcome } from '../js/physics.js';
-import { loadMission, saveMission, levelUrl } from '../js/mision-store.js';
+import { loadMission, saveMission, levelHref } from '../js/mision-store.js';
 import { TEXTOS } from './textos.js';
 
 // --- Reglas del nivel ---------------------------------------------------------
@@ -98,18 +98,8 @@ function persist() {
   });
 }
 
-/** Navega a otro nivel; si su carpeta aún no existe, vuelve al menú con un aviso. */
-async function goLevel(n, missingKey) {
-  const url = levelUrl(n);
-  try {
-    const res = await fetch(`${url}index.html`, { method: 'HEAD' });
-    if (!res.ok) throw new Error();
-    location.href = url;
-  } catch {
-    alert(t(missingKey));
-    location.href = levelUrl(1);
-  }
-}
+/** Navega a otro nivel: su carpeta si ya existe, o su pantalla en la app principal. */
+const goLevel = (n) => { location.href = levelHref(n); };
 
 // --- Canvas (estilo NASA Mission Viz) -------------------------------------------
 const canvas = $('n3-canvas');
@@ -369,7 +359,7 @@ function renderResult() {
     <h2 class="${run.outcome === 'orbit' ? 'n3-ok' : 'n3-bad'}">${t(`outcomes.${run.outcome}`, { dest: esc(tx(mission.name)) })}</h2>
     <p>${t('resultStats', { kg: fmt(used, 2), pct: fmt(sat.prop0 ? (used / sat.prop0) * 100 : 0, 0), dv: fmt(run.dvUsed, 0), n: run.maneuvers })}</p>`;
   const row = document.createElement('div'); row.className = 'n3-choices';
-  row.append(btn(t('toReport'), 'n3-btn-primary', () => goLevel(4, 'reportMissing')));
+  row.append(btn(t('toReport'), 'n3-btn-primary', () => goLevel(4)));
   if (run.outcome !== 'orbit') row.append(btn(t('retry'), '', restart));
   p.append(row);
 }
@@ -413,9 +403,9 @@ function renderNoFuel() {
     <ul class="n3-tips">${tips.map((x) => `<li>${x}</li>`).join('')}</ul>`;
   const row = document.createElement('div'); row.className = 'n3-choices';
   row.append(
-    btn(t('toWorkshop'), 'n3-btn-primary', () => goLevel(2, 'workshopMissing')),
+    btn(t('toWorkshop'), 'n3-btn-primary', () => goLevel(2)),
     btn(t('retry'), '', restart),
-    btn(t('toReport'), 'n3-btn-ghost', () => goLevel(4, 'reportMissing')),
+    btn(t('toReport'), 'n3-btn-ghost', () => goLevel(4)),
   );
   p.append(row);
 }

@@ -83,8 +83,6 @@ export const TEXTOS = {
     nfTipMore: 'Carga {kg} kg de propelente (tu sistema admite hasta {max} kg).',
     nfTipMoreMax: 'Ni con el tanque lleno ({max} kg) alcanza: necesitas aligerar o más Isp.',
     noEngine: 'Tu CubeSat no lleva sistema de propulsión: sin motor no hay inserción orbital.',
-    reportMissing: 'El Nivel 4 aún no está publicado; te llevo al menú.',
-    workshopMissing: 'El Nivel 2 aún no está publicado; te llevo al menú.',
   },
   en: {
     title: 'Level 3 · Journey and orbit insertion',
@@ -160,7 +158,5 @@ export const TEXTOS = {
     nfTipMore: 'Load {kg} kg of propellant (your system holds up to {max} kg).',
     nfTipMoreMax: 'Even a full tank ({max} kg) is not enough: you need less mass or more Isp.',
     noEngine: 'Your CubeSat has no propulsion system: without an engine there is no orbit insertion.',
-    reportMissing: 'Level 4 is not published yet; taking you to the menu.',
-    workshopMissing: 'Level 2 is not published yet; taking you to the menu.',
   },
 };
