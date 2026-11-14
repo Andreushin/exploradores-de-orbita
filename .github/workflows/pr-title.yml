@@ -16,14 +16,14 @@ jobs:
         env:
           TITLE: ${{ github.event.pull_request.title }}
         run: |
-          regex='^(feat|fix|data|style|i18n|docs|refactor|test|chore)(\((core|fisica|datos|mision|taller|travesia|reporte|canvas|repo)\))?: [^A-Z].{2,}[^.]$'
+          regex='^(feat|fix|data|style|i18n|docs|refactor|test|chore)(\((core|fisica|datos|mision|taller|travesia|reporte|canvas|repo|nivel[1-4])\))?: [^A-Z].{2,}[^.]$'
           if [[ "$TITLE" =~ $regex ]]; then
             echo "✔ Título válido: $TITLE"
           else
             echo "::error::Título inválido: \"$TITLE\""
             echo "Formato: tipo(alcance): descripción en minúsculas, sin punto final"
             echo "Tipos: feat fix data style i18n docs refactor test chore"
-            echo "Alcances: core fisica datos mision taller travesia reporte canvas repo"
+            echo "Alcances: core fisica datos mision taller travesia reporte canvas repo nivel1 nivel2 nivel3 nivel4"
             echo "Ejemplo: feat(taller): barra de masa con color por límite"
             exit 1
           fi

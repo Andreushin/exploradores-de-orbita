@@ -1,6 +1,52 @@
-/* OWNER: Rol 4 — Pantalla 3 */
-.journey-canvas { display: block; width: 100%; height: clamp(260px, 50vh, 460px); border-radius: var(--radius); border: 1px solid var(--border); }
-.journey-hud { display: flex; gap: 20px; flex-wrap: wrap; margin: 12px 0; font-variant-numeric: tabular-nums; }
+/* OWNER: Rol 4 — Pantalla 3. Clases con prefijo journey- (aislamiento, ver docs/nivel 3.md) */
+.journey-canvas { display: block; width: 100%; height: clamp(240px, 46vh, 440px); border-radius: var(--radius); border: 1px solid var(--border); }
+.journey-hud { display: flex; gap: 8px 20px; flex-wrap: wrap; margin: 12px 0 8px; font-variant-numeric: tabular-nums; }
+.journey-hud b { font-family: var(--font-mono); }
+
+/* Barra de combustible */
+.journey-fuel { display: grid; grid-template-columns: auto 1fr auto; gap: 10px; align-items: center; margin-bottom: 12px; }
+.journey-fuel-label { color: var(--muted); font-size: 0.9rem; }
+.journey-fuel-track { height: 12px; background: var(--surface-2); border: 1px solid var(--border); border-radius: 999px; overflow: hidden; }
+.journey-fuel-fill { display: block; height: 100%; border-radius: inherit; transition: width 0.15s linear, background-color 0.3s; }
+.journey-fuel-fill.is-ok { background: var(--ok); }
+.journey-fuel-fill.is-low { background: var(--warn); }
+.journey-fuel-fill.is-critical { background: var(--danger); }
+.journey-fuel-value { font-family: var(--font-mono); font-size: 0.9rem; white-space: nowrap; }
+
+/* Panel de decisiones */
 .journey-panel { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); padding: 16px; display: flex; flex-wrap: wrap; gap: 10px; align-items: center; min-height: 70px; }
-.journey-panel h3, .journey-panel p { width: 100%; margin: 0; }
+.journey-panel > h3, .journey-panel > p, .journey-panel > small, .journey-panel > .journey-gauge, .journey-panel > .journey-fail { width: 100%; margin: 0; }
+.journey-tag { color: var(--accent-2); text-transform: uppercase; letter-spacing: 0.08em; font-size: 0.75rem; font-weight: 600; }
+.journey-cost { font-family: var(--font-mono); opacity: 0.8; margin-left: 4px; }
+.journey-budget { color: var(--muted); }
 .btn-burn { touch-action: none; user-select: none; -webkit-user-select: none; }
+
+/* Barra de precisión del frenado */
+.journey-gauge-track { position: relative; display: flex; height: 18px; border-radius: 6px; overflow: hidden; border: 1px solid var(--border); }
+.journey-zone { height: 100%; }
+.journey-zone.is-flyby { background: rgba(255, 122, 122, 0.35); }
+.journey-zone.is-eccentric { background: rgba(251, 191, 36, 0.4); }
+.journey-zone.is-orbit { background: rgba(74, 222, 128, 0.55); }
+.journey-zone.is-crash { background: rgba(255, 122, 122, 0.6); }
+.journey-gauge-marker, .journey-gauge-limit { position: absolute; top: -2px; bottom: -2px; width: 3px; transform: translateX(-50%); }
+.journey-gauge-marker { background: var(--text); box-shadow: 0 0 6px var(--text); }
+.journey-gauge-limit { background: var(--danger); width: 2px; }
+.journey-gauge-legend { display: grid; grid-template-columns: 75fr 20fr 15fr 20fr; font-size: 0.72rem; color: var(--muted); margin-top: 4px; }
+.journey-gauge-legend span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+
+/* Reintento educativo */
+.journey-fail h4 { margin: 14px 0 4px; }
+.journey-fail p { margin: 6px 0; }
+.journey-facts { list-style: none; padding: 0; margin: 10px 0; display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 8px; }
+.journey-facts li { display: flex; justify-content: space-between; gap: 8px; background: var(--surface-2); border-radius: 8px; padding: 8px 12px; }
+.journey-facts b { font-family: var(--font-mono); white-space: nowrap; }
+.journey-facts li:last-child b { color: var(--danger); }
+.journey-tips { margin: 6px 0 0; padding-left: 20px; }
+.journey-tips li { margin: 2px 0; }
+.journey-actions { display: flex; flex-wrap: wrap; gap: 10px; margin-top: 14px; }
+
+@media (max-width: 480px) {
+  .journey-fuel { grid-template-columns: 1fr auto; }
+  .journey-fuel-track { grid-column: 1 / -1; grid-row: 2; }
+  .journey-actions .btn { flex: 1 1 100%; }
+}

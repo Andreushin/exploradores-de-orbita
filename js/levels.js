@@ -1,6 +1,7 @@
 // OWNER: Rol 1 — Catálogo de niveles: carga diferida y reglas de desbloqueo.
 // Cada nivel se descarga (JS + CSS) solo cuando el jugador lo abre por primera vez.
 // Para agregar un nivel: una entrada aquí + su <section id="screen-<id>"> en index.html.
+// Si el nivel vive en su carpeta (nivelN/), pon `folder: N`: goTo guarda la misión y redirige.
 
 export const LEVELS = [
   {
@@ -24,6 +25,7 @@ export const LEVELS = [
     id: 'journey',
     icon: '🚀',
     resource: 'GMAT / NASA Mission Viz',
+    folder: 3, // vive en nivel3/ (página aislada, docs/nivel 3.md): goTo redirige ahí
     css: ['css/screens/journey.css'],
     load: () => import('./screens/journey.js'),
     done: (s) => s.journey.outcome != null,
