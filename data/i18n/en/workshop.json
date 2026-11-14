@@ -1,6 +1,9 @@
 {
   "title": "CubeSat Workshop",
   "intro": "Build your satellite. Each U is 10×10×10 cm and may weigh up to 1.33 kg (CubeSat 101).",
+  "objective": "Objective: {target}. Instruments that don't serve it are greyed out.",
+  "removedIncompatible": "We removed instruments that don't serve the Level 1 science objective: {list}.",
+  "maxMass": "max. {n} g",
   "categories": {
     "structure": "Structure (form factor)",
     "power": "Power",

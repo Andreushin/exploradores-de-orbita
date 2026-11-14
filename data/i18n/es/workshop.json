@@ -1,6 +1,9 @@
 {
   "title": "Taller CubeSat",
   "intro": "Arma tu satélite. Cada unidad U mide 10×10×10 cm y puede pesar hasta 1.33 kg (CubeSat 101).",
+  "objective": "Objetivo: {target}. Los instrumentos que no sirven para él aparecen en gris.",
+  "removedIncompatible": "Quitamos instrumentos que no sirven para el objetivo científico del Nivel 1: {list}.",
+  "maxMass": "máx. {n} g",
   "categories": {
     "structure": "Estructura (factor de forma)",
     "power": "Energía",

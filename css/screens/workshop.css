@@ -5,6 +5,14 @@
 .piece { font: inherit; color: inherit; text-align: left; background: var(--surface); border: 1px solid var(--border); border-radius: 10px; padding: 10px; cursor: pointer; display: grid; gap: 2px; }
 .piece small { color: var(--muted); font-size: 0.78rem; }
 .piece.is-selected { border-color: var(--ok); box-shadow: 0 0 0 1px var(--ok) inset; }
+.piece:disabled { cursor: not-allowed; }
+.piece.is-incompatible { opacity: 0.55; filter: grayscale(1); border-style: dashed; }
+.piece .piece-why, .piece .piece-hint { font-size: 0.75rem; line-height: 1.35; }
+.piece .piece-why { color: var(--ok); }
+.piece.is-incompatible .piece-why { color: var(--text); }
+.piece .piece-hint { color: var(--accent-2); }
+.objective-banner { display: inline-block; margin: 0 0 8px; padding: 6px 12px; border: 1px solid var(--accent-2); border-radius: 999px; background: var(--surface-2); font-size: 0.9rem; }
+.removed-notice { margin: 0 0 8px; }
 .metrics { position: sticky; top: 80px; background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); padding: 16px; display: grid; gap: 10px; }
 .metric { display: flex; justify-content: space-between; font-variant-numeric: tabular-nums; }
 .meters { display: grid; gap: 12px; }

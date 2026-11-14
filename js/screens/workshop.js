@@ -110,6 +110,29 @@ function renderMeters(box, state) {
   ].join('');
 }
 
+// --- Compatibilidad de instrumentos con el objetivo científico del Nivel 1 (data/workshop.json) ---
+
+/**
+ * ¿Sirve este instrumento para el objetivo elegido? Sin objetivo (o sin datos) todo es compatible.
+ * @returns {{ compatible: boolean, why: {es,en} | null }}
+ */
+export function instrumentStatus(piece, state, fitData) {
+  if (piece.category !== 'instrument') return { compatible: true, why: null };
+  const entry = fitData?.[state.missionId]?.[state.plan?.scienceTargetIdx]?.[piece.id];
+  if (!entry) return { compatible: true, why: null };
+  return { compatible: entry.ok, why: entry.why };
+}
+
+/** Ids de instrumentos elegidos que no sirven para el objetivo actual. */
+export function incompatibleSelected(state, data) {
+  return state.satellite.pieces.filter((id) => {
+    const p = data.pieces.find((x) => x.id === id);
+    return p && !instrumentStatus(p, state, data.workshop?.instrumentFit).compatible;
+  });
+}
+
+let removedNotice = []; // nombres quitados automáticamente al entrar al taller
+
 function togglePiece(p) {
   const sat = ctx.state.satellite;
   if (p.category === 'structure') {
@@ -134,6 +157,13 @@ function render() {
   root.replaceChildren();
 
   root.append(el('h1', null, t('workshop.title')), el('p', 'lead', t('workshop.intro')));
+  const mission = data.missions.find((x) => x.id === state.missionId);
+  const target = mission?.scienceTargets?.[state.plan?.scienceTargetIdx];
+  if (target) root.append(el('p', 'objective-banner', `🎯 ${t('workshop.objective', { target: tx(target) })}`));
+  if (removedNotice.length) {
+    root.append(el('p', 'warn removed-notice', t('workshop.removedIncompatible', { list: removedNotice.join(', ') })));
+  }
+  const fit = data.workshop?.instrumentFit;
   const layout = el('div', 'workshop-layout');
 
   // --- Catálogo ---
@@ -143,12 +173,26 @@ function render() {
     const list = el('div', 'piece-list');
     for (const p of data.pieces.filter((x) => x.category === cat)) {
       const selected = p.id === sat.formFactor || sat.pieces.includes(p.id);
-      const b = el('button', 'piece' + (selected ? ' is-selected' : ''));
+      const fitInfo = instrumentStatus(p, state, fit);
+      const b = el('button', 'piece' + (selected ? ' is-selected' : '') + (fitInfo.compatible ? '' : ' is-incompatible'));
       b.type = 'button';
       b.title = tx(p.desc);
+      b.disabled = !fitInfo.compatible;
+      // Nombre primero: el E2E busca la pieza por el inicio de su nombre accesible.
+      let extra = '';
+      if (p.category === 'structure') {
+        const form = data.workshop?.formFactors?.[p.id];
+        extra = `<small class="piece-hint">${form ? `${tx(form)} · ` : ''}${t('workshop.maxMass', { n: grams(p.volumeU * physics.KG_PER_U) })}</small>`;
+      } else if (fitInfo.why) {
+        extra = `<small class="piece-why" id="why-${p.id}">${fitInfo.compatible ? '✔' : '✘'} ${tx(fitInfo.why)}</small>`;
+        b.setAttribute('aria-describedby', `why-${p.id}`);
+      }
       b.innerHTML = `<strong>${tx(p.name)}</strong>
-        <small>${fmt(p.massKg)} kg · ${p.volumeU}U · ${p.powerW > 0 ? '−' : '+'}${Math.abs(p.powerW)} W · $${p.cost}M · TRL ${p.trl}${p.isp ? ` · Isp ${p.isp}s` : ''}</small>`;
-      b.addEventListener('click', () => togglePiece(p));
+        <small>${grams(p.massKg)} g · ${p.volumeU}U · ${p.powerW > 0 ? '−' : '+'}${Math.abs(p.powerW)} W · $${p.cost}M · TRL ${p.trl}${p.isp ? ` · Isp ${p.isp}s` : ''}</small>${extra}`;
+      b.addEventListener('click', () => {
+        removedNotice = [];
+        togglePiece(p);
+      });
       list.append(b);
     }
     catalog.append(list);
@@ -207,6 +251,10 @@ export default {
   mount(container, context) {
     ctx = context;
     root = container;
+    // Si el objetivo del Nivel 1 cambió, quitar los instrumentos que ya no sirven y avisar.
+    const bad = incompatibleSelected(ctx.state, ctx.data);
+    removedNotice = bad.map((id) => ctx.tx(ctx.data.pieces.find((p) => p.id === id).name));
+    if (bad.length) ctx.update({ satellite: { pieces: ctx.state.satellite.pieces.filter((id) => !bad.includes(id)) } });
     render();
   },
   unmount() {},

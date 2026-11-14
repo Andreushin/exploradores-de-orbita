@@ -1,0 +1,204 @@
+{
+  "instrumentFit": {
+    "moon": [
+      {
+        "inst-camera": {
+          "ok": true,
+          "why": {
+            "es": "Una cámara para poca luz (como ShadowCam de la NASA) ve dentro de los cráteres en sombra permanente.",
+            "en": "A low-light camera (like NASA's ShadowCam) sees inside permanently shadowed craters."
+          }
+        },
+        "inst-spectro": {
+          "ok": true,
+          "why": {
+            "es": "El infrarrojo detecta la firma del agua y del hielo (como M3 en Chandrayaan-1).",
+            "en": "Infrared detects the signature of water and ice (like M3 on Chandrayaan-1)."
+          }
+        },
+        "inst-radar": {
+          "ok": true,
+          "why": {
+            "es": "El radar distingue hielo enterrado bajo el regolito (como Mini-RF del LRO).",
+            "en": "Radar tells apart ice buried under the regolith (like LRO's Mini-RF)."
+          }
+        },
+        "inst-mag": {
+          "ok": false,
+          "why": {
+            "es": "El hielo no deja señal magnética y la Luna no tiene campo global: no aporta a este objetivo.",
+            "en": "Ice leaves no magnetic signal and the Moon has no global field: it doesn't help this objective."
+          }
+        }
+      },
+      {
+        "inst-camera": {
+          "ok": true,
+          "why": {
+            "es": "Mapea textura, cráteres y brillo del regolito (como LROC).",
+            "en": "Maps the regolith's texture, craters and brightness (like LROC)."
+          }
+        },
+        "inst-spectro": {
+          "ok": true,
+          "why": {
+            "es": "Identifica los minerales del regolito por su espectro.",
+            "en": "Identifies regolith minerals from their spectrum."
+          }
+        },
+        "inst-radar": {
+          "ok": true,
+          "why": {
+            "es": "Mide el espesor y la rugosidad del regolito bajo la superficie.",
+            "en": "Measures regolith thickness and roughness below the surface."
+          }
+        },
+        "inst-mag": {
+          "ok": false,
+          "why": {
+            "es": "Las anomalías magnéticas lunares son débiles y locales: no describen el regolito.",
+            "en": "Lunar magnetic anomalies are weak and local: they don't describe the regolith."
+          }
+        }
+      }
+    ],
+    "mars": [
+      {
+        "inst-spectro": {
+          "ok": true,
+          "why": {
+            "es": "El metano absorbe en el infrarrojo: un espectrómetro lo mide en la atmósfera (como el Trace Gas Orbiter).",
+            "en": "Methane absorbs infrared light: a spectrometer measures it in the atmosphere (like the Trace Gas Orbiter)."
+          }
+        },
+        "inst-camera": {
+          "ok": false,
+          "why": {
+            "es": "Una cámara no puede ver un gas transparente como el metano.",
+            "en": "A camera can't see a transparent gas like methane."
+          }
+        },
+        "inst-mag": {
+          "ok": false,
+          "why": {
+            "es": "El metano no tiene firma magnética.",
+            "en": "Methane has no magnetic signature."
+          }
+        },
+        "inst-radar": {
+          "ok": false,
+          "why": {
+            "es": "El radar atraviesa la atmósfera sin detectar sus gases.",
+            "en": "Radar passes through the atmosphere without detecting its gases."
+          }
+        }
+      },
+      {
+        "inst-mag": {
+          "ok": true,
+          "why": {
+            "es": "Mide el magnetismo fósil de la corteza (como Mars Global Surveyor y MAVEN).",
+            "en": "Measures the crust's fossil magnetism (like Mars Global Surveyor and MAVEN)."
+          }
+        },
+        "inst-camera": {
+          "ok": false,
+          "why": {
+            "es": "El campo magnético no aparece en las imágenes.",
+            "en": "The magnetic field doesn't show up in images."
+          }
+        },
+        "inst-spectro": {
+          "ok": false,
+          "why": {
+            "es": "El espectro de la luz no mide campos magnéticos.",
+            "en": "Light spectra don't measure magnetic fields."
+          }
+        },
+        "inst-radar": {
+          "ok": false,
+          "why": {
+            "es": "El radar sondea el subsuelo, no el magnetismo.",
+            "en": "Radar probes the subsurface, not magnetism."
+          }
+        }
+      }
+    ],
+    "europa": [
+      {
+        "inst-mag": {
+          "ok": true,
+          "why": {
+            "es": "El océano salado induce un campo magnético; así lo detectó la sonda Galileo.",
+            "en": "The salty ocean induces a magnetic field; that's how the Galileo probe detected it."
+          }
+        },
+        "inst-radar": {
+          "ok": true,
+          "why": {
+            "es": "Mide el espesor del hielo sobre el océano (como REASON en Europa Clipper).",
+            "en": "Measures the ice shell above the ocean (like REASON on Europa Clipper)."
+          }
+        },
+        "inst-camera": {
+          "ok": true,
+          "why": {
+            "es": "Las fracturas y el terreno caótico revelan el océano debajo (como EIS en Europa Clipper).",
+            "en": "Fractures and chaos terrain reveal the ocean below (like EIS on Europa Clipper)."
+          }
+        },
+        "inst-spectro": {
+          "ok": false,
+          "why": {
+            "es": "El océano está bajo kilómetros de hielo: la luz infrarroja no llega hasta él.",
+            "en": "The ocean lies under kilometers of ice: infrared light can't reach it."
+          }
+        }
+      },
+      {
+        "inst-spectro": {
+          "ok": true,
+          "why": {
+            "es": "Identifica el vapor de agua y las sales de las plumas por su espectro.",
+            "en": "Identifies the water vapor and salts in the plumes from their spectrum."
+          }
+        },
+        "inst-camera": {
+          "ok": true,
+          "why": {
+            "es": "Fotografía las plumas contra el fondo del espacio (como lo hizo el Hubble).",
+            "en": "Photographs the plumes against the background of space (as Hubble did)."
+          }
+        },
+        "inst-mag": {
+          "ok": true,
+          "why": {
+            "es": "Galileo detectó una pluma por la perturbación que dejó en el campo magnético.",
+            "en": "Galileo detected a plume from the disturbance it left in the magnetic field."
+          }
+        },
+        "inst-radar": {
+          "ok": false,
+          "why": {
+            "es": "El radar sondea el hielo sólido; no detecta el vapor de las plumas.",
+            "en": "Radar probes solid ice; it doesn't detect plume vapor."
+          }
+        }
+      }
+    ]
+  },
+  "formFactors": {
+    "struct-3u": {
+      "es": "Económica y ligera, pero cabe poco: ideal para misiones cortas como la Luna.",
+      "en": "Cheap and light, but fits little: ideal for short missions like the Moon."
+    },
+    "struct-6u": {
+      "es": "Balance: espacio para propulsión, energía y uno o dos instrumentos.",
+      "en": "Balance: room for propulsion, power and one or two instruments."
+    },
+    "struct-12u": {
+      "es": "Gran capacidad, pero pesa más: necesita un cohete con más carga útil.",
+      "en": "High capacity, but heavier: it needs a launcher with more payload."
+    }
+  }
+}
