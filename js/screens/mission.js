@@ -5,6 +5,7 @@ const SEGMENTS = ['launch', 'space', 'ground', 'user'];
 // Reparto inicial sugerido: 40% lanzamiento, 35% espacio, 15% tierra, 10% usuario
 const SPLIT = { launch: 0.4, space: 0.35, ground: 0.15, user: 0.1 };
 let ctx;
+let root;
 
 /** Reparto inicial que suma exactamente `total`: floor en 3 segmentos, el resto a Usuario. */
 export function initialSplit(total) {
@@ -32,7 +33,6 @@ export function fitLaunch(budget, cost) {
   }
   return b;
 }
-let root;
 
 function el(tag, cls, html) {
   const e = document.createElement(tag);
