@@ -1,4 +1,4 @@
-# 🚀 Siderense Rocket Labs — Space Mission Design Game
+# 🚀 Exploradores de Órbita — Space Mission Design Game
 
 **Equipo:** Parche ColomboMexicano · **Challenge:** NASA Space Apps 2026 — Space Mission Design Game
 
