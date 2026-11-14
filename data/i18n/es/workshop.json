@@ -14,6 +14,11 @@
   "mass": "Masa",
   "power": "Energía",
   "cost": "Costo",
+  "tight": "margen justo",
+  "required": "requerido {n} m/s",
+  "powerUse": "consumo {c} W de {g} W generados",
+  "minPower": "El destino exige al menos {n} W generados",
+  "rocketLimit": "El cohete {name} solo lleva {n} g: así no podrá despegar. Quita masa o vuelve al Nivel 1 por un cohete mayor.",
   "launch": "🚀 Lanzar",
   "checks": {
     "structure": "Elegiste un factor de forma",

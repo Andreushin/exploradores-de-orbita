@@ -7,6 +7,17 @@
 .piece.is-selected { border-color: var(--ok); box-shadow: 0 0 0 1px var(--ok) inset; }
 .metrics { position: sticky; top: 80px; background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); padding: 16px; display: grid; gap: 10px; }
 .metric { display: flex; justify-content: space-between; font-variant-numeric: tabular-nums; }
+.meters { display: grid; gap: 12px; }
+.meter { --level: var(--ok); display: grid; gap: 4px; }
+.meter.lvl-warn { --level: var(--warn); }
+.meter.lvl-danger { --level: var(--danger); }
+.meter-head { display: flex; justify-content: space-between; gap: 8px; font-size: 0.9rem; }
+.meter-head b { font-family: var(--font-mono); font-variant-numeric: tabular-nums; white-space: nowrap; color: var(--level); }
+.meter-track { position: relative; height: 10px; border-radius: 999px; background: var(--surface-2); border: 1px solid var(--border); }
+.meter-fill { height: 100%; border-radius: 999px; background: var(--level); transition: width 0.15s; }
+.meter-marker { position: absolute; top: -4px; bottom: -4px; width: 2px; margin-left: -1px; background: var(--text); }
+.meter-note { color: var(--muted); font-size: 0.75rem; font-family: var(--font-mono); }
+.rocket-alert { margin: 0; font-size: 0.85rem; }
 .checklist { list-style: none; padding: 0; margin: 0; font-size: 0.85rem; }
 .metrics .segment-row { grid-template-columns: 1fr 70px; }
 .metrics .segment-row input { grid-column: 1 / -1; grid-row: 2; }

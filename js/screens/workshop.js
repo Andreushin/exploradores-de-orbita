@@ -13,6 +13,102 @@ function el(tag, cls, html) {
 }
 
 const fmt = (n, d = 1) => Number(n).toFixed(d);
+/** Gramos con separador de miles fino: 15960 → "15 960". */
+const grams = (kg) => String(Math.round(kg * 1000)).replace(/\B(?=(\d{3})+(?!\d))/g, ' ');
+
+// --- Medidores en vivo (#14 · Nivel 2) ---
+export const WARN_AT = 0.85;  // amarillo desde el 85 % del límite
+export const DV_MARGIN = 1.1; // Δv: verde con ≥10 % de margen sobre el requerido
+
+/** Nivel de una métrica con límite superior (masa, costo, consumo): ok | warn | danger. */
+export function limitLevel(value, limit) {
+  if (!(limit > 0)) return value > 0 ? 'danger' : 'ok';
+  const r = value / limit;
+  if (r > 1) return 'danger';
+  return r >= WARN_AT ? 'warn' : 'ok';
+}
+
+/** Nivel del Δv, donde más es mejor. */
+export function dvLevel(dv, required) {
+  if (!(required > 0)) return 'ok';
+  if (dv < required) return 'danger';
+  return dv / required < DV_MARGIN ? 'warn' : 'ok'; // proporción: evita 1800 × 1.1 = 1980.0000000000002
+}
+
+/** Datos de los 4 medidores a partir de physics.validateDesign(...).metrics. */
+export function meterData(m, mission, spaceBudget) {
+  const pct = (v, max) => {
+    if (max > 0) return Math.min(100, (v / max) * 100);
+    return v > 0 ? 100 : 0;
+  };
+  const req = mission?.dvRequired || 0;
+  const dvScale = req > 0 ? Math.max(req * 1.3, m.dv * 1.05) : Math.max(m.dv, 1);
+  const massCap = m.massCap === Infinity ? 0 : m.massCap;
+  const minW = mission?.minPowerW || 0;
+  const powerLow = m.power.generated < minW;
+  return {
+    dv: { pct: pct(m.dv, dvScale), level: dvLevel(m.dv, req), required: req, markerPct: req > 0 ? (req / dvScale) * 100 : null },
+    mass: { pct: pct(m.wet, massCap), level: limitLevel(m.wet, massCap), cap: massCap },
+    power: { pct: pct(m.power.consumed, m.power.generated), level: powerLow ? 'danger' : limitLevel(m.power.consumed, m.power.generated), minW, powerLow },
+    cost: { pct: pct(m.cost, spaceBudget), level: limitLevel(m.cost, spaceBudget) },
+  };
+}
+
+/** ¿El cohete es el límite que manda y la masa lo supera? (si no, lo marca la estructura). */
+export function rocketOverload(m, rocket) {
+  if (!rocket || !(m.capU > 0)) return false;
+  // massCap = min(estructura, carga útil): si es la carga útil, manda el cohete
+  return rocket.maxPayloadKg <= m.massCap && m.wet > rocket.maxPayloadKg;
+}
+
+function meterHTML({ label, value, d, aria, note, marker }) {
+  const tight = d.level === 'warn' ? ` · ${ctx.t('workshop.tight')}` : '';
+  return `
+    <div class="meter lvl-${d.level}" role="meter" aria-label="${label}" aria-valuemin="0" aria-valuemax="100"
+         aria-valuenow="${Math.round(d.pct)}" aria-valuetext="${aria}${tight}">
+      <div class="meter-head"><span>${label}</span><b>${value}</b></div>
+      <div class="meter-track"><div class="meter-fill" style="width:${d.pct}%"></div>${marker || ''}</div>
+      ${note ? `<small class="meter-note">${note}</small>` : ''}
+    </div>`;
+}
+
+function renderMeters(box, state) {
+  const { data, t, physics } = ctx;
+  const m = physics.validateDesign(state, data).metrics;
+  const mission = data.missions.find((x) => x.id === state.missionId);
+  const rocket = data.rockets.find((r) => r.id === state.rocketId);
+  const M = meterData(m, mission, state.budget.space);
+  const req = t('workshop.required', { n: fmt(M.dv.required, 0) });
+  const use = t('workshop.powerUse', { c: fmt(m.power.consumed), g: fmt(m.power.generated) });
+  box.innerHTML = [
+    meterHTML({
+      label: 'Δv', d: M.dv,
+      value: `${fmt(m.dv, 0)} / ${fmt(M.dv.required, 0)} m/s`,
+      aria: `${fmt(m.dv, 0)} m/s, ${req}`,
+      marker: M.dv.markerPct == null ? '' : `<i class="meter-marker" style="left:${M.dv.markerPct}%"></i>`,
+      note: M.dv.markerPct == null ? '' : `│ ${req}`,
+    }),
+    meterHTML({
+      label: t('workshop.mass'), d: M.mass,
+      value: `${grams(m.wet)} / ${grams(M.mass.cap)} g`,
+      aria: `${grams(m.wet)} g / ${grams(M.mass.cap)} g`,
+    }),
+    meterHTML({
+      label: t('workshop.power'), d: M.power,
+      value: `+${fmt(m.power.generated)} / −${fmt(m.power.consumed)} W`,
+      aria: use,
+      note: M.power.powerLow ? t('workshop.minPower', { n: M.power.minW }) : use,
+    }),
+    meterHTML({
+      label: t('workshop.cost'), d: M.cost,
+      value: `$${m.cost}M / $${state.budget.space}M`,
+      aria: `$${m.cost}M / $${state.budget.space}M`,
+    }),
+    rocketOverload(m, rocket)
+      ? `<p class="error rocket-alert" role="alert">🚫 ${t('workshop.rocketLimit', { name: ctx.tx(rocket.name), n: grams(rocket.maxPayloadKg) })}</p>`
+      : '',
+  ].join('');
+}
 
 function togglePiece(p) {
   const sat = ctx.state.satellite;
@@ -62,6 +158,8 @@ function render() {
   // --- Panel de métricas ---
   const panel = el('aside', 'metrics');
   const prop = data.pieces.find((p) => sat.pieces.includes(p.id) && p.category === 'propulsion');
+  const meters = el('div', 'meters');
+  renderMeters(meters, state);
   if (prop) {
     const row = el('label', 'segment-row');
     row.innerHTML = `<span>${t('workshop.propellant')}</span>
@@ -70,6 +168,8 @@ function render() {
     const input = row.querySelector('input');
     input.addEventListener('input', (e) => {
       row.querySelector('output').textContent = `${fmt(e.target.value)} kg`;
+      // En vivo: masa y Δv cambian con el propelente antes de soltar el slider
+      renderMeters(meters, { ...state, satellite: { ...sat, propellantKg: Number(e.target.value) } });
     });
     input.addEventListener('change', (e) => {
       ctx.update({ satellite: { propellantKg: Number(e.target.value) } });
@@ -78,10 +178,7 @@ function render() {
     panel.append(row);
   }
 
-  panel.append(el('div', 'metric', `<span>Δv</span><b>${fmt(m.dv, 0)} m/s</b>`));
-  panel.append(el('div', 'metric', `<span>${t('workshop.mass')}</span><b>${fmt(m.wet)} / ${fmt(m.massCap === Infinity ? 0 : m.massCap)} kg</b>`));
-  panel.append(el('div', 'metric', `<span>${t('workshop.power')}</span><b>+${fmt(m.power.generated)} / −${fmt(m.power.consumed)} W</b>`));
-  panel.append(el('div', 'metric', `<span>${t('workshop.cost')}</span><b>$${m.cost}M / $${state.budget.space}M</b>`));
+  panel.append(meters);
 
   const checks = el('ul', 'checklist');
   for (const c of result.checks) {
