@@ -1,0 +1,89 @@
+[
+  {
+    "id": "moon",
+    "name": {
+      "es": "Luna",
+      "en": "Moon"
+    },
+    "difficulty": 1,
+    "distanceAU": 1.0,
+    "travelDays": 5,
+    "dvRequired": 850,
+    "minPowerW": 5,
+    "commsDifficulty": 1,
+    "color": "#c9c9c9",
+    "scienceTargets": [
+      {
+        "es": "Hielo en cráteres polares",
+        "en": "Ice in polar craters"
+      },
+      {
+        "es": "Mapeo de regolito",
+        "en": "Regolith mapping"
+      }
+    ],
+    "desc": {
+      "es": "Destino de entrenamiento: viaje corto, mucha luz solar y comunicaciones fáciles.",
+      "en": "Training destination: short trip, plenty of sunlight and easy communications."
+    },
+    "budget": 100
+  },
+  {
+    "id": "mars",
+    "name": {
+      "es": "Marte",
+      "en": "Mars"
+    },
+    "difficulty": 2,
+    "distanceAU": 1.52,
+    "travelDays": 210,
+    "dvRequired": 1200,
+    "minPowerW": 8,
+    "commsDifficulty": 2,
+    "color": "#d4643a",
+    "scienceTargets": [
+      {
+        "es": "Metano atmosférico",
+        "en": "Atmospheric methane"
+      },
+      {
+        "es": "Campo magnético remanente",
+        "en": "Remnant magnetic field"
+      }
+    ],
+    "desc": {
+      "es": "Siete meses de viaje. La luz solar cae a ~43% de la terrestre.",
+      "en": "Seven-month cruise. Sunlight drops to ~43% of Earth's."
+    },
+    "budget": 160
+  },
+  {
+    "id": "europa",
+    "name": {
+      "es": "Europa (Júpiter)",
+      "en": "Europa (Jupiter)"
+    },
+    "difficulty": 3,
+    "distanceAU": 5.2,
+    "travelDays": 2200,
+    "dvRequired": 1800,
+    "minPowerW": 10,
+    "commsDifficulty": 3,
+    "color": "#b9a27a",
+    "scienceTargets": [
+      {
+        "es": "Océano bajo el hielo",
+        "en": "Subsurface ocean"
+      },
+      {
+        "es": "Plumas de vapor de agua",
+        "en": "Water vapor plumes"
+      }
+    ],
+    "desc": {
+      "es": "Luna helada de Júpiter. Solo ~4% de luz solar y radiación intensa.",
+      "en": "Jupiter's icy moon. Only ~4% sunlight and intense radiation."
+    },
+    "budget": 230
+  }
+]

@@ -1,0 +1,36 @@
+{
+  "title": "Choose your destination",
+  "intro": "Every science mission is split into four segments: Launch, Space, Ground and User. Pick a destination and split your budget.",
+  "difficulty": "Difficulty",
+  "distance": "Distance from Sun",
+  "budget": "Budget",
+  "rocketTitle": "Choose your launcher",
+  "cost": "Cost",
+  "payload": "Max payload",
+  "reliability": "Reliability",
+  "cantReach": "Cannot reach this destination",
+  "segmentsTitle": "Split the budget",
+  "segmentsHelp": "The Space segment pays for your CubeSat; Ground improves data reception; User improves science analysis.",
+  "segments": {
+    "launch": {
+      "name": "Launch",
+      "help": "Must cover the launcher cost."
+    },
+    "space": {
+      "name": "Space",
+      "help": "CubeSat components."
+    },
+    "ground": {
+      "name": "Ground",
+      "help": "Antennas and Deep Space Network."
+    },
+    "user": {
+      "name": "User",
+      "help": "Science data processing and archiving."
+    }
+  },
+  "errNoRocket": "Choose a launcher.",
+  "errLaunch": "The Launch segment needs at least ${cost}M.",
+  "errOver": "Over budget: ${spent}M of ${total}M.",
+  "ready": "Ready. You have ${left}M in reserve."
+}

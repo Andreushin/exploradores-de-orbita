@@ -1,0 +1,36 @@
+{
+  "title": "Elige tu destino",
+  "intro": "Toda misión científica se divide en cuatro segmentos: Lanzamiento, Espacio, Tierra y Usuario. Elige un destino y reparte tu presupuesto.",
+  "difficulty": "Dificultad",
+  "distance": "Distancia al Sol",
+  "budget": "Presupuesto",
+  "rocketTitle": "Elige tu cohete",
+  "cost": "Costo",
+  "payload": "Carga útil máx.",
+  "reliability": "Confiabilidad",
+  "cantReach": "No alcanza este destino",
+  "segmentsTitle": "Reparte el presupuesto",
+  "segmentsHelp": "El segmento Espacio paga tu CubeSat; Tierra mejora la recepción de datos; Usuario mejora el análisis científico.",
+  "segments": {
+    "launch": {
+      "name": "Lanzamiento",
+      "help": "Debe cubrir el costo del cohete."
+    },
+    "space": {
+      "name": "Espacio",
+      "help": "Componentes del CubeSat."
+    },
+    "ground": {
+      "name": "Tierra",
+      "help": "Antenas y Red de Espacio Profundo."
+    },
+    "user": {
+      "name": "Usuario",
+      "help": "Procesamiento y archivo de datos científicos."
+    }
+  },
+  "errNoRocket": "Elige un cohete.",
+  "errLaunch": "El segmento Lanzamiento necesita al menos ${cost}M.",
+  "errOver": "Te pasaste: ${spent}M de ${total}M.",
+  "ready": "Listo. Te sobran ${left}M de reserva."
+}

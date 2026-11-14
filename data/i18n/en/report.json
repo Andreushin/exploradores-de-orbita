@@ -1,0 +1,27 @@
+{
+  "title": "Mission report",
+  "outcomes": {
+    "orbit": "Your CubeSat is orbiting {dest} and returning data.",
+    "eccentric": "Your CubeSat ended in an eccentric orbit around {dest}.",
+    "flyby": "Your CubeSat flew past {dest}.",
+    "crash": "Your CubeSat impacted {dest}."
+  },
+  "cmlTitle": "Concept Maturity Level (NASA CML)",
+  "cml": {
+    "1": "Cocktail napkin",
+    "2": "Initial feasibility",
+    "3": "Trade space",
+    "4": "Point design"
+  },
+  "scienceTitle": "Simulated science data",
+  "score": "Science score: {score} / 100",
+  "summaryTitle": "Engineering summary",
+  "dvBudget": "Δv at launch",
+  "dvUsed": "Δv used",
+  "massLaunched": "Launch mass",
+  "events": "Events faced",
+  "learnTitle": "What you learned",
+  "learn": "Every extra kilogram demands more propellant (rocket equation), solar power falls with the square of distance, and the Ground and User budgets decide how much science actually reaches scientists.",
+  "redesign": "Redesign CubeSat",
+  "newMission": "New mission"
+}

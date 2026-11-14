@@ -1,0 +1,27 @@
+{
+  "title": "Reporte de misión",
+  "outcomes": {
+    "orbit": "Tu CubeSat orbita {dest} y envía datos.",
+    "eccentric": "Tu CubeSat quedó en una órbita excéntrica alrededor de {dest}.",
+    "flyby": "Tu CubeSat pasó de largo junto a {dest}.",
+    "crash": "Tu CubeSat impactó contra {dest}."
+  },
+  "cmlTitle": "Nivel de madurez del concepto (CML de la NASA)",
+  "cml": {
+    "1": "Idea en servilleta",
+    "2": "Factibilidad inicial",
+    "3": "Espacio de compromisos",
+    "4": "Diseño puntual"
+  },
+  "scienceTitle": "Datos científicos simulados",
+  "score": "Puntaje científico: {score} / 100",
+  "summaryTitle": "Resumen de ingeniería",
+  "dvBudget": "Δv al lanzar",
+  "dvUsed": "Δv usado",
+  "massLaunched": "Masa lanzada",
+  "events": "Eventos enfrentados",
+  "learnTitle": "Lo que aprendiste",
+  "learn": "Cada kilo extra exige más propelente (ecuación del cohete), la energía solar cae con el cuadrado de la distancia y el presupuesto de Tierra y Usuario decide cuánta ciencia llega realmente a los científicos.",
+  "redesign": "Rediseñar CubeSat",
+  "newMission": "Nueva misión"
+}

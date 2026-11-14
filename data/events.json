@@ -1,0 +1,20 @@
+[
+  {
+    "id": "tcm",
+    "title": { "es": "Corrección de trayectoria", "en": "Trajectory correction" },
+    "text": { "es": "La navegación detecta una desviación. ¿Corregir ahora?", "en": "Navigation detects a deviation. Correct now?" },
+    "choices": [
+      { "label": { "es": "Corregir (−60 m/s)", "en": "Correct (−60 m/s)" }, "dv": 60, "risk": 0 },
+      { "label": { "es": "Esperar y arriesgar", "en": "Wait and risk it" }, "dv": 0, "risk": 0.15 }
+    ]
+  },
+  {
+    "id": "solar-storm",
+    "title": { "es": "Tormenta solar", "en": "Solar storm" },
+    "text": { "es": "Una eyección de masa coronal se acerca.", "en": "A coronal mass ejection is incoming." },
+    "choices": [
+      { "label": { "es": "Modo seguro (pierdes ciencia)", "en": "Safe mode (lose science)" }, "dv": 0, "science": -10, "risk": 0 },
+      { "label": { "es": "Seguir operando", "en": "Keep operating" }, "dv": 0, "risk": 0.2 }
+    ]
+  }
+]

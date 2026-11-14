@@ -1,0 +1,18 @@
+{
+  "title": "Rumbo a {dest}",
+  "dvLeft": "Δv restante",
+  "day": "Día",
+  "burn": "Quemado",
+  "earth": "Tierra",
+  "riskHit": "¡El riesgo se materializó! Perdiste {dv} m/s corrigiendo el problema.",
+  "eventOk": "Decisión registrada. Continúa el crucero.",
+  "holdToBurn": "🔥 Mantén presionado (o barra espaciadora) para frenar",
+  "insertionHelp": "Llegaste. Frena justo lo necesario: muy poco y pasas de largo; demasiado y te estrellas.",
+  "toReport": "Ver reporte →",
+  "outcomes": {
+    "orbit": "✅ ¡Órbita estable lograda!",
+    "eccentric": "⚠️ Órbita muy excéntrica: ciencia limitada.",
+    "flyby": "❌ Frenado insuficiente: sobrevuelo.",
+    "crash": "💥 Frenaste de más: impacto."
+  }
+}

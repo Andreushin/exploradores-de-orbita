@@ -1,0 +1,29 @@
+[
+  {
+    "id": "pico",
+    "name": { "es": "Picolanzador Colibrí", "en": "Hummingbird Small Launcher" },
+    "cost": 25,
+    "maxPayloadKg": 15,
+    "reliability": 0.9,
+    "destinations": ["moon"],
+    "desc": { "es": "Lanzador pequeño y barato. Solo alcanza la Luna.", "en": "Small, cheap launcher. Moon only." }
+  },
+  {
+    "id": "medio",
+    "name": { "es": "Cóndor Medio (rideshare)", "en": "Condor Medium (rideshare)" },
+    "cost": 45,
+    "maxPayloadKg": 30,
+    "reliability": 0.95,
+    "destinations": ["moon", "mars"],
+    "desc": { "es": "Viaje compartido con otra misión. Puede inyectar hacia Marte.", "en": "Rideshare with another mission. Can inject toward Mars." }
+  },
+  {
+    "id": "pesado",
+    "name": { "es": "Quetzal Pesado", "en": "Quetzal Heavy" },
+    "cost": 80,
+    "maxPayloadKg": 60,
+    "reliability": 0.97,
+    "destinations": ["moon", "mars", "europa"],
+    "desc": { "es": "Alta energía de escape (C3). El único capaz de llegar a Júpiter.", "en": "High escape energy (C3). The only one able to reach Jupiter." }
+  }
+]

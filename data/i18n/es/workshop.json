@@ -1,0 +1,31 @@
+{
+  "title": "Taller CubeSat",
+  "intro": "Arma tu satélite. Cada unidad U mide 10×10×10 cm y puede pesar hasta 1.33 kg (CubeSat 101).",
+  "categories": {
+    "structure": "Estructura (factor de forma)",
+    "power": "Energía",
+    "propulsion": "Propulsión",
+    "comms": "Comunicaciones",
+    "adcs": "Control de actitud",
+    "obc": "Computadora",
+    "instrument": "Instrumentos científicos"
+  },
+  "propellant": "Propelente",
+  "mass": "Masa",
+  "power": "Energía",
+  "cost": "Costo",
+  "launch": "🚀 Lanzar",
+  "checks": {
+    "structure": "Elegiste un factor de forma",
+    "obc": "Tiene computadora de vuelo",
+    "mass": "Masa dentro del límite (estructura y cohete)",
+    "volume": "Todo cabe en la estructura",
+    "power": "Genera más energía de la que consume en el destino",
+    "battery": "Batería para los quemados químicos",
+    "comms": "Radio con alcance suficiente",
+    "propellant": "Propulsión y propelente válidos",
+    "deltaV": "Δv suficiente para la inserción orbital",
+    "cost": "Dentro del presupuesto del segmento Espacio",
+    "science": "Lleva al menos un instrumento"
+  }
+}

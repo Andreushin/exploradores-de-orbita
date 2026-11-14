@@ -1,0 +1,13 @@
+{
+  "appName": "Siderense Rocket Labs",
+  "footer": "Parche ColomboMexicano · NASA Space Apps 2026 · Gamified data based on NASA resources",
+  "budgetHud": "Budget: ${spent}M / ${total}M",
+  "next": "Next →",
+  "back": "← Back",
+  "steps": {
+    "mission": "Mission",
+    "workshop": "Workshop",
+    "journey": "Journey",
+    "report": "Report"
+  }
+}

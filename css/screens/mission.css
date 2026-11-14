@@ -1,0 +1,7 @@
+/* OWNER: Rol 3 — Pantalla 1 */
+.planet-dot { display: block; width: 36px; height: 36px; border-radius: 50%; background: var(--c); box-shadow: 0 0 18px var(--c); margin-bottom: 10px; }
+.segments { display: grid; gap: 12px; background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); padding: 16px; }
+.segment-row { display: grid; grid-template-columns: 120px 1fr 70px; align-items: center; gap: 4px 12px; }
+.segment-row small { grid-column: 1 / -1; }
+.segment-row output { text-align: right; font-variant-numeric: tabular-nums; }
+@media (max-width: 640px) { .segment-row { grid-template-columns: 1fr 70px; } .segment-row input { grid-column: 1 / -1; grid-row: 2; } }

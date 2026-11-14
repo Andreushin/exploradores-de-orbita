@@ -1,0 +1,18 @@
+{
+  "title": "En route to {dest}",
+  "dvLeft": "Δv left",
+  "day": "Day",
+  "burn": "Burn",
+  "earth": "Earth",
+  "riskHit": "The risk materialized! You lost {dv} m/s fixing the problem.",
+  "eventOk": "Decision logged. Cruise continues.",
+  "holdToBurn": "🔥 Hold (or press space) to brake",
+  "insertionHelp": "You arrived. Brake just enough: too little and you fly by; too much and you crash.",
+  "toReport": "See report →",
+  "outcomes": {
+    "orbit": "✅ Stable orbit achieved!",
+    "eccentric": "⚠️ Highly eccentric orbit: limited science.",
+    "flyby": "❌ Not enough braking: flyby.",
+    "crash": "💥 Over-braked: impact."
+  }
+}

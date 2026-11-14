@@ -1,0 +1,340 @@
+[
+  {
+    "id": "struct-3u",
+    "category": "structure",
+    "name": {
+      "es": "Estructura 3U",
+      "en": "3U Structure"
+    },
+    "massKg": 0.6,
+    "volumeU": 3,
+    "powerW": 0,
+    "cost": 2,
+    "trl": 9,
+    "scienceValue": 0,
+    "desc": {
+      "es": "10×10×34 cm. Masa máx. ~4 kg.",
+      "en": "10×10×34 cm. Max mass ~4 kg."
+    }
+  },
+  {
+    "id": "struct-6u",
+    "category": "structure",
+    "name": {
+      "es": "Estructura 6U",
+      "en": "6U Structure"
+    },
+    "massKg": 1.1,
+    "volumeU": 6,
+    "powerW": 0,
+    "cost": 4,
+    "trl": 9,
+    "scienceValue": 0,
+    "desc": {
+      "es": "Formato común en misiones de espacio profundo (ej. MarCO).",
+      "en": "Common deep-space format (e.g. MarCO)."
+    }
+  },
+  {
+    "id": "struct-12u",
+    "category": "structure",
+    "name": {
+      "es": "Estructura 12U",
+      "en": "12U Structure"
+    },
+    "massKg": 2.0,
+    "volumeU": 12,
+    "powerW": 0,
+    "cost": 7,
+    "trl": 8,
+    "scienceValue": 0,
+    "desc": {
+      "es": "Más espacio, más masa y más caro de lanzar.",
+      "en": "More room, more mass, costlier to launch."
+    }
+  },
+  {
+    "id": "solar-body",
+    "category": "power",
+    "name": {
+      "es": "Paneles en el cuerpo",
+      "en": "Body-mounted panels"
+    },
+    "massKg": 0.3,
+    "volumeU": 0,
+    "powerW": -8,
+    "solar": true,
+    "cost": 2,
+    "trl": 9,
+    "scienceValue": 0,
+    "desc": {
+      "es": "~8 W a 1 UA. Simples y confiables.",
+      "en": "~8 W at 1 AU. Simple and reliable."
+    }
+  },
+  {
+    "id": "solar-deploy",
+    "category": "power",
+    "name": {
+      "es": "Paneles desplegables",
+      "en": "Deployable panels"
+    },
+    "massKg": 0.9,
+    "volumeU": 0.5,
+    "powerW": -36,
+    "solar": true,
+    "cost": 6,
+    "trl": 8,
+    "scienceValue": 0,
+    "desc": {
+      "es": "~36 W a 1 UA. Necesarios lejos del Sol.",
+      "en": "~36 W at 1 AU. Needed far from the Sun."
+    }
+  },
+  {
+    "id": "battery",
+    "category": "power",
+    "name": {
+      "es": "Batería 80 Wh",
+      "en": "80 Wh battery"
+    },
+    "massKg": 0.5,
+    "volumeU": 0.5,
+    "powerW": 0,
+    "cost": 1,
+    "trl": 9,
+    "scienceValue": 0,
+    "desc": {
+      "es": "Energía para eclipses y quemados.",
+      "en": "Energy for eclipses and burns."
+    }
+  },
+  {
+    "id": "rtg-mini",
+    "category": "power",
+    "name": {
+      "es": "Mini RTG (concepto)",
+      "en": "Mini RTG (concept)"
+    },
+    "massKg": 3.0,
+    "volumeU": 2,
+    "powerW": -35,
+    "cost": 25,
+    "trl": 4,
+    "scienceValue": 0,
+    "desc": {
+      "es": "Generador de radioisótopos: no depende del Sol. Caro y de baja madurez (TRL 4).",
+      "en": "Radioisotope generator: Sun-independent. Expensive and low maturity (TRL 4)."
+    }
+  },
+  {
+    "id": "prop-cold",
+    "category": "propulsion",
+    "name": {
+      "es": "Gas frío",
+      "en": "Cold gas"
+    },
+    "massKg": 1.0,
+    "volumeU": 1,
+    "powerW": 2,
+    "isp": 70,
+    "maxPropellantKg": 1.5,
+    "cost": 3,
+    "trl": 9,
+    "scienceValue": 0,
+    "desc": {
+      "es": "Isp 70 s. Barato, poco Δv.",
+      "en": "Isp 70 s. Cheap, low Δv."
+    },
+    "burnOnly": true
+  },
+  {
+    "id": "prop-green",
+    "category": "propulsion",
+    "name": {
+      "es": "Monopropelente verde",
+      "en": "Green monopropellant"
+    },
+    "massKg": 1.5,
+    "volumeU": 2,
+    "powerW": 10,
+    "isp": 220,
+    "maxPropellantKg": 6,
+    "cost": 8,
+    "trl": 7,
+    "scienceValue": 0,
+    "desc": {
+      "es": "Isp 220 s. Equilibrio entre empuje y Δv.",
+      "en": "Isp 220 s. Balanced thrust and Δv."
+    },
+    "burnOnly": true
+  },
+  {
+    "id": "prop-ion",
+    "category": "propulsion",
+    "name": {
+      "es": "Propulsor iónico",
+      "en": "Ion thruster"
+    },
+    "massKg": 2.0,
+    "volumeU": 2,
+    "powerW": 20,
+    "isp": 1500,
+    "maxPropellantKg": 1.5,
+    "cost": 15,
+    "trl": 6,
+    "scienceValue": 0,
+    "desc": {
+      "es": "Isp 1500 s. Mucho Δv pero exige mucha energía.",
+      "en": "Isp 1500 s. Huge Δv but power hungry."
+    }
+  },
+  {
+    "id": "comm-uhf",
+    "category": "comms",
+    "name": {
+      "es": "Radio UHF",
+      "en": "UHF radio"
+    },
+    "massKg": 0.2,
+    "volumeU": 0.25,
+    "powerW": 2,
+    "dataRate": 1,
+    "range": 1,
+    "cost": 1,
+    "trl": 9,
+    "scienceValue": 0,
+    "desc": {
+      "es": "Solo útil cerca de la Tierra.",
+      "en": "Only useful near Earth."
+    }
+  },
+  {
+    "id": "comm-x",
+    "category": "comms",
+    "name": {
+      "es": "Transpondedor banda X",
+      "en": "X-band transponder"
+    },
+    "massKg": 1.0,
+    "volumeU": 0.5,
+    "powerW": 8,
+    "dataRate": 5,
+    "range": 3,
+    "cost": 7,
+    "trl": 8,
+    "scienceValue": 0,
+    "desc": {
+      "es": "Compatible con la Red de Espacio Profundo (DSN).",
+      "en": "Deep Space Network (DSN) compatible."
+    }
+  },
+  {
+    "id": "adcs",
+    "category": "adcs",
+    "name": {
+      "es": "Control de actitud (ADCS)",
+      "en": "Attitude control (ADCS)"
+    },
+    "massKg": 0.7,
+    "volumeU": 0.5,
+    "powerW": 3,
+    "cost": 5,
+    "trl": 8,
+    "scienceValue": 0,
+    "desc": {
+      "es": "Ruedas de reacción y sensores de estrellas para apuntar.",
+      "en": "Reaction wheels and star trackers for pointing."
+    }
+  },
+  {
+    "id": "obc",
+    "category": "obc",
+    "name": {
+      "es": "Computadora de vuelo",
+      "en": "Flight computer"
+    },
+    "massKg": 0.2,
+    "volumeU": 0.25,
+    "powerW": 1,
+    "cost": 2,
+    "trl": 9,
+    "scienceValue": 0,
+    "desc": {
+      "es": "Obligatoria: comanda todos los subsistemas.",
+      "en": "Mandatory: commands all subsystems."
+    }
+  },
+  {
+    "id": "inst-camera",
+    "category": "instrument",
+    "name": {
+      "es": "Cámara multiespectral",
+      "en": "Multispectral camera"
+    },
+    "massKg": 0.6,
+    "volumeU": 1,
+    "powerW": 4,
+    "cost": 4,
+    "trl": 8,
+    "scienceValue": 30,
+    "desc": {
+      "es": "Imágenes de superficie en varias bandas.",
+      "en": "Surface imaging in several bands."
+    }
+  },
+  {
+    "id": "inst-spectro",
+    "category": "instrument",
+    "name": {
+      "es": "Espectrómetro infrarrojo",
+      "en": "Infrared spectrometer"
+    },
+    "massKg": 1.0,
+    "volumeU": 1.5,
+    "powerW": 6,
+    "cost": 7,
+    "trl": 7,
+    "scienceValue": 45,
+    "desc": {
+      "es": "Detecta agua, hielo y compuestos orgánicos.",
+      "en": "Detects water, ice and organics."
+    }
+  },
+  {
+    "id": "inst-mag",
+    "category": "instrument",
+    "name": {
+      "es": "Magnetómetro",
+      "en": "Magnetometer"
+    },
+    "massKg": 0.3,
+    "volumeU": 0.5,
+    "powerW": 1,
+    "cost": 3,
+    "trl": 9,
+    "scienceValue": 20,
+    "desc": {
+      "es": "Mide campos magnéticos; clave para océanos ocultos.",
+      "en": "Measures magnetic fields; key for hidden oceans."
+    }
+  },
+  {
+    "id": "inst-radar",
+    "category": "instrument",
+    "name": {
+      "es": "Radar de penetración",
+      "en": "Penetrating radar"
+    },
+    "massKg": 1.8,
+    "volumeU": 2,
+    "powerW": 15,
+    "cost": 10,
+    "trl": 6,
+    "scienceValue": 60,
+    "desc": {
+      "es": "Ve bajo el hielo, pero pesado y hambriento de energía.",
+      "en": "Sees beneath ice, but heavy and power hungry."
+    }
+  }
+]
