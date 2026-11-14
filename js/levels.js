@@ -16,19 +16,14 @@ export const LEVELS = [
     id: 'workshop',
     icon: '🔧',
     resource: 'CubeSat 101',
-    // El Taller reutiliza .segment-row de mission.css (slider de propelente).
-    css: ['css/screens/mission.css', 'css/screens/workshop.css'],
-    folder: 2, // vive en nivel2/ (página aislada, docs/nivel 2.md): goTo redirige ahí
-    load: () => import('./screens/workshop.js'),
+    folder: 2, // vive en nivel2/ (página aislada, docs/niveles/nivel-2.md): goTo redirige ahí
     done: (s) => Boolean(s.satellite?.validated), // nivel2/ guarda satellite.validated al lanzar
   },
   {
     id: 'journey',
     icon: '🚀',
     resource: 'GMAT / NASA Mission Viz',
-    folder: 3, // vive en nivel3/ (página aislada, docs/nivel 3.md): goTo redirige ahí
-    css: ['css/screens/journey.css'],
-    load: () => import('./screens/journey.js'),
+    folder: 3, // vive en nivel3/ (página aislada, docs/niveles/nivel-3.md): goTo redirige ahí
     done: (s) => s.journey.outcome != null,
   },
   {

@@ -1,25 +1,5 @@
 {
-  "title": "CubeSat Workshop",
-  "intro": "Build your satellite. Each U is 10×10×10 cm and may weigh up to 1.33 kg (CubeSat 101).",
-  "categories": {
-    "structure": "Structure (form factor)",
-    "power": "Power",
-    "propulsion": "Propulsion",
-    "comms": "Communications",
-    "adcs": "Attitude control",
-    "obc": "Computer",
-    "instrument": "Science instruments"
-  },
-  "propellant": "Propellant",
   "mass": "Mass",
-  "power": "Power",
-  "cost": "Cost",
-  "tight": "tight margin",
-  "required": "required {n} m/s",
-  "powerUse": "using {c} W of {g} W generated",
-  "minPower": "The destination needs at least {n} W generated",
-  "rocketLimit": "{name} only carries {n} g: it won't lift off like this. Remove mass or go back to Level 1 for a bigger launcher.",
-  "launch": "🚀 Launch",
   "checks": {
     "structure": "Form factor chosen",
     "obc": "Has a flight computer",
