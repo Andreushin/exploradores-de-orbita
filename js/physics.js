@@ -74,14 +74,20 @@ export function insertionOutcome(dvApplied, dvRequired) {
   return 'crash';
 }
 
+/** Puntaje científico mínimo para CML 4 (diseño puntual). */
+export const CML4_MIN_SCORE = 50;
+
 /**
  * Nivel CML alcanzado (1-4), inspirado en NASA Concept Maturity Levels.
- * 1 Concepto · 2 Factibilidad inicial · 3 Trade space · 4 Diseño puntual
+ * 1 Concepto: el diseño no cumple las restricciones.
+ * 2 Factibilidad inicial: diseño válido, pero no quedó en órbita (sobrevuelo o choque).
+ * 3 Trade space: en órbita, pero excéntrica o con poca ciencia (< CML4_MIN_SCORE).
+ * 4 Diseño puntual: órbita estable y ciencia ≥ CML4_MIN_SCORE.
  */
 export function computeCML({ designValid, launched, outcome, scienceScore }) {
   if (!designValid) return 1;
-  if (!launched || outcome === 'flyby' || outcome === 'crash') return 2;
-  if (outcome === 'eccentric' || scienceScore < 50) return 3;
+  if (!launched || outcome === 'flyby' || outcome === 'crash' || !outcome) return 2;
+  if (outcome === 'eccentric' || scienceScore < CML4_MIN_SCORE) return 3;
   return 4;
 }
 
@@ -131,12 +137,34 @@ export function validateDesign(state, data) {
   };
 }
 
-/** Puntaje científico base (0-100) según instrumentos, objetivo y segmentos Tierra/Usuario. */
+/** Pesos de rendimientos decrecientes: el instrumento más valioso cuenta completo, los siguientes cada vez menos. */
+export const INSTRUMENT_WEIGHTS = [1, 0.6, 0.4, 0.25];
+/** Inversión ($M) con la que cada segmento llega a su máximo (factor 1). */
+export const GROUND_FULL = 40; // antenas y tiempo de DSN
+export const USER_FULL = 30;   // procesamiento, calibración y archivo de datos (PDS)
+
+/** Factor de un segmento: 0.6 sin inversión → 1 al llegar a `full` $M. Crece de forma lineal hasta ahí. */
+function segmentFactor(amount, full) {
+  return 0.6 + 0.4 * Math.min(1, Math.max(0, amount || 0) / full);
+}
+
+/**
+ * Puntaje científico (0-100). Ver la explicación en docs/fuentes.md → «Puntaje científico y CML».
+ * puntaje = (40 + Σ valor_i · peso_i) × resultado × Tierra × Usuario
+ *  - Instrumentos ordenados de mayor a menor valor, con pesos INSTRUMENT_WEIGHTS (rendimientos decrecientes).
+ *  - resultado: orbit 1 · eccentric 0.5 · flyby 0.15 · crash 0.
+ *  - Tierra / Usuario: 0.6 → 1 según inversión, hasta GROUND_FULL / USER_FULL.
+ */
 export function scienceScore(pieceObjs, budget, outcome) {
-  // TODO(Rol 2): balancear. Base 40 + valor de instrumentos.
-  const raw = 40 + 1.2 * pieceObjs.reduce((s, p) => s + (p.scienceValue || 0), 0);
+  const values = pieceObjs
+    .filter((p) => p.category === 'instrument')
+    .map((p) => p.scienceValue || 0)
+    .sort((a, b) => b - a);
+  const last = INSTRUMENT_WEIGHTS[INSTRUMENT_WEIGHTS.length - 1];
+  const instruments = values.reduce((s, v, i) => s + v * (INSTRUMENT_WEIGHTS[i] ?? last), 0);
+  const raw = 40 + instruments;
   const outcomeFactor = { orbit: 1, eccentric: 0.5, flyby: 0.15, crash: 0 }[outcome] ?? 0;
-  const groundFactor = Math.min(1, 0.5 + budget.ground / 50);  // antenas/DSN
-  const userFactor = Math.min(1, 0.5 + budget.user / 30);      // procesamiento y archivo de datos
+  const groundFactor = segmentFactor(budget?.ground, GROUND_FULL);
+  const userFactor = segmentFactor(budget?.user, USER_FULL);
   return Math.round(Math.min(100, raw * outcomeFactor * groundFactor * userFactor));
 }

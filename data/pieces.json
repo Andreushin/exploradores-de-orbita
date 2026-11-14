@@ -6,7 +6,7 @@
       "es": "Estructura 3U",
       "en": "3U Structure"
     },
-    "massKg": 0.6,
+    "massKg": 0.4,
     "volumeU": 3,
     "powerW": 0,
     "cost": 2,
@@ -46,7 +46,7 @@
     "volumeU": 12,
     "powerW": 0,
     "cost": 7,
-    "trl": 8,
+    "trl": 9,
     "scienceValue": 0,
     "desc": {
       "es": "Más espacio, más masa y más caro de lanzar.",
@@ -84,11 +84,11 @@
     "powerW": -36,
     "solar": true,
     "cost": 6,
-    "trl": 8,
+    "trl": 9,
     "scienceValue": 0,
     "desc": {
-      "es": "~36 W a 1 UA. Necesarios lejos del Sol.",
-      "en": "~36 W at 1 AU. Needed far from the Sun."
+      "es": "~36 W a 1 UA, como las alas de MarCO. Necesarios lejos del Sol.",
+      "en": "~36 W at 1 AU, like MarCO's wings. Needed far from the Sun."
     }
   },
   {
@@ -123,8 +123,8 @@
     "trl": 4,
     "scienceValue": 0,
     "desc": {
-      "es": "Generador de radioisótopos: no depende del Sol. Caro y de baja madurez (TRL 4).",
-      "en": "Radioisotope generator: Sun-independent. Expensive and low maturity (TRL 4)."
+      "es": "Generador de radioisótopos: no depende del Sol. Caro y de baja madurez (TRL 4). Ludificado: uno real de 35 W pesaría más de 10 kg.",
+      "en": "Radioisotope generator: Sun-independent. Expensive and low maturity (TRL 4). Gamified: a real 35 W unit would weigh over 10 kg."
     }
   },
   {
@@ -156,16 +156,16 @@
       "en": "Green monopropellant"
     },
     "massKg": 1.5,
-    "volumeU": 2,
+    "volumeU": 3,
     "powerW": 10,
     "isp": 220,
-    "maxPropellantKg": 6,
+    "maxPropellantKg": 7,
     "cost": 8,
     "trl": 7,
     "scienceValue": 0,
     "desc": {
-      "es": "Isp 220 s. Equilibrio entre empuje y Δv.",
-      "en": "Isp 220 s. Balanced thrust and Δv."
+      "es": "Isp 220 s (AF-M315E / ASCENT). Equilibrio entre empuje y Δv.",
+      "en": "Isp 220 s (AF-M315E / ASCENT). Balanced thrust and Δv."
     },
     "burnOnly": true
   },
@@ -185,8 +185,8 @@
     "trl": 6,
     "scienceValue": 0,
     "desc": {
-      "es": "Isp 1500 s. Mucho Δv pero exige mucha energía.",
-      "en": "Isp 1500 s. Huge Δv but power hungry."
+      "es": "Iónico/electrospray, Isp 1500 s. Mucho Δv pero exige mucha energía.",
+      "en": "Ion/electrospray, Isp 1500 s. Huge Δv but power hungry."
     }
   },
   {
@@ -216,17 +216,17 @@
       "es": "Transpondedor banda X",
       "en": "X-band transponder"
     },
-    "massKg": 1.0,
+    "massKg": 1.2,
     "volumeU": 0.5,
     "powerW": 8,
     "dataRate": 5,
     "range": 3,
     "cost": 7,
-    "trl": 8,
+    "trl": 9,
     "scienceValue": 0,
     "desc": {
-      "es": "Compatible con la Red de Espacio Profundo (DSN).",
-      "en": "Deep Space Network (DSN) compatible."
+      "es": "Compatible con la Red de Espacio Profundo (DSN), como Iris de MarCO. 8 W en promedio: transmite por ratos.",
+      "en": "Deep Space Network (DSN) compatible, like MarCO's Iris. 8 W average: transmits intermittently."
     }
   },
   {
@@ -236,11 +236,11 @@
       "es": "Control de actitud (ADCS)",
       "en": "Attitude control (ADCS)"
     },
-    "massKg": 0.7,
+    "massKg": 0.9,
     "volumeU": 0.5,
     "powerW": 3,
     "cost": 5,
-    "trl": 8,
+    "trl": 9,
     "scienceValue": 0,
     "desc": {
       "es": "Ruedas de reacción y sensores de estrellas para apuntar.",
@@ -290,11 +290,11 @@
       "es": "Espectrómetro infrarrojo",
       "en": "Infrared spectrometer"
     },
-    "massKg": 1.0,
+    "massKg": 1.5,
     "volumeU": 1.5,
-    "powerW": 6,
+    "powerW": 10,
     "cost": 7,
-    "trl": 7,
+    "trl": 6,
     "scienceValue": 45,
     "desc": {
       "es": "Detecta agua, hielo y compuestos orgánicos.",
@@ -326,11 +326,11 @@
       "es": "Radar de penetración",
       "en": "Penetrating radar"
     },
-    "massKg": 1.8,
+    "massKg": 2.5,
     "volumeU": 2,
-    "powerW": 15,
+    "powerW": 25,
     "cost": 10,
-    "trl": 6,
+    "trl": 5,
     "scienceValue": 60,
     "desc": {
       "es": "Ve bajo el hielo, pero pesado y hambriento de energía.",

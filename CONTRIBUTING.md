@@ -2,12 +2,14 @@
 
 **Regla de oro:** cada archivo tiene un único dueño (ver comentario `OWNER:` al inicio). Si necesitas un cambio en un archivo ajeno, pídeselo a su dueño.
 
-| Rol | Rama | Archivos |
-|---|---|---|
-| 1 · Core e integración | `feat/core` | `index.html`, `js/main.js`, `js/state.js`, `js/i18n.js`, `css/base.css`, `data/i18n/*/common.json`, `README.md`, `CONTRIBUTING.md` |
-| 2 · Datos y física | `feat/data-physics` | `data/{missions,rockets,pieces,events}.json`, `js/physics.js`, `tests/`, `docs/fuentes.md` |
-| 3 · Pantallas 1–2 | `feat/screens-1-2` | `js/screens/{mission,workshop}.js`, `css/screens/{mission,workshop}.css`, `data/i18n/*/{mission,workshop}.json` |
-| 4 · Pantallas 3–4 | `feat/screens-3-4` | `js/screens/{journey,report}.js`, `js/canvas/*`, `css/screens/{journey,report}.css`, `data/i18n/*/{journey,report}.json` |
+🗂 **Tablero Kanban:** https://github.com/users/Andreushin/projects/2 · 📖 **Guía del equipo:** [issue #24](https://github.com/Andreushin/exploradores-de-orbita/issues/24)
+
+| Rol | Responsable | Rama | Archivos |
+|---|---|---|---|
+| 1 · Core e integración | @Andreushin | `feat/core` | `index.html`, `assets/`, `e2e/`, `playwright.config.mjs`, `package.json`, `.github/`, `js/main.js`, `js/state.js`, `js/i18n.js`, `css/base.css`, `data/i18n/*/common.json`, `README.md`, `CONTRIBUTING.md` |
+| 2 · Datos y física | @tommycc2010-hub | `feat/data-physics` | `data/{missions,rockets,pieces,events}.json`, `js/physics.js`, `tests/`, `docs/fuentes.md` |
+| 3 · Pantallas 1–2 | @JU4NMAX | `feat/screens-1-2` | `js/screens/{mission,workshop}.js`, `css/screens/{mission,workshop}.css`, `data/i18n/*/{mission,workshop}.json` |
+| 4 · Pantallas 3–4 | @AslanCM | `feat/screens-3-4` | `js/screens/{journey,report}.js`, `js/canvas/*`, `css/screens/{journey,report}.css`, `data/i18n/*/{journey,report}.json` |
 
 ## Contratos (no se cambian sin avisar)
 - **Pantalla:** `export default { id, mount(container, ctx), unmount() }`. Cada pantalla crea su propio DOM dentro de `container`.
@@ -24,7 +26,7 @@
 1. **Rama** desde `main` actualizado: `feat/…`, `fix/…`, `data/…`, `docs/…` o `chore/…`.
 2. **Commits** pequeños con el formato de abajo.
 3. **PR** a `main` usando la plantilla. El **título del PR** también sigue el formato, porque se convierte en el commit final.
-4. **Revisión:** 1 aprobación de otro integrante (código del core → Rol 1).
+4. **Revisión:** aprobación de @Andreushin (CODEOWNERS). Sus propios PRs los fusiona él como admin.
 5. **Check automático** `Formato del título del PR` en verde.
 6. **Merge:** solo *Squash and merge* (1 PR = 1 commit en `main`). La rama se borra sola.
 
@@ -63,6 +65,18 @@ Ejemplos: `feat(travesia): quemado de inserción con barra de precisión` · `fi
 - Solo tocas archivos de tu rol (ver tabla). Si no, avisa en la descripción.
 - Antes de pedir revisión: juegas el flujo completo en local, en ES y EN, sin errores en consola.
 - Después del **H24 (feature freeze)** solo se aceptan `fix`, `data`, `style`, `i18n` y `docs`.
+
+## Pruebas
+| Qué | Comando | Cuándo |
+|---|---|---|
+| Física y diseños de referencia | abrir `http://localhost:8000/tests/physics.test.html` | antes de un PR de datos |
+| E2E: Luna, Marte y Europa de punta a punta, idioma y móvil | `npm install` (una vez) → `npx playwright install chromium` (una vez) → `npm run e2e` | antes de pedir revisión |
+| E2E contra el sitio publicado | `npm run e2e:live` | en cada checkpoint (H12, H24) |
+
+- La CI corre el E2E en **cada PR** y **cada vez que GitHub Pages publica**. Si falla, revisa el reporte en la pestaña *Actions*.
+- La prueba usa los textos e ids de los JSON, no el HTML: si cambias una pantalla, mantén botones con su texto visible.
+- **Bug encontrado** → issue nuevo asignado al dueño del archivo; la prueba afectada se agrega a `KNOWN_BUGS` en `e2e/checkpoint.spec.mjs` hasta que se arregle.
+- Si cambias el balance de datos (Rol 2), actualiza `REFERENCE` en el E2E y los diseños de `docs/fuentes.md`.
 
 ## Checkpoints (≤36 h)
 - **H12:** flujo de 4 pantallas navegable en `main` + primer deploy a GitHub Pages.

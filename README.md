@@ -1,8 +1,8 @@
-# 🚀 Exploradores de Órbita — Space Mission Design Game
+# 🚀 Exploradores de Órbita (Orbit Explorers) — Space Mission Design Game
 
 **Equipo:** Parche ColomboMexicano · **Challenge:** NASA Space Apps 2026 — Space Mission Design Game
 
-**▶ Jugar:** https://andreushin.github.io/exploradores-de-orbita/ · **Repo:** https://github.com/Andreushin/exploradores-de-orbita
+**▶ Jugar:** https://andreushin.github.io/exploradores-de-orbita/ · **Repo:** https://github.com/Andreushin/exploradores-de-orbita · **Tablero:** https://github.com/users/Andreushin/projects/2
 
 Juego web de un jugador (HTML5 + CSS3 + JavaScript vanilla) donde diseñas una misión científica: repartes el presupuesto entre los 4 segmentos de una misión, ensamblas un CubeSat bajo restricciones reales de masa, volumen y energía, viajas con combustible finito (ecuación de Tsiolkovsky) y ejecutas la inserción orbital. Al final recibes datos científicos simulados y un nivel de madurez CML de la NASA.
 

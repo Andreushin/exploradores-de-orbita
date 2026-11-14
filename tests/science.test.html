@@ -1,0 +1,76 @@
+<!doctype html>
+<!-- OWNER: Rol 2 — abrir en http://localhost:8000/tests/science.test.html -->
+<html lang="es"><head><meta charset="utf-8"><title>Science & CML tests</title>
+<style>body{font:14px monospace;background:#111;color:#ddd;padding:16px}.ok{color:#4ade80}.fail{color:#f87171}</style></head>
+<body><h1>scienceScore · computeCML</h1><ul id="out"></ul>
+<script type="module">
+import * as p from '../js/physics.js';
+const out = document.getElementById('out');
+const check = (name, cond) => { const li = document.createElement('li'); li.className = cond ? 'ok' : 'fail'; li.textContent = (cond ? 'PASS ' : 'FAIL ') + name; out.append(li); };
+const load = (f) => fetch(`../data/${f}.json`).then((r) => r.json());
+const [missions, rockets, pieces] = await Promise.all(['missions', 'rockets', 'pieces'].map(load));
+const data = { missions, rockets, pieces };
+
+// Reparto inicial de la pantalla Misión (js/screens/mission.js → initialSplit): 40% / 35% / 15% / resto.
+const split = (total) => {
+  const launch = Math.floor(total * 0.4), space = Math.floor(total * 0.35), ground = Math.floor(total * 0.15);
+  return { total, launch, space, ground, user: total - launch - space - ground };
+};
+const ids = (list) => p.resolvePieces(list, pieces);
+const score = (list, budget, outcome = 'orbit') => p.scienceScore(ids(list), budget, outcome);
+
+// Diseños de referencia (docs/fuentes.md). Marte usa el máximo de propelente del monopropelente verde.
+const ref = {
+  moon: ['pico', 'struct-6u', ['solar-body', 'battery', 'prop-green', 'comm-uhf', 'obc', 'inst-camera'], 2.5],
+  mars: ['medio', 'struct-12u', ['solar-deploy', 'solar-body', 'battery', 'prop-green', 'comm-x', 'adcs', 'obc', 'inst-camera', 'inst-mag'], 'max'],
+  europa: ['pesado', 'struct-12u', ['rtg-mini', 'solar-deploy', 'prop-ion', 'comm-x', 'obc', 'inst-mag', 'inst-camera'], 1.5],
+};
+
+// 1) Un diseño básico con órbita estable llega a CML 3 o 4 (con el reparto inicial del presupuesto).
+for (const [m, [rocketId, formFactor, list, prop]] of Object.entries(ref)) {
+  const budget = split(missions.find((x) => x.id === m).budget);
+  const propellantKg = prop === 'max' ? pieces.find((x) => x.id === 'prop-green').maxPropellantKg : prop;
+  const design = p.validateDesign({ missionId: m, rocketId, budget, satellite: { formFactor, pieces: list, propellantKg } }, data);
+  const s = p.scienceScore(ids([formFactor, ...list]), budget, 'orbit');
+  const cml = p.computeCML({ designValid: design.valid, launched: true, outcome: 'orbit', scienceScore: s });
+  check(`diseño básico ${m} en órbita → CML ${cml} (puntaje ${s}) es 3 o 4`, design.valid && cml >= 3);
+}
+
+// 2) Más instrumentos suben el puntaje.
+const base = { ground: 15, user: 10 };
+const chain = [['inst-camera'], ['inst-camera', 'inst-mag'], ['inst-camera', 'inst-mag', 'inst-spectro'], ['inst-camera', 'inst-mag', 'inst-spectro', 'inst-radar']];
+for (let i = 1; i < chain.length; i++) {
+  const a = score(chain[i - 1], base), b = score(chain[i], base);
+  check(`${chain[i].length} instrumentos (${b}) > ${chain[i - 1].length} (${a})`, b > a);
+}
+check('piezas que no son instrumentos no suman ciencia', score(['inst-camera', 'adcs', 'comm-x'], base) === score(['inst-camera'], base));
+
+// 3) Más presupuesto de Tierra y de Usuario sube el puntaje (hasta su máximo).
+const inst = ['inst-camera', 'inst-mag'];
+for (const [g1, g2] of [[0, 10], [10, 20], [20, 30], [30, 40]]) {
+  const a = score(inst, { ground: g1, user: 10 }), b = score(inst, { ground: g2, user: 10 });
+  check(`Tierra $${g2}M (${b}) > $${g1}M (${a})`, b > a);
+}
+for (const [u1, u2] of [[0, 10], [10, 20], [20, 30]]) {
+  const a = score(inst, { ground: 15, user: u1 }), b = score(inst, { ground: 15, user: u2 });
+  check(`Usuario $${u2}M (${b}) > $${u1}M (${a})`, b > a);
+}
+
+// 4) El resultado de la inserción ordena el puntaje y siempre queda entre 0 y 100.
+const full = chain[chain.length - 1], rich = { ground: 60, user: 60 };
+const [o, e, f, c] = ['orbit', 'eccentric', 'flyby', 'crash'].map((r) => score(full, base, r));
+check(`órbita (${o}) > excéntrica (${e}) > sobrevuelo (${f}) > choque (${c})`, o > e && e > f && f > c);
+check('choque = 0 ciencia', c === 0);
+check(`puntaje máximo ≤ 100 (${score(full, rich)})`, score(full, rich) <= 100);
+check('sin instrumentos ni presupuesto sigue ≥ 0', score([], { ground: 0, user: 0 }) >= 0);
+
+// 5) Niveles CML.
+const cml = (designValid, outcome, s, launched = true) => p.computeCML({ designValid, launched, outcome, scienceScore: s });
+check('diseño inválido → CML 1', cml(false, 'orbit', 100) === 1);
+check('válido sin lanzar → CML 2', cml(true, null, 0, false) === 2);
+check('válido con sobrevuelo → CML 2', cml(true, 'flyby', 100) === 2);
+check('válido con choque → CML 2', cml(true, 'crash', 100) === 2);
+check('órbita excéntrica → CML 3', cml(true, 'eccentric', 100) === 3);
+check(`órbita estable con ciencia < ${p.CML4_MIN_SCORE} → CML 3`, cml(true, 'orbit', p.CML4_MIN_SCORE - 1) === 3);
+check(`órbita estable con ciencia ≥ ${p.CML4_MIN_SCORE} → CML 4`, cml(true, 'orbit', p.CML4_MIN_SCORE) === 4);
+</script></body></html>
