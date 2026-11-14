@@ -51,7 +51,7 @@ export function pickSections(state) {
  * Niveles que ya viven en su carpeta nivelN/. Al publicar tu carpeta, agrega tu número aquí
  * (y `folder: N` en js/levels.js). Los demás se abren dentro de la app principal.
  */
-export const FOLDER_LEVELS = [3];
+export const FOLDER_LEVELS = [2, 3];
 
 /** Pantalla de la app principal que corresponde a cada nivel (para enlazar con #id). */
 export const LEVEL_SCREENS = { 1: 'mission', 2: 'workshop', 3: 'journey', 4: 'report' };
