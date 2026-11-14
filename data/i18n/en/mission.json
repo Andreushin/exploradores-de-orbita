@@ -23,22 +23,26 @@
   "cantReach": "Cannot reach this destination",
   "segmentsTitle": "Split the budget",
   "segmentsHelp": "The Space segment pays for your CubeSat; Ground improves data reception; User improves science analysis.",
+  "reserve": "Reserve",
+  "excess": "Over",
+  "rocketMarker": "Launcher ${cost}M",
+  "barLabel": "${total}M split: {parts}",
   "segments": {
     "launch": {
       "name": "Launch",
-      "help": "Must cover the launcher cost."
+      "help": "Launcher, integration and launch operations. Must cover the launcher cost."
     },
     "space": {
       "name": "Space",
-      "help": "CubeSat components."
+      "help": "The CubeSat: structure, power, propulsion, radio and instruments."
     },
     "ground": {
       "name": "Ground",
-      "help": "Antennas and Deep Space Network."
+      "help": "Antennas, stations and the Deep Space Network to command the spacecraft and receive data."
     },
     "user": {
       "name": "User",
-      "help": "Science data processing and archiving."
+      "help": "Scientists who process, analyze and archive the data so it gets used."
     }
   },
   "errNoRocket": "Choose a launcher.",

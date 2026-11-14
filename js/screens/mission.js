@@ -124,17 +124,24 @@ function render() {
   root.append(el('h2', null, t('mission.segmentsTitle')), el('p', 'muted', t('mission.segmentsHelp')));
   const b = state.budget;
   const spent = SEGMENTS.reduce((s, k) => s + b[k], 0);
+  const rocket = data.rockets.find((r) => r.id === state.rocketId);
+  const bar = el('div', 'budget-bar-wrap');
+  renderBar(bar, b, rocket);
+  root.append(bar);
+  const live = { ...b }; // valores mientras se arrastra un slider, antes de soltarlo
   const box = el('div', 'segments');
   for (const k of SEGMENTS) {
     const row = el('label', 'segment-row');
     row.innerHTML = `
-      <span class="segment-name">${t(`mission.segments.${k}.name`)}</span>
+      <span class="segment-name"><i class="swatch seg-${k}" aria-hidden="true"></i>${t(`mission.segments.${k}.name`)}</span>
       <input type="range" min="0" max="${b.total}" step="1" value="${b[k]}">
       <output>$${b[k]}M</output>
       <small class="muted">${t(`mission.segments.${k}.help`)}</small>`;
     const input = row.querySelector('input');
     input.addEventListener('input', (e) => {
       row.querySelector('output').textContent = `$${e.target.value}M`;
+      live[k] = Number(e.target.value);
+      renderBar(bar, live, rocket);
     });
     input.addEventListener('change', (e) => {
       ctx.update({ budget: { [k]: Number(e.target.value) } });
@@ -144,19 +151,66 @@ function render() {
   }
   root.append(box);
 
-  const rocket = data.rockets.find((r) => r.id === state.rocketId);
   const problems = [];
+  const short = rocket && b.launch < rocket.cost;
   if (!rocket) problems.push(t('mission.errNoRocket'));
-  else if (b.launch < rocket.cost) problems.push(t('mission.errLaunch', { cost: rocket.cost }));
+  else if (short) problems.push(t('mission.errLaunch', { cost: rocket.cost }));
   if (spent > b.total) problems.push(t('mission.errOver', { spent, total: b.total }));
 
   const footer = el('div', 'screen-footer');
-  footer.append(el('p', problems.length ? 'warn' : 'ok', problems.join(' · ') || t('mission.ready', { left: b.total - spent })));
+  const status = !problems.length ? 'ok' : short || spent > b.total ? 'error' : 'warn';
+  footer.append(el('p', status, problems.join(' · ') || t('mission.ready', { left: b.total - spent })));
   const next = el('button', 'btn btn-primary', t('common.next'));
   next.disabled = problems.length > 0;
   next.addEventListener('click', () => ctx.goTo('workshop'));
   footer.append(next);
   root.append(footer);
+}
+
+/**
+ * Calcula la barra apilada: % de cada segmento, reserva, exceso y marca del cohete.
+ * La escala es el total, o lo gastado si se pasó (así el exceso se ve fuera de la marca del total).
+ */
+export function barLayout(b, rocketCost) {
+  const spent = SEGMENTS.reduce((s, k) => s + b[k], 0);
+  const scale = Math.max(b.total, spent) || 1;
+  const pct = (v) => (v / scale) * 100;
+  return {
+    spent,
+    over: Math.max(0, spent - b.total),
+    reserve: Math.max(0, b.total - spent),
+    segments: SEGMENTS.map((k) => ({ k, value: b[k], width: pct(b[k]) })),
+    reserveWidth: pct(Math.max(0, b.total - spent)),
+    totalAt: pct(b.total),
+    rocketAt: rocketCost == null ? null : Math.min(100, pct(rocketCost)),
+    short: rocketCost != null && b.launch < rocketCost,
+  };
+}
+
+function renderBar(wrap, b, rocket) {
+  const { t } = ctx;
+  const L = barLayout(b, rocket?.cost);
+  const name = (k) => t(`mission.segments.${k}.name`);
+  const share = (v) => (b.total ? Math.round((v / b.total) * 100) : 0);
+  const parts = L.segments.map((s) => `${name(s.k)} $${s.value}M`);
+  parts.push(L.over ? `${t('mission.excess')} $${L.over}M` : `${t('mission.reserve')} $${L.reserve}M`);
+
+  wrap.innerHTML = `
+    <div class="budget-bar${L.over ? ' is-over' : ''}" role="img" aria-label="${t('mission.barLabel', { total: b.total, parts: parts.join(', ') })}">
+      <div class="bar-track">
+      ${L.segments.map((s) => `<div class="bar-seg seg-${s.k}${s.k === 'launch' && L.short ? ' is-short' : ''}" style="width:${s.width}%" title="${name(s.k)} $${s.value}M">${s.width >= 12 ? `<span>${name(s.k)} $${s.value}M</span>` : ''}</div>`).join('')}
+      ${L.reserveWidth > 0 ? `<div class="bar-seg seg-reserve" style="width:${L.reserveWidth}%" title="${t('mission.reserve')} $${L.reserve}M">${L.reserveWidth >= 12 ? `<span>${t('mission.reserve')}</span>` : ''}</div>` : ''}
+      ${L.over ? `<div class="bar-excess" style="left:${L.totalAt}%"></div>` : ''}
+      </div>
+      ${L.over ? `<div class="bar-marker marker-total" style="left:${L.totalAt}%"></div>` : ''}
+      ${L.rocketAt != null ? `<div class="bar-marker marker-rocket" style="left:${L.rocketAt}%"><span>▲ ${t('mission.rocketMarker', { cost: rocket.cost })}</span></div>` : ''}
+    </div>
+    <ul class="bar-legend">
+      ${L.segments.map((s) => `<li${s.k === 'launch' && L.short ? ' class="is-short"' : ''}><i class="swatch seg-${s.k}"></i>${name(s.k)} <b>$${s.value}M</b> <small>${share(s.value)}%</small></li>`).join('')}
+      ${L.over
+        ? `<li class="is-over"><i class="swatch seg-excess"></i>${t('mission.excess')} <b>+$${L.over}M</b></li>`
+        : `<li><i class="swatch seg-reserve"></i>${t('mission.reserve')} <b>$${L.reserve}M</b> <small>${share(L.reserve)}%</small></li>`}
+    </ul>`;
 }
 
 function selectMission(m) {
