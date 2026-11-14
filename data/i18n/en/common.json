@@ -1,5 +1,5 @@
 {
-  "appName": "Exploradores de Órbita",
+  "appName": "Orbit Explorers",
   "footer": "Parche ColomboMexicano · NASA Space Apps 2026 · Gamified data based on NASA resources",
   "budgetHud": "Budget: ${spent}M / ${total}M",
   "next": "Next →",
@@ -14,5 +14,6 @@
   "stepGoBack": "Go back to this step",
   "stepLocked": "Finish the previous step to unlock",
   "stepInFlight": "Flight in progress: finish orbit insertion first",
-  "stepNoRefly": "The journey was already flown; redesign from the Workshop"
+  "stepNoRefly": "The journey was already flown; redesign from the Workshop",
+  "switchLang": "Switch language to Spanish"
 }
