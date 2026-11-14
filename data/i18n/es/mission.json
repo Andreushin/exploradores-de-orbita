@@ -1,21 +1,32 @@
 {
   "title": "Nivel 1 · Diseña tu misión",
-  "intro": "Toda misión científica de la NASA se arma con cuatro segmentos: Lanzamiento, Espacio, Tierra y Usuario. Primero define qué vas a estudiar; luego elige una tarjeta por segmento y llévala a tu misión. Ojo: el presupuesto no lo es todo. Lo que no alcanza pone en riesgo la misión, y lo que sobra sin justificación baja tu madurez (CML).",
+  "intro": "Una misión de la NASA se arma paso a paso: primero qué vas a estudiar y luego sus cuatro segmentos. En cada paso elige una tarjeta. El presupuesto no lo es todo: lo que no alcanza pone en riesgo la misión, y lo que sobra sin justificación baja tu madurez (CML).",
+  "stepsLabel": "Pasos del Nivel 1",
+  "stepOf": "Paso {n} de {total}",
+  "steps": {
+    "project": "Proyecto",
+    "launch": "Lanzamiento",
+    "space": "Espacio",
+    "ground": "Tierra",
+    "user": "Usuario",
+    "review": "Revisión"
+  },
+  "sections": {
+    "project": { "title": "Tu proyecto científico", "question": "¿Qué fenómeno o destino remoto vamos a estudiar, y por qué?" },
+    "launch": { "title": "Segmento de Lanzamiento", "question": "¿Qué cohete y servicios de lanzamiento nos llevan a la órbita objetivo?" },
+    "space": { "title": "Segmento Espacial", "question": "¿Qué nave (CubeSat) hará la ciencia?" },
+    "ground": { "title": "Segmento Terrestre", "question": "¿Qué estaciones y antenas recibirán los datos?" },
+    "user": { "title": "Segmento de Usuario", "question": "¿Cómo procesarán y analizarán los datos los científicos?" },
+    "review": { "title": "Revisión de diseño", "question": "¿Tu misión pasaría una revisión de la NASA? Revisa cada segmento antes de ir al Taller." }
+  },
   "projectLabel": "Nombre del proyecto",
   "projectPlaceholder": "Ej. Colibrí Lunar",
-  "pickMission": "Elige un destino para ver sus requerimientos y desbloquear las tarjetas de la misión.",
-  "sections": {
-    "objective": { "title": "Requerimientos científicos", "question": "¿Qué fenómeno o destino remoto vamos a estudiar, y por qué?" },
-    "segments": { "title": "Segmentos de la misión", "question": "Arrastra (o pulsa «Añadir») una tarjeta por segmento hacia «Misión configurada». Cada costo se descuenta del presupuesto." },
-    "launch": { "question": "¿Qué cohete y servicios de lanzamiento nos llevan a la órbita objetivo?" },
-    "space": { "question": "¿Qué nave (CubeSat) hará la ciencia?" },
-    "ground": { "question": "¿Qué estaciones y antenas recibirán los datos?" },
-    "user": { "question": "¿Cómo procesarán y analizarán los datos los científicos?" }
-  },
+  "pickMission": "Elige un destino para ver lo que exige y su presupuesto máximo.",
   "difficulty": "Dificultad",
   "maxBudget": "Presupuesto máximo",
   "targetTitle": "Elige el objetivo científico:",
   "reqTitle": "Lo que exige {dest}",
+  "reqShort": "Lo que exige {dest}:",
   "req": {
     "dv": "Δv de inserción ≥ {dv} m/s",
     "sun": "Luz solar: {pct}% de la terrestre",
@@ -27,7 +38,7 @@
     "atLeast": "{name} o superior.",
     "user": "cualquier enfoque; más nivel = más ciencia, pero cuesta más."
   },
-  "reqHelp": "Los requisitos científicos dictan la ingeniería: elige en cada segmento lo que el destino necesita, ni menos (fallaría) ni mucho más (desperdicio).",
+  "reqHelp": "Los requisitos científicos dictan la ingeniería: en cada paso elige lo que el destino necesita, ni menos (fallaría) ni mucho más (desperdicio).",
   "bar": {
     "label": "Presupuesto de la misión",
     "total": "Presupuesto máximo",
@@ -68,11 +79,11 @@
   "remove": "← Quitar",
   "bank": {
     "title": "Opciones disponibles",
-    "help": "Banco de tarjetas por segmento. Pulsa «?» para saber qué considerar."
+    "help": "Arrastra una tarjeta a tu misión o pulsa «Añadir». Pulsa «?» para saber qué considerar."
   },
   "config": {
     "title": "Misión configurada",
-    "help": "Área de aceptación: una tarjeta por segmento. Suelta aquí una nueva para reemplazar la anterior.",
+    "help": "Área de aceptación: una tarjeta por segmento. Suelta otra para reemplazarla.",
     "empty": "Arrastra aquí una tarjeta de {seg}"
   },
   "segments": {
@@ -87,6 +98,10 @@
     "optimal": "Justo lo necesario",
     "margin": "Con margen",
     "oversized": "Sobredimensionado"
+  },
+  "feedback": {
+    "optimal": "Justo lo que {dest} necesita: ni un dólar desperdiciado.",
+    "margin": "Un nivel por encima de lo que exige {dest}: un margen razonable para reducir riesgos, sin penalización."
   },
   "flagTitle": {
     "insufficient": "Insuficiente (bloquea)",
@@ -106,21 +121,25 @@
       "ground": "Para {dest} no hace falta «{name}»: ${extra}M en antenas que la misión no aprovecha.",
       "user": "Gastas ${extra}M más de lo que el equipo de datos puede aprovechar."
     },
-    "overBudget": "La misión cuesta ${spent}M y el tope es ${total}M (te pasas ${over}M). Ninguna revisión de diseño de la NASA aprueba una misión que excede su presupuesto: cambia o quita tarjetas."
+    "overBudget": "La misión cuesta ${spent}M y el tope es ${total}M (te pasas ${over}M). Ninguna revisión de diseño de la NASA aprueba una misión que excede su presupuesto: cambia alguna tarjeta."
   },
   "review": {
-    "title": "Revisión de diseño",
-    "start": "Lleva una tarjeta de cada segmento a «Misión configurada». Aquí verás si la misión pasa la revisión.",
+    "change": "Cambiar",
     "clean": "Misión equilibrada: cada segmento cubre lo que exige el destino, sin capital desperdiciado."
   },
-  "blockersTitle": "Para continuar te falta:",
+  "nav": {
+    "prev": "← Anterior",
+    "next": "Siguiente: {step} →",
+    "needCard": "Elige una tarjeta de {seg} para continuar.",
+    "needBetter": "La tarjeta de {seg} no alcanza para {dest}: cámbiala para continuar."
+  },
   "blockers": {
-    "name": "Ponerle nombre al proyecto.",
-    "mission": "Elegir un destino.",
-    "science": "Elegir el objetivo científico.",
-    "missing": "Incluir el segmento de {seg} (es obligatorio).",
-    "insufficient": "Cambiar la tarjeta de {seg}: no cumple lo que exige el destino.",
-    "overBudget": "Recortar ${over}M: la misión excede el presupuesto."
+    "name": "Ponle nombre al proyecto.",
+    "mission": "Elige un destino.",
+    "science": "Elige el objetivo científico.",
+    "missing": "Falta el segmento de {seg}.",
+    "insufficient": "La tarjeta de {seg} no cumple lo que exige el destino.",
+    "overBudget": "Recorta ${over}M: la misión excede el presupuesto."
   },
   "ready": "«{name}» pasa la revisión. CML máximo alcanzable: {cml}.",
   "validate": "Siguiente: Taller del CubeSat →"

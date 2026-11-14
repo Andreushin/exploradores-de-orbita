@@ -4,7 +4,7 @@
 <style>body{font:14px monospace;background:#111;color:#ddd;padding:16px}.ok{color:#4ade80}.fail{color:#f87171}</style></head>
 <body><h1>budget.js (Nivel 1 · tarjetas)</h1><ul id="out"></ul>
 <script type="module">
-import { evaluatePlan, cardCatalog } from '../js/budget.js';
+import { evaluatePlan, cardCatalog, stepStatus, STEPS } from '../js/budget.js';
 import { validateDesign } from '../js/physics.js';
 const out = document.getElementById('out');
 const check = (name, cond) => { const li = document.createElement('li'); li.className = cond ? 'ok' : 'fail'; li.textContent = (cond ? 'PASS ' : 'FAIL ') + name; out.append(li); };
@@ -61,4 +61,16 @@ check('omitir el segmento Tierra → bloquea', !noGround.ready && noGround.block
 const empty = plan('moon', [null, null, null, null], { projectName: ' ', scienceTargetIdx: null });
 check('sin nombre, objetivo ni tarjetas → 6 bloqueos', empty.blockers.length === 6 && empty.spent === 0);
 check('madurez siempre en 0..100', [rideshare, dsnMoon, maxed, smallRocket, empty].every((e) => e.maturity >= 0 && e.maturity <= 100));
+
+// Asistente por pasos: Proyecto → Lanzamiento → Espacio → Tierra → Usuario → Revisión
+const st = (missionId, cards, extra = {}) => ({ missionId, budget: { total: 0 }, plan: { projectName: 'Prueba', scienceTargetIdx: 0, cards, ...extra } });
+const flags = (s) => stepStatus(s, evaluatePlan(s, data)).map((x) => `${x.unlocked ? 'U' : '-'}${x.done ? 'D' : '-'}`).join(' ');
+const none = { launch: null, space: null, ground: null, user: null };
+check(`orden de pasos = ${STEPS}`, STEPS.join() === 'project,launch,space,ground,user,review');
+check('sin proyecto: solo el paso 1 abierto', flags(st(null, none, { projectName: '' })) === 'U- -- -- -- -- --');
+check('proyecto completo: se abren los segmentos, no la revisión', flags(st('moon', none)) === 'UD U- U- U- U- --');
+const partial = st('mars', { ...none, launch: 'pico', space: 'space-interplanetary' });
+check('cohete que no alcanza → su paso no está resuelto; el que cumple sí', flags(partial) === 'UD U- UD U- U- --');
+check('con las 4 tarjetas se abre la revisión; resuelta si la misión pasa', flags(st('moon', { launch: 'pico', space: 'space-near', ground: 'ground-uhf', user: 'standard' })) === 'UD UD UD UD UD UD');
+check('sobredimensionado resuelve el paso (penaliza, no bloquea)', flags(st('moon', { ...none, launch: 'pesado' })).split(' ')[1] === 'UD');
 </script></body></html>

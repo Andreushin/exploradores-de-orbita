@@ -1,21 +1,32 @@
 {
   "title": "Level 1 · Design your mission",
-  "intro": "Every NASA science mission is built from four segments: Launch, Space, Ground and User. First decide what you'll study; then pick one card per segment and bring it into your mission. Careful: budget isn't everything. Falling short puts the mission at risk, and spending on what isn't justified lowers your maturity (CML).",
+  "intro": "A NASA mission is built step by step: first what you'll study, then its four segments. Pick one card in each step. Budget isn't everything: falling short puts the mission at risk, and spending on what isn't justified lowers your maturity (CML).",
+  "stepsLabel": "Level 1 steps",
+  "stepOf": "Step {n} of {total}",
+  "steps": {
+    "project": "Project",
+    "launch": "Launch",
+    "space": "Space",
+    "ground": "Ground",
+    "user": "User",
+    "review": "Review"
+  },
+  "sections": {
+    "project": { "title": "Your science project", "question": "What phenomenon or remote destination will we study, and why?" },
+    "launch": { "title": "Launch Segment", "question": "Which rocket and launch services take us to the target orbit?" },
+    "space": { "title": "Space Segment", "question": "Which spacecraft (CubeSat) will do the science?" },
+    "ground": { "title": "Ground Segment", "question": "Which stations and antennas will receive the data?" },
+    "user": { "title": "User Segment", "question": "How will scientists process and analyze the data?" },
+    "review": { "title": "Design review", "question": "Would your mission pass a NASA review? Check every segment before heading to the Workshop." }
+  },
   "projectLabel": "Project name",
   "projectPlaceholder": "e.g. Lunar Hummingbird",
-  "pickMission": "Pick a destination to see its requirements and unlock the mission cards.",
-  "sections": {
-    "objective": { "title": "Science requirements", "question": "What phenomenon or remote destination will we study, and why?" },
-    "segments": { "title": "Mission segments", "question": "Drag (or press \"Add\") one card per segment into \"Configured mission\". Each cost is deducted from the budget." },
-    "launch": { "question": "Which rocket and launch services take us to the target orbit?" },
-    "space": { "question": "Which spacecraft (CubeSat) will do the science?" },
-    "ground": { "question": "Which stations and antennas will receive the data?" },
-    "user": { "question": "How will scientists process and analyze the data?" }
-  },
+  "pickMission": "Pick a destination to see what it demands and its max budget.",
   "difficulty": "Difficulty",
   "maxBudget": "Max budget",
   "targetTitle": "Choose the science objective:",
   "reqTitle": "What {dest} demands",
+  "reqShort": "What {dest} demands:",
   "req": {
     "dv": "Insertion Δv ≥ {dv} m/s",
     "sun": "Sunlight: {pct}% of Earth's",
@@ -27,7 +38,7 @@
     "atLeast": "{name} or better.",
     "user": "any approach; higher level = more science, but it costs more."
   },
-  "reqHelp": "Science requirements drive the engineering: in each segment pick what the destination needs, no less (it would fail) and not much more (waste).",
+  "reqHelp": "Science requirements drive the engineering: in each step pick what the destination needs, no less (it would fail) and not much more (waste).",
   "bar": {
     "label": "Mission budget",
     "total": "Max budget",
@@ -68,11 +79,11 @@
   "remove": "← Remove",
   "bank": {
     "title": "Available options",
-    "help": "Card bank by segment. Press \"?\" to see what to consider."
+    "help": "Drag a card into your mission or press \"Add\". Press \"?\" to see what to consider."
   },
   "config": {
     "title": "Configured mission",
-    "help": "Acceptance area: one card per segment. Drop a new one here to replace the previous one.",
+    "help": "Acceptance area: one card per segment. Drop another to replace it.",
     "empty": "Drag a {seg} card here"
   },
   "segments": {
@@ -87,6 +98,10 @@
     "optimal": "Just what's needed",
     "margin": "With margin",
     "oversized": "Oversized"
+  },
+  "feedback": {
+    "optimal": "Exactly what {dest} needs: not a dollar wasted.",
+    "margin": "One level above what {dest} demands: a reasonable margin to reduce risk, no penalty."
   },
   "flagTitle": {
     "insufficient": "Insufficient (blocks)",
@@ -106,20 +121,24 @@
       "ground": "{dest} doesn't need \"{name}\": ${extra}M in antennas the mission won't use.",
       "user": "You're spending ${extra}M more than the data team can use."
     },
-    "overBudget": "The mission costs ${spent}M and the cap is ${total}M (${over}M over). No NASA design review approves a mission that exceeds its budget: swap or remove cards."
+    "overBudget": "The mission costs ${spent}M and the cap is ${total}M (${over}M over). No NASA design review approves a mission that exceeds its budget: swap a card."
   },
   "review": {
-    "title": "Design review",
-    "start": "Bring one card from each segment into \"Configured mission\". Here you'll see whether the mission passes review.",
+    "change": "Change",
     "clean": "Balanced mission: every segment covers what the destination demands, with no wasted capital."
   },
-  "blockersTitle": "To continue you still need to:",
+  "nav": {
+    "prev": "← Back",
+    "next": "Next: {step} →",
+    "needCard": "Pick a {seg} card to continue.",
+    "needBetter": "The {seg} card falls short for {dest}: swap it to continue."
+  },
   "blockers": {
     "name": "Name the project.",
     "mission": "Pick a destination.",
     "science": "Pick the science objective.",
-    "missing": "Include the {seg} segment (it's mandatory).",
-    "insufficient": "Swap the {seg} card: it doesn't meet the destination's requirements.",
+    "missing": "The {seg} segment is missing.",
+    "insufficient": "The {seg} card doesn't meet the destination's requirements.",
     "overBudget": "Cut ${over}M: the mission exceeds its budget."
   },
   "ready": "\"{name}\" passes the review. Max reachable CML: {cml}.",

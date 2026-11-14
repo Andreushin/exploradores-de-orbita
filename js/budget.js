@@ -3,6 +3,31 @@
 // Valores en data/segments.json (+ rockets.json para Lanzamiento). Documentación: docs/levelOne.md
 
 export const SEGMENTS = ['launch', 'space', 'ground', 'user'];
+/** Pasos del Nivel 1: proyecto → un paso por segmento → revisión. */
+export const STEPS = ['project', ...SEGMENTS, 'review'];
+const PASSING = new Set(['optimal', 'margin', 'oversized']);
+
+/** Paso 1 completo: nombre, destino y objetivo científico. */
+export function projectComplete(state) {
+  const plan = state.plan ?? {};
+  return Boolean(plan.projectName?.trim() && state.missionId && plan.scienceTargetIdx != null);
+}
+
+/**
+ * Estado de cada paso para el asistente: { id, unlocked, done }.
+ * - Los pasos de segmento se abren al completar el proyecto; están "done" si su tarjeta cumple (aunque sobre).
+ * - La revisión se abre cuando hay una tarjeta en cada segmento; está "done" si la misión pasa.
+ * @param ev resultado de evaluatePlan(state, data)
+ */
+export function stepStatus(state, ev) {
+  const project = projectComplete(state);
+  const allPlaced = SEGMENTS.every((k) => ev.segments[k].card);
+  return STEPS.map((id) => {
+    if (id === 'project') return { id, unlocked: true, done: project };
+    if (id === 'review') return { id, unlocked: project && allPlaced, done: ev.ready };
+    return { id, unlocked: project, done: PASSING.has(ev.segments[id].status) };
+  });
+}
 
 /**
  * Catálogo de tarjetas por segmento. Todas tienen { id, segment, level (1..3), cost, icon, name, desc }.

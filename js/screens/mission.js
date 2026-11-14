@@ -1,14 +1,18 @@
-// OWNER: Rol 3 — Pantalla 1 (Nivel 1): requerimientos científicos + tarjetas de los 4 segmentos DDSM.
-// El jugador mueve tarjetas del banco (izquierda) a la misión configurada (derecha) por arrastre o clic.
+// OWNER: Rol 3 — Pantalla 1 (Nivel 1): asistente por pasos.
+//   Proyecto → Lanzamiento → Espacio → Tierra → Usuario → Revisión
+// En cada paso de segmento el jugador mueve una tarjeta del banco a la misión (arrastre o clic) y el
+// fondo (js/screens/mission-scenes.js) reacciona a su elección.
 // Estado que escribe: missionId, rocketId, budget.{total,launch,space,ground,user},
-//   plan.{projectName,scienceTargetIdx,cards,maturity,penalty,cmlCap,validated}
+//   plan.{step,projectName,scienceTargetIdx,cards,maturity,penalty,cmlCap,validated}
 // Reglas: js/budget.js · Documentación: docs/levelOne.md
-import { SEGMENTS, cardCatalog, requiredLevels, evaluatePlan } from '../budget.js';
+import { SEGMENTS, STEPS, cardCatalog, requiredLevels, evaluatePlan, stepStatus } from '../budget.js';
+import { createScenes } from './mission-scenes.js';
 
 let ctx;
 let root;
-let live = null;     // nodos que se re-renderizan al mover tarjetas
+let live = null;     // nodos que se actualizan sin reconstruir la pantalla
 let catalog = null;  // tarjetas por segmento
+let scenes = null;   // fondo animado
 let dragging = null; // { seg, id, placed } durante un arrastre
 let onResize = null;
 
@@ -19,18 +23,23 @@ function el(tag, cls, html) {
   return e;
 }
 
+const STEP_ICON = { project: '🪐', launch: '🚀', space: '🛰️', ground: '📡', user: '🧪', review: '✅' };
 const STATUS_ICON = { empty: '○', insufficient: '✘', optimal: '✔', margin: '✔', oversized: '▲' };
+const SCENE_STATUS = { insufficient: 'insufficient', oversized: 'oversized', optimal: 'ok', margin: 'ok' };
 const FLAG_ORDER = { insufficient: 0, overBudget: 1, oversized: 2 };
 
 const segName = (k) => ctx.t(`mission.segments.${k}.name`);
 const currentMission = () => ctx.data.missions.find((m) => m.id === ctx.state.missionId);
-/** $100,000,000 (montos del juego en millones). */
+const stepIndex = () => Math.min(Math.max(ctx.state.plan.step ?? 0, 0), STEPS.length - 1);
+const stepId = () => STEPS[stepIndex()];
+const isSegment = (id) => SEGMENTS.includes(id);
+/** $100,000,000 (los montos del juego están en millones). */
 const usd = (millions) => {
   const n = Math.abs(millions) * 1e6;
   return `${millions < 0 ? '−' : ''}$${n.toLocaleString(ctx.state.lang === 'es' ? 'es-MX' : 'en-US')}`;
 };
 
-// --- Estado -------------------------------------------------------------------
+// --- Estado ---------------------------------------------------------------------
 /** Coloca (id) o quita (null) la tarjeta de un segmento y recalcula el presupuesto. */
 function placeCard(seg, id) {
   const previous = ctx.state.plan.cards[seg];
@@ -58,7 +67,80 @@ function commitPlan(ev, edited) {
   }
 }
 
-// --- 1. Requerimientos científicos ----------------------------------------------
+function goStep(i) {
+  const steps = stepStatus(ctx.state, evaluatePlan(ctx.state, ctx.data));
+  if (!steps[i]?.unlocked) return;
+  ctx.update({ plan: { step: i } });
+  renderStage();
+  renderLive();
+  const reduced = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+  window.scrollTo({ top: 0, behavior: reduced ? 'auto' : 'smooth' });
+  live.stage.querySelector('h2')?.focus({ preventScroll: true });
+}
+
+// --- Encabezado fijo: barra de pasos + presupuesto ------------------------------------
+function renderStepper(steps) {
+  const { t } = ctx;
+  const current = stepIndex();
+  live.stepper.replaceChildren(...steps.map((s, i) => {
+    const li = el('li', `stp is-${s.done ? 'done' : 'todo'}${i === current ? ' is-current' : ''}`);
+    const b = el('button', null, `
+      <span class="stp-dot" aria-hidden="true">${s.done && i !== current ? '✔' : STEP_ICON[s.id]}</span>
+      <span class="stp-label"><small>${t('mission.stepOf', { n: i + 1, total: STEPS.length })}</small>${t(`mission.steps.${s.id}`)}</span>`);
+    b.type = 'button';
+    b.disabled = !s.unlocked;
+    if (i === current) b.setAttribute('aria-current', 'step');
+    b.addEventListener('click', () => goStep(i));
+    li.append(b);
+    return li;
+  }));
+}
+
+function budgetBar() {
+  const { t } = ctx;
+  const bar = el('div', 'budget-bar');
+  bar.setAttribute('role', 'region');
+  bar.setAttribute('aria-label', t('mission.bar.label'));
+  bar.innerHTML = `
+    <dl class="bb-nums">
+      <div><dt>${t('mission.bar.total')}</dt><dd class="bb-total"></dd></div>
+      <div><dt>${t('mission.bar.spent')}</dt><dd class="bb-spent"></dd></div>
+      <div><dt>${t('mission.bar.available')}</dt><dd class="bb-avail"></dd></div>
+      <div><dt>${t('mission.bar.cml')}</dt><dd class="bb-cml"></dd></div>
+    </dl>
+    <div class="bb-track" aria-hidden="true"></div>`;
+  return bar;
+}
+
+function renderBar(ev) {
+  live.bar.hidden = !currentMission();
+  if (live.bar.hidden) return;
+  const q = (s) => live.bar.querySelector(s);
+  q('.bb-total').textContent = `${usd(ev.total)} USD`;
+  q('.bb-spent').textContent = usd(ev.spent);
+  const avail = q('.bb-avail');
+  avail.textContent = usd(ev.available);
+  avail.classList.toggle('error', ev.available < 0);
+  const cml = q('.bb-cml');
+  cml.textContent = ctx.t('mission.bar.cmlValue', { cml: ev.cmlCap, maturity: ev.maturity });
+  cml.className = `bb-cml cml-${ev.cmlCap}`;
+
+  const scale = Math.max(ev.total, ev.spent) || 1;
+  const track = q('.bb-track');
+  track.replaceChildren(...SEGMENTS.filter((k) => ev.segments[k].cost > 0).map((k) => {
+    const part = el('span', `sw-${k}`);
+    part.style.width = `${(ev.segments[k].cost / scale) * 100}%`;
+    part.title = `${segName(k)}: $${ev.segments[k].cost}M`;
+    return part;
+  }));
+  if (ev.spent > ev.total) {
+    const limit = el('span', 'bb-limit');
+    limit.style.left = `${(ev.total / scale) * 100}%`;
+    track.append(limit);
+  }
+}
+
+// --- Paso 1: proyecto ---------------------------------------------------------------
 function nameField() {
   const { state, t } = ctx;
   const field = el('label', 'lvl-field');
@@ -119,89 +201,55 @@ function scienceTargets(mission) {
   return set;
 }
 
-/** La ciencia dicta la ingeniería: qué exige el destino a cada segmento. */
-function requirementsPanel(mission) {
-  const { data, t, tx, physics } = ctx;
+/** Lo que exige el destino a un segmento (texto corto). */
+function segmentRequirement(k, mission) {
+  const { t, tx, data } = ctx;
   const req = requiredLevels(mission, data, catalog);
-  const dest = tx(mission.name);
-  const levelName = (k) => tx(catalog[k].find((c) => c.level === req[k])?.name);
+  if (k === 'launch') return t('mission.segReq.launch', { dest: tx(mission.name) });
+  if (k === 'user') return t('mission.segReq.user');
+  return t('mission.segReq.atLeast', { name: tx(catalog[k].find((c) => c.level === req[k])?.name) });
+}
+
+/** La ciencia dicta la ingeniería: qué exige el destino. */
+function requirementsPanel(mission) {
+  const { t, tx, physics } = ctx;
   const sunPct = Math.round((physics.SOLAR_AT_1AU / mission.distanceAU ** 2) * 100);
   const box = el('div', 'lvl-reqs');
   box.innerHTML = `
-    <h3>${t('mission.reqTitle', { dest })}</h3>
+    <h3>${t('mission.reqTitle', { dest: tx(mission.name) })}</h3>
     <ul class="lvl-req-list">
       <li>${t('mission.req.dv', { dv: mission.dvRequired })}</li>
       <li>${t('mission.req.sun', { pct: sunPct })}</li>
       <li>${t('mission.req.power', { w: mission.minPowerW })}</li>
       <li>${t('mission.req.travel', { days: mission.travelDays })}</li>
     </ul>
-    <ul class="lvl-seg-reqs">
-      <li><b>${segName('launch')}:</b> ${t('mission.segReq.launch', { dest })}</li>
-      <li><b>${segName('space')}:</b> ${t('mission.segReq.atLeast', { name: levelName('space') })}</li>
-      <li><b>${segName('ground')}:</b> ${t('mission.segReq.atLeast', { name: levelName('ground') })}</li>
-      <li><b>${segName('user')}:</b> ${t('mission.segReq.user')}</li>
-    </ul>
+    <ul class="lvl-seg-reqs">${SEGMENTS.map((k) => `<li><b>${segName(k)}:</b> ${segmentRequirement(k, mission)}</li>`).join('')}</ul>
     <p class="muted">${t('mission.reqHelp')}</p>`;
   return box;
 }
 
-function requirementsSection(mission) {
+function stepHeader(id) {
   const { t } = ctx;
-  const s = el('section', 'lvl-section');
-  s.append(
-    el('h2', null, `<span class="lvl-num">1</span>${t('mission.sections.objective.title')}`),
-    el('p', 'lvl-question', t('mission.sections.objective.question')),
-    nameField(),
-    destinationGrid(),
+  const head = el('header', 'step-head');
+  head.append(
+    el('p', 'step-kicker', `${STEP_ICON[id]} ${t('mission.stepOf', { n: stepIndex() + 1, total: STEPS.length })}`),
+    el('h2', null, t(`mission.sections.${id}.title`)),
+    el('p', 'lvl-question', t(`mission.sections.${id}.question`)),
   );
-  if (mission) s.append(scienceTargets(mission), requirementsPanel(mission));
-  return s;
+  head.querySelector('h2').tabIndex = -1;
+  return head;
 }
 
-// --- 2. Barra de presupuesto fija -------------------------------------------------
-function budgetBar() {
-  const { t } = ctx;
-  const bar = el('div', 'budget-bar');
-  bar.setAttribute('role', 'region');
-  bar.setAttribute('aria-label', t('mission.bar.label'));
-  bar.innerHTML = `
-    <dl class="bb-nums">
-      <div><dt>${t('mission.bar.total')}</dt><dd class="bb-total"></dd></div>
-      <div><dt>${t('mission.bar.spent')}</dt><dd class="bb-spent"></dd></div>
-      <div><dt>${t('mission.bar.available')}</dt><dd class="bb-avail"></dd></div>
-      <div><dt>${t('mission.bar.cml')}</dt><dd class="bb-cml"></dd></div>
-    </dl>
-    <div class="bb-track" aria-hidden="true"></div>`;
-  return bar;
+function projectStage() {
+  const mission = currentMission();
+  const panel = el('div', 'step-card');
+  panel.append(nameField(), destinationGrid());
+  if (mission) panel.append(scienceTargets(mission), requirementsPanel(mission));
+  else panel.append(el('p', 'muted lvl-hint', ctx.t('mission.pickMission')));
+  return [stepHeader('project'), panel];
 }
 
-function renderBar(ev) {
-  const q = (s) => live.bar.querySelector(s);
-  q('.bb-total').textContent = `${usd(ev.total)} USD`;
-  q('.bb-spent').textContent = usd(ev.spent);
-  const avail = q('.bb-avail');
-  avail.textContent = usd(ev.available);
-  avail.classList.toggle('error', ev.available < 0);
-  const cml = q('.bb-cml');
-  cml.textContent = ctx.t('mission.bar.cmlValue', { cml: ev.cmlCap, maturity: ev.maturity });
-  cml.className = `bb-cml cml-${ev.cmlCap}`;
-
-  const scale = Math.max(ev.total, ev.spent) || 1;
-  const track = q('.bb-track');
-  track.replaceChildren(...SEGMENTS.filter((k) => ev.segments[k].cost > 0).map((k) => {
-    const part = el('span', `sw-${k}`);
-    part.style.width = `${(ev.segments[k].cost / scale) * 100}%`;
-    part.title = `${segName(k)}: $${ev.segments[k].cost}M`;
-    return part;
-  }));
-  if (ev.spent > ev.total) {
-    const limit = el('span', 'bb-limit');
-    limit.style.left = `${(ev.total / scale) * 100}%`;
-    track.append(limit);
-  }
-}
-
-// --- 3. Tablero de tarjetas ---------------------------------------------------------
+// --- Pasos 2–5: un segmento ------------------------------------------------------------
 function capability(card) {
   const { t, tx, data } = ctx;
   if (card.segment !== 'launch') return t(`mission.cap.${card.segment}`, { lvl: card.level });
@@ -252,8 +300,7 @@ function cardEl(card, placed) {
     e.dataTransfer.effectAllowed = 'move';
     e.dataTransfer.setData('text/plain', card.id);
     art.classList.add('is-dragging');
-    live.board.classList.add(placed ? 'is-dragging-placed' : 'is-dragging-bank');
-    live.board.querySelector(`.slot[data-seg="${card.segment}"]`)?.classList.add('is-target');
+    live.stage.classList.add(placed ? 'is-dragging-placed' : 'is-dragging-bank');
   });
   art.addEventListener('dragend', endDrag);
   return art;
@@ -261,9 +308,9 @@ function cardEl(card, placed) {
 
 function endDrag() {
   dragging = null;
-  if (!live?.board) return;
-  live.board.classList.remove('is-dragging-placed', 'is-dragging-bank');
-  live.board.querySelectorAll('.is-target, .is-over, .is-dragging').forEach((n) => n.classList.remove('is-target', 'is-over', 'is-dragging'));
+  if (!live?.stage) return;
+  live.stage.classList.remove('is-dragging-placed', 'is-dragging-bank');
+  live.stage.querySelectorAll('.is-over, .is-dragging').forEach((n) => n.classList.remove('is-over', 'is-dragging'));
 }
 
 /** Zona que acepta tarjetas arrastradas. */
@@ -286,56 +333,14 @@ function dropZone(zone, accepts, onDrop) {
   });
 }
 
-function renderBoard(ev) {
-  const { t } = ctx;
-  const plan = ctx.state.plan;
-
-  const bank = el('section', 'bank');
-  bank.setAttribute('aria-labelledby', 'bank-title');
-  bank.append(el('h2', null, t('mission.bank.title')), el('p', 'muted', t('mission.bank.help')));
-  bank.firstChild.id = 'bank-title';
-  for (const k of SEGMENTS) {
-    const group = el('div', 'bank-group');
-    group.append(el('h3', null, segName(k)), el('p', 'bank-q', t(`mission.sections.${k}.question`)));
-    const list = el('div', 'bank-list');
-    for (const card of catalog[k].filter((c) => c.id !== plan.cards[k])) list.append(cardEl(card, false));
-    group.append(list);
-    bank.append(group);
-  }
-  dropZone(bank, (d) => d.placed, (d) => placeCard(d.seg, null));
-
-  const config = el('section', 'config');
-  config.setAttribute('aria-labelledby', 'config-title');
-  config.append(el('h2', null, t('mission.config.title')), el('p', 'muted', t('mission.config.help')));
-  config.firstChild.id = 'config-title';
-  SEGMENTS.forEach((k, i) => {
-    const s = ev.segments[k];
-    const slot = el('div', `slot is-${s.status}`);
-    slot.dataset.seg = k;
-    slot.innerHTML = `
-      <div class="slot-head">
-        <span class="slot-num">${i + 1}</span>
-        <b>${segName(k)}</b>
-        <span class="slot-status">${STATUS_ICON[s.status]} ${t(`mission.status.${s.status}`)}</span>
-      </div>`;
-    slot.append(s.card ? cardEl(s.card, true) : el('p', 'slot-empty', t('mission.config.empty', { seg: segName(k) })));
-    config.append(slot);
-  });
-  dropZone(config, (d) => !d.placed, (d) => placeCard(d.seg, d.id));
-
-  live.board.replaceChildren(bank, config);
-}
-
-// --- 4. Revisión: alertas pedagógicas y validación ------------------------------------
 function flagText(f) {
   const { t, tx } = ctx;
-  const mission = currentMission();
   const options = f.segment ? catalog[f.segment] : [];
   const card = options.find((c) => c.id === ctx.state.plan.cards[f.segment]);
   const req = options.find((c) => c.level === f.required);
   const key = f.segment ? `mission.flags.${f.kind}.${f.segment}` : `mission.flags.${f.kind}`;
   return t(key, {
-    dest: tx(mission?.name),
+    dest: tx(currentMission()?.name),
     name: tx(card?.name),
     required: tx(req?.name),
     lvl: f.level,
@@ -347,67 +352,205 @@ function flagText(f) {
   });
 }
 
-/** Alertas pedagógicas: primero lo que bloquea, luego lo que resta madurez. */
-function flagList(ev) {
+function flagItem(f) {
   const { t } = ctx;
+  const li = el('li', `lvl-flag is-${f.kind}`);
+  const prefix = f.segment ? `${segName(f.segment)} · ` : '';
+  li.innerHTML = `
+    <span class="flag-icon" aria-hidden="true">${f.kind === 'oversized' ? '▲' : '✘'}</span>
+    <span><b>${prefix}${t(`mission.flagTitle.${f.kind}`)}.</b> ${flagText(f)}</span>
+    ${f.points ? `<b class="flag-pts">−${f.points} CML</b>` : ''}`;
+  return li;
+}
+
+/** Retroalimentación inmediata del segmento del paso (bien, sobra, no alcanza). */
+function segmentFeedback(k, ev) {
+  const { t, tx } = ctx;
   const list = el('ul', 'lvl-flags');
-  const flags = [...ev.flags].sort((a, b) => FLAG_ORDER[a.kind] - FLAG_ORDER[b.kind] || b.points - a.points);
-  for (const f of flags) {
-    const li = el('li', `lvl-flag is-${f.kind}`);
-    const prefix = f.segment ? `${segName(f.segment)} · ` : '';
-    li.innerHTML = `
-      <span class="flag-icon" aria-hidden="true">${f.kind === 'oversized' ? '▲' : '✘'}</span>
-      <span><b>${prefix}${t(`mission.flagTitle.${f.kind}`)}.</b> ${flagText(f)}</span>
-      ${f.points ? `<b class="flag-pts">−${f.points} CML</b>` : ''}`;
-    list.append(li);
+  list.setAttribute('aria-live', 'polite');
+  const flag = ev.flags.find((f) => f.segment === k);
+  const status = ev.segments[k].status;
+  if (flag) list.append(flagItem(flag));
+  else if (status === 'optimal' || status === 'margin') {
+    list.append(el('li', 'lvl-flag is-clean', `<span class="flag-icon" aria-hidden="true">✔</span><span>${t(`mission.feedback.${status}`, { dest: tx(currentMission()?.name) })}</span>`));
   }
-  if (!flags.length) {
-    const allPlaced = SEGMENTS.every((k) => ev.segments[k].card);
-    list.append(el('li', `lvl-flag ${allPlaced ? 'is-clean' : 'is-hint'}`,
-      `<span class="flag-icon" aria-hidden="true">${allPlaced ? '✔' : 'ℹ'}</span><span>${t(allPlaced ? 'mission.review.clean' : 'mission.review.start')}</span>`));
-  }
+  const over = ev.flags.find((f) => f.kind === 'overBudget');
+  if (over) list.append(flagItem(over));
   return list;
 }
 
-/** Lo que falta para validar, o el mensaje de listo. */
-function validationStatus(ev) {
+/** Mini resumen de la misión armada hasta ahora; cada fila lleva a su paso. */
+function missionSummary(ev, current) {
+  const { tx } = ctx;
+  const ul = el('ul', 'mini-summary');
+  SEGMENTS.forEach((k) => {
+    const s = ev.segments[k];
+    const li = el('li', `is-${s.status}${k === current ? ' is-current' : ''}`);
+    const b = el('button', null, `<span aria-hidden="true">${STEP_ICON[k]}</span><b>${segName(k)}</b><span>${s.card ? tx(s.card.name) : '—'}</span><span class="mini-st">${STATUS_ICON[s.status]}</span>`);
+    b.type = 'button';
+    b.disabled = k === current;
+    b.addEventListener('click', () => goStep(STEPS.indexOf(k)));
+    li.append(b);
+    ul.append(li);
+  });
+  return ul;
+}
+
+function renderSegmentBody(k, ev) {
   const { t } = ctx;
-  const status = el('div', 'lvl-blockers');
-  status.setAttribute('aria-live', 'polite');
-  if (ev.ready) {
-    const msg = el('p', 'ok');
-    msg.textContent = t('mission.ready', { name: ctx.state.plan.projectName.trim(), cml: ev.cmlCap }); // texto del jugador: nunca innerHTML
-    status.append(msg);
-  } else {
-    const ul = el('ul', 'lvl-blocker-list');
-    for (const b of ev.blockers) {
-      ul.append(el('li', 'warn', `✘ ${t(`mission.blockers.${b.id}`, { ...b, seg: b.segment ? segName(b.segment) : '' })}`));
-    }
-    status.append(el('p', 'muted', t('mission.blockersTitle')), ul);
+  const plan = ctx.state.plan;
+  const s = ev.segments[k];
+
+  const bank = el('section', 'bank');
+  bank.append(el('h3', null, t('mission.bank.title')), el('p', 'muted', t('mission.bank.help')));
+  const list = el('div', 'bank-list');
+  for (const card of catalog[k].filter((c) => c.id !== plan.cards[k])) list.append(cardEl(card, false));
+  bank.append(list);
+  dropZone(bank, (d) => d.placed, (d) => placeCard(d.seg, null));
+
+  const config = el('section', 'config');
+  config.append(el('h3', null, t('mission.config.title')), el('p', 'muted', t('mission.config.help')));
+  const slot = el('div', `slot is-${s.status}`);
+  slot.innerHTML = `
+    <div class="slot-head">
+      <b>${STEP_ICON[k]} ${segName(k)}</b>
+      <span class="slot-status">${STATUS_ICON[s.status]} ${t(`mission.status.${s.status}`)}</span>
+    </div>`;
+  slot.append(s.card ? cardEl(s.card, true) : el('p', 'slot-empty', t('mission.config.empty', { seg: segName(k) })));
+  config.append(slot, segmentFeedback(k, ev), missionSummary(ev, k));
+  dropZone(config, (d) => !d.placed && d.seg === k, (d) => placeCard(d.seg, d.id));
+
+  const board = el('div', 'board');
+  board.append(bank, config);
+  live.body.replaceChildren(board);
+}
+
+function segmentStage(k) {
+  const mission = currentMission();
+  const head = stepHeader(k);
+  head.append(el('p', 'step-req', `<b>${ctx.t('mission.reqShort', { dest: ctx.tx(mission.name) })}</b> ${segmentRequirement(k, mission)}`));
+  live.body = el('div', 'step-body');
+  return [head, live.body];
+}
+
+// --- Paso 6: revisión -----------------------------------------------------------------
+function renderReviewBody(ev) {
+  const { t, tx } = ctx;
+  const grid = el('div', 'review-grid');
+  for (const k of SEGMENTS) {
+    const s = ev.segments[k];
+    const card = el('div', `review-item slot is-${s.status}`);
+    card.innerHTML = `
+      <div class="slot-head"><b>${STEP_ICON[k]} ${segName(k)}</b><span class="slot-status">${STATUS_ICON[s.status]} ${t(`mission.status.${s.status}`)}</span></div>
+      <p class="review-card">${s.card ? `${tx(s.card.name)} · <b>$${s.card.cost}M</b>` : '—'}</p>`;
+    const change = el('button', 'btn btn-ghost', t('mission.review.change'));
+    change.type = 'button';
+    change.addEventListener('click', () => goStep(STEPS.indexOf(k)));
+    card.append(change);
+    grid.append(card);
   }
-  return status;
+
+  const flags = el('ul', 'lvl-flags');
+  flags.setAttribute('aria-live', 'polite');
+  [...ev.flags].sort((a, b) => FLAG_ORDER[a.kind] - FLAG_ORDER[b.kind] || b.points - a.points).forEach((f) => flags.append(flagItem(f)));
+  if (!ev.flags.length) {
+    flags.append(el('li', 'lvl-flag is-clean', `<span class="flag-icon" aria-hidden="true">✔</span><span>${t('mission.review.clean')}</span>`));
+  }
+  live.body.replaceChildren(grid, flags);
 }
 
-function renderReview(ev) {
+function reviewStage() {
+  live.body = el('div', 'step-body');
+  return [stepHeader('review'), live.body];
+}
+
+// --- Navegación inferior ---------------------------------------------------------------
+/** Por qué no se puede avanzar desde el paso actual (texto corto), o '' si se puede. */
+function blockedReason(id, ev) {
+  const { t, tx } = ctx;
+  if (id === 'project') {
+    const missing = ev.blockers.filter((b) => ['name', 'mission', 'science'].includes(b.id));
+    return missing.map((b) => t(`mission.blockers.${b.id}`)).join(' ');
+  }
+  if (isSegment(id)) {
+    const status = ev.segments[id].status;
+    if (status === 'empty') return t('mission.nav.needCard', { seg: segName(id) });
+    if (status === 'insufficient') return t('mission.nav.needBetter', { seg: segName(id), dest: tx(currentMission()?.name) });
+    return '';
+  }
+  return ev.blockers.map((b) => t(`mission.blockers.${b.id}`, { ...b, seg: b.segment ? segName(b.segment) : '' })).join(' ');
+}
+
+function renderNav(ev, steps) {
   const { t } = ctx;
-  const footer = el('div', 'screen-footer lvl-footer');
-  const next = el('button', 'btn btn-primary', t('mission.validate'));
+  const i = stepIndex();
+  const id = STEPS[i];
+  const last = i === STEPS.length - 1;
+  const nav = el('div', 'screen-footer lvl-nav');
+
+  const prev = el('button', 'btn btn-ghost', t('mission.nav.prev'));
+  prev.type = 'button';
+  prev.hidden = i === 0;
+  prev.addEventListener('click', () => goStep(i - 1));
+
+  const reason = blockedReason(id, ev);
+  const status = el('p', reason ? 'warn lvl-nav-hint' : 'ok lvl-nav-hint');
+  status.setAttribute('aria-live', 'polite');
+  status.textContent = reason || (last ? t('mission.ready', { name: ctx.state.plan.projectName.trim(), cml: ev.cmlCap }) : '');
+
+  const nextLabel = last ? t('mission.validate') : t('mission.nav.next', { step: t(`mission.steps.${STEPS[i + 1]}`) });
+  const next = el('button', 'btn btn-primary', nextLabel);
   next.type = 'button';
-  next.disabled = !ev.ready;
-  next.addEventListener('click', validateAndContinue);
-  footer.append(validationStatus(ev), next);
-  live.review.replaceChildren(el('h2', null, t('mission.review.title')), flagList(ev), footer);
+  // Avanzar exige que el paso actual esté resuelto (y que el siguiente esté abierto).
+  next.disabled = !steps[i].done || (!last && !steps[i + 1].unlocked);
+  next.addEventListener('click', () => (last ? validateAndContinue() : goStep(i + 1)));
+
+  nav.append(prev, status, next);
+  live.nav.replaceChildren(nav);
 }
 
-/** Recalcula todo lo que depende de las tarjetas. `focus` devuelve el foco a la tarjeta movida. */
+// --- Render ---------------------------------------------------------------------------
+/** Construye el contenido del paso actual (estructura estable del paso). */
+function renderStage() {
+  const id = stepId();
+  live.body = null;
+  let content;
+  if (id === 'project') content = projectStage();
+  else if (isSegment(id)) content = segmentStage(id);
+  else content = reviewStage();
+  live.stage.className = `step-stage step-${id}`;
+  live.stage.replaceChildren(...content);
+}
+
+function updateScene(ev) {
+  const id = stepId();
+  const mission = currentMission();
+  let level = 0;
+  let status = '';
+  if (isSegment(id)) {
+    level = ev.segments[id].card?.level ?? 0;
+    status = SCENE_STATUS[ev.segments[id].status] ?? '';
+  } else if (id === 'review') {
+    const blocking = ev.flags.some((f) => f.kind === 'insufficient' || f.kind === 'overBudget');
+    if (ev.ready) status = 'ok';
+    else if (blocking) status = 'insufficient';
+  }
+  scenes.update({ step: id, planet: mission?.color ?? '#3a4470', level, status });
+}
+
+/** Recalcula todo lo que depende del estado. `focus` devuelve el foco a la tarjeta movida. */
 function renderLive(focus = null, edited = false) {
   const ev = evaluatePlan(ctx.state, ctx.data);
   commitPlan(ev, edited);
-  if (!live.board) return; // sin destino aún: solo existe el formulario inicial
+  const steps = stepStatus(ctx.state, ev);
+  const id = stepId();
+  renderStepper(steps);
   renderBar(ev);
-  renderBoard(ev);
-  renderReview(ev);
-  if (focus?.id) live.board.querySelector(`.opt[data-seg="${focus.seg}"][data-id="${focus.id}"] .opt-move`)?.focus();
+  if (isSegment(id)) renderSegmentBody(id, ev);
+  else if (id === 'review') renderReviewBody(ev);
+  renderNav(ev, steps);
+  updateScene(ev);
+  if (focus?.id) live.stage.querySelector(`.opt[data-seg="${focus.seg}"][data-id="${focus.id}"] .opt-move`)?.focus();
 }
 
 function validateAndContinue() {
@@ -422,35 +565,31 @@ function validateAndContinue() {
 function selectMission(m) {
   if (m.id === ctx.state.missionId) return; // re-elegir el mismo destino no borra el progreso
   // Las tarjetas se conservan: se re-evalúan contra el nuevo destino (puede que ya no sirvan).
-  ctx.update({ missionId: m.id, budget: { total: m.budget }, plan: { scienceTargetIdx: null, validated: false } });
-  build();
+  ctx.update({ missionId: m.id, budget: { total: m.budget }, plan: { scienceTargetIdx: null } });
+  renderStage();
+  renderLive(null, true);
 }
 
 function build() {
   const { t } = ctx;
-  const mission = currentMission();
   catalog = cardCatalog(ctx.data);
-  live = {};
-  root.replaceChildren(el('h1', null, t('mission.title')), el('p', 'lead', t('mission.intro')), requirementsSection(mission));
-  if (!mission) {
-    root.append(el('p', 'muted lvl-hint', t('mission.pickMission')));
-  } else {
-    live.bar = budgetBar();
-    live.board = el('div', 'board');
-    live.review = el('section', 'lvl-review');
-    const pops = el('div', 'opt-pops');
-    for (const k of SEGMENTS) catalog[k].forEach((c) => pops.append(infoPopover(c)));
-    const s2 = el('section', 'lvl-section');
-    s2.append(
-      el('h2', null, `<span class="lvl-num">2</span>${t('mission.sections.segments.title')}`),
-      el('p', 'lvl-question', t('mission.sections.segments.question')),
-    );
-    root.append(s2, live.bar, live.board, live.review, pops);
-  }
+  live = {
+    stepper: el('ol', 'stepper'),
+    bar: budgetBar(),
+    stage: el('div', 'step-stage'),
+    nav: el('div'),
+  };
+  live.stepper.setAttribute('aria-label', t('mission.stepsLabel'));
+  const hud = el('div', 'lvl-hud');
+  hud.append(live.stepper, live.bar);
+  const pops = el('div', 'opt-pops');
+  for (const k of SEGMENTS) catalog[k].forEach((c) => pops.append(infoPopover(c)));
+  root.replaceChildren(el('h1', null, t('mission.title')), el('p', 'lead', t('mission.intro')), hud, live.stage, live.nav, pops);
+  renderStage();
   renderLive();
 }
 
-/** La barra de presupuesto se pega justo debajo del encabezado (cuya altura cambia en móvil). */
+/** El bloque fijo (pasos + presupuesto) se pega justo debajo del encabezado, cuya altura cambia en móvil. */
 function syncHeaderHeight() {
   const h = document.querySelector('.app-header')?.offsetHeight ?? 64;
   root.style.setProperty('--header-h', `${h}px`);
@@ -461,6 +600,7 @@ export default {
   mount(container, context) {
     ctx = context;
     root = container;
+    scenes = createScenes();
     syncHeaderHeight();
     onResize = syncHeaderHeight;
     window.addEventListener('resize', onResize);
@@ -469,6 +609,8 @@ export default {
   unmount() {
     window.removeEventListener('resize', onResize);
     document.querySelectorAll('.opt-pop:popover-open').forEach((p) => p.hidePopover());
+    scenes?.destroy();
+    scenes = null;
     live = null;
     dragging = null;
   },

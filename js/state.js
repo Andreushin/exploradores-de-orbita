@@ -17,6 +17,7 @@ function initialState() {
       user: 0,
     },
     plan: {                // Nivel 1 (Rol 3): decisiones de misión y madurez inicial. Ver docs/levelOne.md
+      step: 0,             // paso actual del Nivel 1 (índice en STEPS de js/budget.js)
       projectName: '',
       scienceTargetIdx: null, // índice en missions[].scienceTargets
       cards: {                // tarjeta elegida por segmento (ids de js/budget.js → cardCatalog)
