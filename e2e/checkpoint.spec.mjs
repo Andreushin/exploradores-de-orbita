@@ -17,7 +17,7 @@ const es = I18N.es;
 // Diseños ganadores de referencia (docs/fuentes.md). Si Rol 2 cambia el balance, actualizar aquí.
 const REFERENCE = {
   moon: { rocket: 'pico', parts: ['struct-6u', 'solar-body', 'battery', 'prop-green', 'comm-uhf', 'obc', 'inst-camera'], propellant: 2.5 },
-  mars: { rocket: 'medio', parts: ['struct-12u', 'solar-deploy', 'solar-body', 'battery', 'prop-green', 'comm-x', 'adcs', 'obc', 'inst-camera', 'inst-mag'], propellant: 6 },
+  mars: { rocket: 'medio', parts: ['struct-12u', 'solar-deploy', 'solar-body', 'battery', 'prop-green', 'comm-x', 'adcs', 'obc', 'inst-camera', 'inst-mag'], propellant: 7 },
   europa: { rocket: 'pesado', parts: ['struct-12u', 'rtg-mini', 'solar-deploy', 'prop-ion', 'comm-x', 'obc', 'inst-mag', 'inst-camera'], propellant: 1.5 },
 };
 
