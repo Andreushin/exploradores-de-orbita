@@ -4,7 +4,7 @@ import { getState, update, subscribe, reset } from './state.js';
 import { loadTranslations, getSavedLang, setLang, t, tx, applyStatic } from './i18n.js';
 import * as physics from './physics.js';
 import { LEVELS } from './levels.js';
-import { loadMission, saveMission, pickSections } from './mision-store.js';
+import { loadMission, saveMission, pickSections, levelUrl } from './mision-store.js';
 import startScreen from './screens/start.js';
 import levelsScreen from './screens/levels.js';
 
@@ -69,6 +69,13 @@ function makeCtx() {
 
 /** Navega a una pantalla. Nunca rechaza: los errores de carga se muestran en pantalla. */
 async function goTo(screenId) {
+  // Niveles en carpeta propia (nivelN/): guardar la misión y redirigir (docs/contrato-niveles.md)
+  const folder = LEVELS.find((l) => l.id === screenId)?.folder;
+  if (folder) {
+    saveMission(pickSections(getState()));
+    location.href = levelUrl(folder);
+    return;
+  }
   const token = ++navToken;
   const app = document.getElementById('app');
   app.setAttribute('aria-busy', 'true');

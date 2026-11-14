@@ -41,6 +41,8 @@ function initialState() {
       dvUsed: 0,           // m/s gastados en correcciones + inserción
       events: [],          // [{ id, choice }]
       outcome: null,       // 'orbit' | 'eccentric' | 'flyby' | 'crash'
+      fuelOut: false,      // Nivel 3: true si la misión falló por agotar el propelente
+      propellantLeftKg: 0, // kg de propelente que quedan (Tsiolkovsky con la masa del CubeSat)
     },
     report: {
       score: 0,

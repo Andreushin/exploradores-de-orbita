@@ -7,12 +7,48 @@
   "riskHit": "¡El riesgo se materializó! Perdiste {dv} m/s corrigiendo el problema.",
   "eventOk": "Decisión registrada. Continúa el crucero.",
   "holdToBurn": "🔥 Mantén presionado (o barra espaciadora) para frenar",
-  "insertionHelp": "Llegaste. Frena justo lo necesario: muy poco y pasas de largo; demasiado y te estrellas.",
+  "insertionHelp": "Llegaste. Frena justo lo necesario: muy poco y pasas de largo; demasiado y te estrellas. Apunta a la zona verde.",
   "toReport": "Ver reporte →",
   "outcomes": {
     "orbit": "✅ ¡Órbita estable lograda!",
     "eccentric": "⚠️ Órbita muy excéntrica: ciencia limitada.",
     "flyby": "❌ Frenado insuficiente: sobrevuelo.",
     "crash": "💥 Frenaste de más: impacto."
+  },
+  "fuel": "Combustible",
+  "mass": "Masa actual",
+  "keyDecision": "Decisión crítica",
+  "event": "Evento en ruta",
+  "insertionTitle": "Maniobra de frenado orbital",
+  "insertionBudget": "Necesitas ~{need} m/s y te quedan {have} m/s. La línea roja marca hasta dónde alcanza tu combustible.",
+  "gaugeLabel": "Precisión del quemado de inserción",
+  "zones": {
+    "flyby": "Sobrevuelo",
+    "eccentric": "Excéntrica",
+    "orbit": "Órbita",
+    "crash": "Impacto"
+  },
+  "fuelOut": {
+    "title": "⛽ Misión fallida: se agotó el combustible",
+    "when": {
+      "event": "El propelente se acabó durante el crucero. El CubeSat quedó a la deriva sin poder maniobrar.",
+      "arrival": "Llegaste al destino sin suficiente Δv para frenar. El CubeSat pasó de largo.",
+      "burn": "El propelente se acabó a mitad del frenado. No alcanzó para quedar en órbita."
+    },
+    "partial": "El propelente se agotó durante el frenado, pero alcanzó para quedar capturado.",
+    "dry": "Masa seca del CubeSat",
+    "loaded": "Propelente cargado al despegar",
+    "needed": "Propelente necesario solo para frenar",
+    "extra": "Faltante al llegar",
+    "lessonTitle": "¿Por qué pasó? La ecuación del cohete",
+    "lesson": "El propelente que gastas es proporcional a la masa que empujas. Con tu propulsor (Isp {isp} s), cada kilo de satélite exige {perKg} kg de propelente solo para la inserción orbital. Por eso un CubeSat sobredimensionado se queda sin combustible.",
+    "tips": {
+      "lighter": "Quita instrumentos o piezas que no aporten a tu objetivo científico.",
+      "morePropellant": "Carga más propelente en el Taller (si el tanque y el cohete lo permiten).",
+      "betterIsp": "Usa un propulsor con más Isp: gasta menos kg por cada m/s.",
+      "safeChoices": "En ruta, cada maniobra cuesta kg. Los riesgos que se materializan cuestan aún más."
+    },
+    "toWorkshop": "🔧 Volver al Taller",
+    "retry": "↻ Reintentar travesía"
   }
 }

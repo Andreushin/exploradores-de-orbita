@@ -1,0 +1,42 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <!-- OWNER: Andreushin — Nivel 3 · Travesía e inserción orbital (docs/nivel 3.md). Página aislada. -->
+  <title>Nivel 3 · Exploradores de Órbita</title>
+  <meta name="theme-color" content="#070b1a">
+  <link rel="icon" type="image/svg+xml" href="../assets/logo.svg">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@500&family=Space+Grotesk:wght@400;600;700&display=swap">
+  <link rel="stylesheet" href="nivel3.css">
+</head>
+<body class="n3">
+  <header class="n3-header">
+    <a class="n3-brand" id="n3-menu" href="../"><img src="../assets/logo.svg" alt="" width="28" height="28"><span id="n3-brand-name">Exploradores de Órbita</span></a>
+    <span class="n3-level" id="n3-level-tag">3 / 4</span>
+    <button class="n3-btn n3-btn-ghost" id="n3-lang" type="button">EN</button>
+  </header>
+
+  <main class="n3-main">
+    <h1 id="n3-title"></h1>
+    <p class="n3-lead" id="n3-lead"></p>
+    <p class="n3-demo" id="n3-demo" hidden></p>
+
+    <div class="n3-stage">
+      <canvas class="n3-canvas" id="n3-canvas" aria-hidden="true"></canvas>
+      <div class="n3-hud" id="n3-hud" aria-live="polite"></div>
+    </div>
+
+    <section class="n3-panel" id="n3-panel" aria-live="polite"></section>
+
+    <details class="n3-log" id="n3-log-wrap" open>
+      <summary id="n3-log-title"></summary>
+      <ol id="n3-log"></ol>
+    </details>
+  </main>
+
+  <script type="module" src="nivel3.js"></script>
+</body>
+</html>
