@@ -48,6 +48,23 @@ export function pickSections(state) {
 }
 
 /**
+ * Niveles que ya viven en su carpeta nivelN/. Al publicar tu carpeta, agrega tu número aquí
+ * (y `folder: N` en js/levels.js). Los demás se abren dentro de la app principal.
+ */
+export const FOLDER_LEVELS = [3];
+
+/** Pantalla de la app principal que corresponde a cada nivel (para enlazar con #id). */
+export const LEVEL_SCREENS = { 1: 'mission', 2: 'workshop', 3: 'journey', 4: 'report' };
+
+/**
+ * A dónde ir para abrir el nivel `n`: su carpeta si ya está publicada; si no, su pantalla
+ * dentro de la app principal (ej. ../#report), que retoma la misión de eo-mision.
+ */
+export function levelHref(n) {
+  return FOLDER_LEVELS.includes(n) ? levelUrl(n) : `${levelUrl(1)}#${LEVEL_SCREENS[n]}`;
+}
+
+/**
  * URL de un nivel, sirva desde la raíz (nivel 1) o desde una carpeta nivelN/.
  * levelUrl(1) → app principal · levelUrl(3) → nivel3/
  */

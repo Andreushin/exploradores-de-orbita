@@ -3,7 +3,7 @@
 import { getState, update, subscribe, reset } from './state.js';
 import { loadTranslations, getSavedLang, setLang, t, tx, applyStatic } from './i18n.js';
 import * as physics from './physics.js';
-import { LEVELS } from './levels.js';
+import { LEVELS, levelStatus } from './levels.js';
 import { loadMission, saveMission, pickSections, levelUrl } from './mision-store.js';
 import startScreen from './screens/start.js';
 import levelsScreen from './screens/levels.js';
@@ -160,7 +160,12 @@ async function boot() {
   document.getElementById('lang-toggle').addEventListener('click', toggleLang);
   document.getElementById('nav-levels').addEventListener('click', () => void goTo('levels'));
   document.querySelector('.brand').addEventListener('click', () => void goTo('start'));
-  void goTo('start');
+  // Enlace directo a un nivel (#workshop, #report…): lo usan los niveles en carpeta (nivelN/)
+  // para volver a una pantalla de la app. Solo si ese nivel ya está desbloqueado.
+  const wanted = location.hash.slice(1);
+  const target = levelStatus(getState()).find((l) => l.id === wanted && l.unlocked);
+  if (wanted) history.replaceState(null, '', location.pathname);
+  void goTo(target ? target.id : 'start');
 }
 
 boot();
