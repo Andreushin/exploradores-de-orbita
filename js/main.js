@@ -58,7 +58,10 @@ function goTo(screenId) {
 function renderChrome() {
   const s = getState();
   applyStatic();
-  document.getElementById('lang-toggle').textContent = s.lang === 'es' ? 'EN' : 'ES';
+  document.title = t('common.appName');
+  const toggle = document.getElementById('lang-toggle');
+  toggle.textContent = s.lang === 'es' ? 'EN' : 'ES';
+  toggle.setAttribute('aria-label', t('common.switchLang'));
   const b = s.budget;
   const spent = b.launch + b.space + b.ground + b.user;
   document.getElementById('hud-budget').textContent = t('common.budgetHud', { spent, total: b.total });
@@ -109,9 +112,13 @@ async function boot() {
   try {
     await Promise.all([loadData(), loadTranslations()]);
   } catch (err) {
-    document.getElementById('app').innerHTML =
-      `<p class="error">Error cargando datos: ${err.message}.<br>
-       Si abriste el archivo directamente, ejecuta <code>python3 -m http.server</code> y entra a http://localhost:8000</p>`;
+    // Las traducciones pueden no haber cargado: mensaje bilingüe fijo.
+    const es = getSavedLang() === 'es';
+    document.getElementById('app').innerHTML = es
+      ? `<p class="error">Error cargando datos: ${err.message}.<br>
+         Si abriste el archivo directamente, ejecuta <code>python3 -m http.server</code> y entra a http://localhost:8000</p>`
+      : `<p class="error">Error loading data: ${err.message}.<br>
+         If you opened the file directly, run <code>python3 -m http.server</code> and open http://localhost:8000</p>`;
     throw err;
   }
   const lang = getSavedLang();

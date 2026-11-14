@@ -14,5 +14,6 @@
   "stepGoBack": "Volver a este paso",
   "stepLocked": "Completa el paso anterior para desbloquear",
   "stepInFlight": "Vuelo en curso: termina la inserción orbital",
-  "stepNoRefly": "La travesía ya se voló; rediseña desde el Taller"
+  "stepNoRefly": "La travesía ya se voló; rediseña desde el Taller",
+  "switchLang": "Cambiar idioma a inglés"
 }
