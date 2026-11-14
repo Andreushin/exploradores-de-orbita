@@ -5,7 +5,7 @@
     "text": { "es": "La navegación detecta una desviación. ¿Corregir ahora?", "en": "Navigation detects a deviation. Correct now?" },
     "choices": [
       { "label": { "es": "Corregir (−60 m/s)", "en": "Correct (−60 m/s)" }, "dv": 60, "risk": 0 },
-      { "label": { "es": "Esperar y arriesgar", "en": "Wait and risk it" }, "dv": 0, "risk": 0.15 }
+      { "label": { "es": "Esperar y arriesgar (15% de perder 120 m/s)", "en": "Wait and risk it (15% chance to lose 120 m/s)" }, "dv": 0, "risk": 0.15 }
     ]
   },
   {
@@ -13,8 +13,62 @@
     "title": { "es": "Tormenta solar", "en": "Solar storm" },
     "text": { "es": "Una eyección de masa coronal se acerca.", "en": "A coronal mass ejection is incoming." },
     "choices": [
-      { "label": { "es": "Modo seguro (pierdes ciencia)", "en": "Safe mode (lose science)" }, "dv": 0, "science": -10, "risk": 0 },
-      { "label": { "es": "Seguir operando", "en": "Keep operating" }, "dv": 0, "risk": 0.2 }
+      { "label": { "es": "Modo seguro (−10 de ciencia)", "en": "Safe mode (−10 science)" }, "dv": 0, "science": -10, "risk": 0 },
+      { "label": { "es": "Seguir operando (20% de perder 120 m/s)", "en": "Keep operating (20% chance to lose 120 m/s)" }, "dv": 0, "risk": 0.2 }
+    ]
+  },
+  {
+    "id": "micrometeoroid",
+    "title": { "es": "Impacto de micrometeoroide", "en": "Micrometeoroid strike" },
+    "text": { "es": "Un grano de polvo golpea el panel y el satélite empieza a girar.", "en": "A dust grain hits a panel and the spacecraft starts to spin." },
+    "choices": [
+      { "label": { "es": "Estabilizar con propulsores (−30 m/s)", "en": "Stabilize with thrusters (−30 m/s)" }, "dv": 30, "risk": 0 },
+      { "label": { "es": "Dejar que el ADCS lo resuelva (10% de perder 120 m/s)", "en": "Let the ADCS handle it (10% chance to lose 120 m/s)" }, "dv": 0, "risk": 0.1 }
+    ]
+  },
+  {
+    "id": "asteroid-flyby",
+    "title": { "es": "Asteroide en el camino", "en": "Asteroid nearby" },
+    "text": { "es": "Un asteroide pasará cerca. Observarlo da ciencia extra, pero hay que maniobrar.", "en": "An asteroid will pass close by. Observing it gives bonus science, but requires a maneuver." },
+    "choices": [
+      { "label": { "es": "Desviarse a observarlo (−40 m/s, +8 de ciencia)", "en": "Detour to observe it (−40 m/s, +8 science)" }, "dv": 40, "science": 8, "risk": 0 },
+      { "label": { "es": "Observarlo de lejos sin maniobrar (+3 de ciencia, 10% de perder 120 m/s)", "en": "Observe from afar without maneuvering (+3 science, 10% chance to lose 120 m/s)" }, "dv": 0, "science": 3, "risk": 0.1 }
+    ]
+  },
+  {
+    "id": "software-reset",
+    "title": { "es": "Reinicio de la computadora", "en": "Flight computer reset" },
+    "text": { "es": "La computadora de vuelo se reinició por un error de software.", "en": "The flight computer rebooted after a software fault." },
+    "choices": [
+      { "label": { "es": "Esperar un parche desde Tierra (−5 de ciencia)", "en": "Wait for a patch from Earth (−5 science)" }, "dv": 0, "science": -5, "risk": 0 },
+      { "label": { "es": "Reiniciar a ciegas (25% de perder 120 m/s)", "en": "Reboot blindly (25% chance to lose 120 m/s)" }, "dv": 0, "risk": 0.25 }
+    ]
+  },
+  {
+    "id": "solar-conjunction",
+    "title": { "es": "Conjunción solar", "en": "Solar conjunction" },
+    "text": { "es": "El Sol queda entre el satélite y la Tierra y bloquea la radio por varios días.", "en": "The Sun passes between the spacecraft and Earth, blocking radio contact for days." },
+    "choices": [
+      { "label": { "es": "Pausar y esperar (−8 de ciencia)", "en": "Pause and wait (−8 science)" }, "dv": 0, "science": -8, "risk": 0 },
+      { "label": { "es": "Navegar en automático (15% de perder 120 m/s)", "en": "Navigate autonomously (15% chance to lose 120 m/s)" }, "dv": 0, "risk": 0.15 }
+    ]
+  },
+  {
+    "id": "valve-leak",
+    "title": { "es": "Fuga en una válvula", "en": "Thruster valve leak" },
+    "text": { "es": "Una válvula del propulsor pierde gas, como le pasó a MarCO-B.", "en": "A thruster valve is leaking, like it happened to MarCO-B." },
+    "choices": [
+      { "label": { "es": "Aislar la válvula y purgar (−50 m/s)", "en": "Isolate the valve and vent (−50 m/s)" }, "dv": 50, "risk": 0 },
+      { "label": { "es": "Ignorarla (25% de perder 120 m/s)", "en": "Ignore it (25% chance to lose 120 m/s)" }, "dv": 0, "risk": 0.25 }
+    ]
+  },
+  {
+    "id": "star-calibration",
+    "title": { "es": "Ventana de calibración", "en": "Calibration window" },
+    "text": { "es": "Una estrella de referencia está bien alineada para calibrar los instrumentos.", "en": "A reference star is well aligned to calibrate the instruments." },
+    "choices": [
+      { "label": { "es": "Apuntar y calibrar (−15 m/s, +5 de ciencia)", "en": "Point and calibrate (−15 m/s, +5 science)" }, "dv": 15, "science": 5, "risk": 0 },
+      { "label": { "es": "Omitir la calibración (−3 de ciencia)", "en": "Skip calibration (−3 science)" }, "dv": 0, "science": -3, "risk": 0 }
     ]
   }
 ]
