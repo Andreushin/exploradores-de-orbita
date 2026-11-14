@@ -56,7 +56,7 @@ tipo(alcance): descripción en imperativo, minúsculas, sin punto final
 | `test` | pruebas |
 | `chore` | configuración, repo, tareas varias |
 
-**Alcances:** `core`, `fisica`, `datos`, `mision`, `taller`, `travesia`, `reporte`, `canvas`, `repo`. El alcance es opcional.
+**Alcances:** `core`, `fisica`, `datos`, `mision`, `taller`, `travesia`, `reporte`, `canvas`, `repo`, `nivel1`–`nivel4` (uno por carpeta de nivel). El alcance es opcional.
 
 Ejemplos: `feat(travesia): quemado de inserción con barra de precisión` · `fix(taller): Δv no se actualizaba al quitar propelente` · `data(fisica): subir Isp del iónico a 1600 s`.
 
