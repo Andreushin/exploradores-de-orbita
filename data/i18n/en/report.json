@@ -75,5 +75,52 @@
   "learn": "Every extra kilogram demands more propellant (rocket equation), solar power falls with the square of distance, and the Ground and User budgets decide how much science actually reaches scientists.",
   "mainMenu": "Main menu",
   "redesign": "Redesign CubeSat",
-  "newMission": "New mission"
+  "newMission": "New mission",
+  "heroBadge": {
+    "orbit": "Active transmission established",
+    "eccentric": "Intermittent transmission",
+    "flyby": "Brief transmission",
+    "crash": "Signal lost",
+    "no-fuel": "Brief transmission"
+  },
+  "heroSub": {
+    "orbit": "All subsystems deployed successfully according to Space Flight Center telemetry.",
+    "eccentric": "The CubeSat is in orbit, but it swings far away on every pass and data arrives with gaps.",
+    "flyby": "The CubeSat did not brake enough: it only sent data for a few minutes as it flew past.",
+    "crash": "Telemetry cut off at the moment of impact. No science data arrived.",
+    "no-fuel": "With no propellant to brake, the CubeSat could only send data as it flew past the destination."
+  },
+  "linkLabel": "Link status",
+  "link": {
+    "orbit": "ONLINE",
+    "eccentric": "INTERMITTENT",
+    "flyby": "PARTIAL",
+    "crash": "OFFLINE",
+    "no-fuel": "PARTIAL"
+  },
+  "orbitLabel": "Orbit",
+  "orbitType": {
+    "orbit": "Stable",
+    "eccentric": "Eccentric",
+    "flyby": "None",
+    "crash": "None",
+    "no-fuel": "None"
+  },
+  "cmlSubtitle": "Standard scale for formulating and assessing space mission concepts",
+  "cmlState": {
+    "done": "Completed ✓",
+    "max": "MAXIMUM",
+    "current": "CURRENT",
+    "pending": "Pending"
+  },
+  "cmlTab": "Level reached!",
+  "scienceEyebrow": "Instrument simulation",
+  "scoreLabel": "Science score",
+  "bonusLabel": "Bonus",
+  "penaltyLabel": "Penalty",
+  "telemetryEyebrow": "Flight telemetry",
+  "maturityLabel": "Level 1 maturity",
+  "maturityCap": "(CML cap {cap})",
+  "maturityMax": "Max capacity",
+  "maturityPenalty": "−{penalty} pts"
 }

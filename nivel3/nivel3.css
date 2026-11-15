@@ -59,8 +59,33 @@ body.n3 {
 .n3-main code { font-family: var(--n3-mono); background: var(--n3-surface-2); padding: 1px 6px; border-radius: 6px; }
 
 /* Escenario: canvas + HUD */
-.n3-stage { position: relative; border: 1px solid var(--n3-border); border-radius: var(--n3-radius); overflow: hidden; background: var(--n3-bg); }
-.n3-canvas { display: block; width: 100%; height: clamp(240px, 46vh, 420px); }
+.n3-stage { --n3-canvas-h: clamp(260px, 46vh, 420px); position: relative; border: 1px solid var(--n3-border); border-radius: var(--n3-radius); overflow: hidden; background: var(--n3-bg); }
+.n3-canvas { display: block; width: 100%; height: var(--n3-canvas-h); }
+.n3-stage.is-flying .n3-canvas { touch-action: none; cursor: crosshair; }
+
+/* Fase 1: tarjeta sobre el canvas (iniciar, choque, despliegue) */
+.n3-overlay {
+  position: absolute;
+  inset: 0 0 auto 0;
+  height: var(--n3-canvas-h);
+  display: grid;
+  place-items: center;
+  padding: 12px;
+  background: rgba(4, 6, 15, 0.45);
+  overflow: auto;
+}
+.n3-overlay[hidden] { display: none; }
+.n3-overlay > div {
+  max-width: 460px;
+  background: rgba(14, 21, 48, 0.94);
+  border: 1px solid var(--n3-border);
+  border-radius: var(--n3-radius);
+  padding: 16px;
+  box-shadow: 0 10px 40px rgba(0, 0, 0, 0.5);
+}
+.n3-overlay p { margin: 0 0 8px; }
+.n3-overlay .n3-choices { margin-top: 10px; }
+.n3-small { font-size: 0.85rem; }
 .n3-hud {
   display: grid;
   grid-template-columns: 2fr repeat(3, 1fr);
@@ -145,6 +170,13 @@ body.n3 {
   .n3-specs { grid-template-columns: 1fr 1fr; }
   .n3-zones i span { display: none; }
   .n3-choices .n3-btn { width: 100%; }
+  /* Fase 1: más alto para que quepan la cabina y la tarjeta */
+  .n3-stage.is-flight-phase { --n3-canvas-h: clamp(380px, 64vh, 520px); }
+  .n3-overlay > div { padding: 12px; }
+  .n3-overlay h2 { font-size: 1.05rem; }
+  .n3-overlay p { font-size: 0.9rem; }
+  .n3-overlay .n3-choices { flex-wrap: nowrap; gap: 8px; }
+  .n3-overlay .n3-choices .n3-btn { width: auto; flex: 1; text-align: center; padding: 8px 10px; }
 }
 
 @media (prefers-reduced-motion: reduce) {
