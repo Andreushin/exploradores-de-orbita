@@ -22,7 +22,7 @@ python3 -m http.server 8000
 |---|---|---|---|
 | **1 · Diseña tu misión** | Nombre del proyecto, destino (Luna, Marte, Europa), objetivo científico y una tarjeta por segmento (Lanzamiento, Espacio, Tierra, Usuario). Lo insuficiente bloquea; lo sobredimensionado baja la madurez. | Design and Develop Science Missions | app principal |
 | **2 · Taller del CubeSat** | Factor de forma, energía, propulsión, radio, ADCS, computadora e instrumentos. Los incompatibles con el objetivo aparecen en gris; medidores en vivo de masa, energía, costo y Δv. | CubeSat 101 | `nivel2/` |
-| **3 · Travesía e inserción** | Presupuesto de Δv, combustible en kg que depende de la masa, corrección de trayectoria, un evento en ruta y el frenado orbital. Sin combustible hay un reintento educativo. | GMAT / NASA Mission Viz | `nivel3/` |
+| **3 · Travesía e inserción** | Pilotas la nave con física orbital real: sales de la órbita terrestre, corriges el rumbo, respondes a un evento y frenas en el periapsis. El combustible depende de la masa. Sin combustible hay un reintento educativo. | GMAT / NASA Mission Viz | `nivel3/` |
 | **4 · Reporte** | Resultado, CML final (con el tope del plan), datos científicos por instrumento comparados con misiones reales y qué mejorar. | Concept Maturity Levels | app principal |
 
 Inspiración de UX: *A Learning Game About Telescopes* (NASA/Webb), con opciones incompatibles explicadas y retroalimentación inmediata.
@@ -45,13 +45,16 @@ js/state.js · i18n.js      estado de la app y traducciones (data/i18n/{es,en}/*
 js/levels.js               catálogo de niveles y desbloqueo
 js/mision-store.js         contrato de datos entre niveles (localStorage: eo-mision)
 js/physics.js              Tsiolkovsky, validación del diseño, puntaje y CML
+js/orbit-sim.js            simulador orbital 2D del Nivel 3 (gravedad, motor, captura)
+js/input.js · tips.js      teclado y táctil en un solo estado; tarjetas de aprendizaje
+js/campaign.js · game-ui.js campaña y estrellas; sonido y pantalla de resultado
 js/screens/                start, levels, mission (+ mission-scenes), report
 js/budget.js               reglas del Nivel 1 · js/science-data.js: reglas del Nivel 4
 js/taller-reglas.js        reglas del Nivel 2 · js/canvas/starry-bg.js: fondo del inicio
 nivel2/  nivel3/           niveles en página aislada (index.html, nivelN.css, nivelN.js, textos.js)
 data/                      misiones, cohetes, piezas, eventos, segmentos, taller, ciencia
 css/                       base.css + estilos de cada pantalla de la app principal
-tests/                     pruebas en el navegador (physics, science, report, budget)
+tests/                     pruebas en el navegador (physics, orbit-sim, science, report, budget)
 docs/                      contrato-niveles.md, fuentes.md y niveles/nivel-1…4.md
 ```
 

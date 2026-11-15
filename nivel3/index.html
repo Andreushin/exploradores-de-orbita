@@ -24,9 +24,17 @@
     <p class="n3-lead" id="n3-lead"></p>
     <p class="n3-demo" id="n3-demo" hidden></p>
 
-    <div class="n3-stage">
-      <canvas class="n3-canvas" id="n3-canvas" aria-hidden="true"></canvas>
-      <div class="n3-hud" id="n3-hud" aria-live="polite"></div>
+    <div class="n3-stage" id="n3-stage">
+      <div class="n3-view">
+        <canvas class="n3-canvas" id="n3-canvas" aria-hidden="true"></canvas>
+        <div class="n3-top">
+          <p class="n3-objective" id="n3-objective" aria-live="polite" hidden></p>
+          <button class="n3-btn n3-btn-primary n3-confirm" id="n3-confirm" type="button" hidden></button>
+          <div id="n3-tips"></div>
+        </div>
+        <div class="n3-pad" id="n3-pad" hidden></div>
+      </div>
+      <div class="n3-hud" id="n3-hud"></div>
     </div>
 
     <section class="n3-panel" id="n3-panel" aria-live="polite"></section>

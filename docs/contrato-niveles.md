@@ -56,7 +56,7 @@ location.href = levelUrl(4);           // ../nivel4/  (funciona desde la raíz o
     "propellantUsedKg": 2.31,
     "tcm": "early",                          // corrección de trayectoria: 'early' | 'late' | 'skip'
     "events": [{ "id": "valve-leak", "choice": 0, "hit": false, "dv": 50, "science": 0 }],
-    "insertionRatio": 1.02,                  // Δv aplicado / Δv requerido en el frenado
+    "insertionRatio": 1.02,                  // frenado equivalente / frenado nominal (se lee de la órbita lograda)
     "outcome": "orbit",                      // 'orbit' | 'eccentric' | 'flyby' | 'crash' | 'no-fuel'
     "attempts": 1
   },

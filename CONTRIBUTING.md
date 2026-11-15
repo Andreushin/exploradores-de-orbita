@@ -14,8 +14,8 @@ Cada quien es dueño de su nivel y solo toca sus archivos. Lo compartido (`js/` 
 | 4 · Reporte y CML | @tommycc2010-hub | app principal: `js/screens/report.js`, `js/science-data.js`, `css/screens/report.css`, `data/science.json` | [`nivel-4.md`](docs/niveles/nivel-4.md) |
 
 **Compartido:**
-- **Núcleo de la app**, @Andreushin: `index.html`, `js/main.js`, `js/state.js`, `js/i18n.js`, `js/levels.js`, `js/mision-store.js`, `js/screens/{start,levels}.js`, `css/base.css`, `css/screens/menu.css`, `assets/`, `.github/`.
-- **Física y datos comunes**, @tommycc2010-hub: `js/physics.js`, `data/{missions,rockets,pieces,events}.json`, `docs/fuentes.md`, `tests/`.
+- **Núcleo de la app**, @Andreushin: `index.html`, `js/main.js`, `js/state.js`, `js/i18n.js`, `js/levels.js`, `js/mision-store.js`, `js/screens/{start,levels}.js`, `js/campaign.js`, `js/game-ui.js`, `js/input.js`, `js/tips.js`, `css/base.css`, `css/screens/menu.css`, `assets/`, `.github/`.
+- **Física y datos comunes**, @tommycc2010-hub: `js/physics.js`, `js/orbit-sim.js`, `data/{missions,rockets,pieces,events}.json`, `docs/fuentes.md`, `tests/`.
 
 ## Reglas
 
@@ -80,6 +80,7 @@ tipo(alcance): descripción en imperativo, minúsculas, sin punto final
 | Puntaje científico y CML | `tests/science.test.html` | al cambiar la fórmula de ciencia |
 | Reporte (CML final, sugerencias, series) | `tests/report.test.html` | al cambiar el Nivel 4 |
 | Presupuesto del Nivel 1 | `tests/budget.test.html` | al cambiar el Nivel 1 |
+| Simulador orbital del Nivel 3 | `tests/orbit-sim.test.html` | al cambiar `js/orbit-sim.js` o el balance del Nivel 3 |
 
 Antes de pedir revisión, **juega el flujo completo** (Inicio → Nivel 1 → `nivel2/` → `nivel3/` → Reporte) en ES y EN, sin errores en la consola, y revisa el ancho de 360 px.
 

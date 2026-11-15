@@ -59,11 +59,19 @@ body.n3 {
 .n3-main code { font-family: var(--n3-mono); background: var(--n3-surface-2); padding: 1px 6px; border-radius: 6px; }
 
 /* Escenario: canvas + HUD */
-.n3-stage { position: relative; border: 1px solid var(--n3-border); border-radius: var(--n3-radius); overflow: hidden; background: var(--n3-bg); }
-.n3-canvas { display: block; width: 100%; height: clamp(240px, 46vh, 420px); }
+.n3-stage { scroll-margin-top: 76px; position: relative; border: 1px solid var(--n3-border); border-radius: var(--n3-radius); overflow: hidden; background: var(--n3-bg); }
+.n3-view { position: relative; }
+.n3-canvas { display: block; width: 100%; height: clamp(320px, 62vh, 560px); touch-action: none; }
+/* Sobre el canvas: qué hacer ahora, tarjetas de aprendizaje y controles táctiles */
+.n3-top { position: absolute; inset: 0 0 auto 0; display: grid; justify-items: start; pointer-events: none; }
+.n3-objective { margin: 8px 8px 0; padding: 6px 10px; max-width: min(520px, calc(100% - 16px)); border-radius: 10px; border: 1px solid var(--n3-border); background: rgba(7, 11, 26, 0.82); font-size: 0.9rem; line-height: 1.35; }
+.n3-confirm { margin: 8px 8px 0; pointer-events: auto; }
+.n3-pad { position: absolute; inset: auto 0 0 0; pointer-events: none; }
+.n3-keys { list-style: none; margin: 0 0 14px; padding: 0; display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 6px 16px; font-size: 0.9rem; color: var(--n3-muted); }
+.n3-keys kbd { display: inline-block; min-width: 26px; padding: 1px 6px; border: 1px solid var(--n3-border); border-bottom-width: 2px; border-radius: 6px; background: var(--n3-surface-2); color: var(--n3-text); font: 500 0.8rem var(--n3-mono); text-align: center; }
 .n3-hud {
   display: grid;
-  grid-template-columns: 2fr repeat(3, 1fr);
+  grid-template-columns: 2fr repeat(4, 1fr);
   gap: 1px;
   background: var(--n3-border);
   border-top: 1px solid var(--n3-border);
@@ -119,19 +127,6 @@ body.n3 {
 .n3-btn-primary { background: var(--n3-accent); border-color: var(--n3-accent); color: var(--n3-on-accent); font-weight: 700; }
 .n3-btn-primary:hover { background: var(--n3-accent-hover); }
 .n3-btn-ghost { background: transparent; }
-.n3-btn-burn { width: 100%; text-align: center; font-size: 1.05rem; touch-action: none; user-select: none; -webkit-user-select: none; }
-.n3-btn-burn small { display: block; font-weight: 500; opacity: 0.8; }
-
-/* Barra de precisión del frenado */
-.n3-precision { position: relative; margin: 12px 0 6px; }
-.n3-zones { display: flex; height: 34px; border-radius: 10px; overflow: hidden; border: 1px solid var(--n3-border); }
-.n3-zones i { display: flex; align-items: center; justify-content: center; font: 500 0.7rem var(--n3-mono); color: var(--n3-on-accent); overflow: hidden; white-space: nowrap; }
-.n3-zones .z-flyby { background: rgba(154, 166, 207, 0.35); color: var(--n3-text); }
-.n3-zones .z-ecc { background: var(--n3-warn); }
-.n3-zones .z-orbit { background: var(--n3-ok); }
-.n3-zones .z-crash { background: var(--n3-danger); }
-.n3-needle { position: absolute; top: -6px; bottom: -6px; width: 3px; margin-left: -1px; background: var(--n3-text); border-radius: 2px; box-shadow: 0 0 8px var(--n3-text); }
-.n3-burn-readout { font: 500 0.95rem var(--n3-mono); text-align: center; margin: 6px 0 10px !important; }
 
 /* Bitácora */
 .n3-log { margin-top: 16px; background: var(--n3-surface); border: 1px solid var(--n3-border); border-radius: var(--n3-radius); padding: 10px 16px; }
@@ -143,10 +138,12 @@ body.n3 {
   .n3-hud { grid-template-columns: 1fr 1fr; }
   .n3-hud .n3-fuel { grid-column: 1 / -1; }
   .n3-specs { grid-template-columns: 1fr 1fr; }
-  .n3-zones i span { display: none; }
+  .n3-keys { grid-template-columns: 1fr; }
+  .n3-objective { font-size: 0.82rem; }
   .n3-choices .n3-btn { width: 100%; }
 }
 
 @media (prefers-reduced-motion: reduce) {
   .n3-fuel-fill, .n3-btn { transition: none; }
 }
+.n3 [hidden] { display: none !important; }
