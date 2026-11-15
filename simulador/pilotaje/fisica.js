@@ -80,6 +80,26 @@ export function predecir(e, mu, { dt = 10, pasos = 800, radioCuerpo = 0 } = {}) 
   return { puntos, choca: false, tChoque: null };
 }
 
+/**
+ * Segundos que faltan para pasar por el periapsis (solo antes de pasarlo; 0 si ya lo pasó).
+ * Hiperbólica: r = |a|(e·cosh H − 1) y M = e·sinh H − H, con n = √(μ/|a|³).
+ * Elíptica: ecuación de Kepler con anomalía excéntrica, medio periodo como máximo.
+ */
+export function tiempoAlPeriapsis(e, mu) {
+  const el = elementos(e, mu);
+  const vr = punto(e.r, e.v);
+  if (vr >= 0) return 0; // ya se aleja del cuerpo
+  const r = norma(e.r);
+  const a = Math.abs(el.semiejeMayor);
+  const n = Math.sqrt(mu / (a * a * a));
+  if (!el.ligada) {
+    const H = Math.acosh(Math.max(1, (1 + r / a) / el.excentricidad));
+    return (el.excentricidad * Math.sinh(H) - H) / n;
+  }
+  const E = Math.acos(Math.max(-1, Math.min(1, (1 - r / a) / el.excentricidad)));
+  return (E - el.excentricidad * Math.sin(E)) / n;
+}
+
 // --- Llegada en sobrevuelo --------------------------------------------------------------
 /**
  * Estado inicial de una llegada hiperbólica: la nave entra con velocidad `vInf` (m/s) en el

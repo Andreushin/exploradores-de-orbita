@@ -98,7 +98,7 @@ Origen: los zips `Luna-`, `Marte-`, `Tierra-` y `Europa-3D-NASA-4K` que aportó 
 
 | Archivo del simulador | Original | Tratamiento |
 |---|---|---|
-| `luna-color-4k.jpg`, `luna-relieve-2k.jpg` | `moon_map_4k.jpg`, `moon_bump_4k.jpg` (4000×2000) | JPG recomprimido; relieve a 2048 px |
+| `luna-albedo-4k.jpg` (escala de grises), `luna-relieve-2k.jpg` | `moon_map_4k.jpg`, `moon_bump_4k.jpg` (4000×2000) | JPG recomprimido; relieve a 2048 px |
 | `marte-color-4k.jpg` | `mars_surface_8k.jpg` (8192×4096) | reducido a 4096 px |
 | `marte-relieve-2k.png` | `mars_normal_4k.png` | a 2048 px **sin pérdida**: un JPG le quitaba casi la mitad del detalle (desviación de 5.3 a 3.1) |
 | `europa-color-4k.jpg` | `europa_surface_4k.png` (14.4 MB) | PNG a JPG |

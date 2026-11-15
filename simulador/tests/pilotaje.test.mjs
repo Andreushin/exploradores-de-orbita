@@ -72,6 +72,25 @@ check('captura: apoapsis ≈ el pedido (±2 %, el freno ocurre un paso después 
 check('captura: sin frenar a la mitad del Δv sigue sin quedar ligada', F.dvCaptura(M.mu, { vInf, rp: rpMarte, ra: raCaptura }) > 0
   && Math.sqrt(vInf ** 2 + 2 * M.mu / rpMarte) - dvC / 2 > Math.sqrt(2 * M.mu / rpMarte));
 
+// --- Tiempo al periapsis ---
+{
+  const tp = F.tiempoAlPeriapsis(ll, M.mu);
+  let q = ll; let t = 0; let antes = F.norma(q.r);
+  while (true) { q = F.paso(q, M.mu, 1); t += 1; const ahora = F.norma(q.r); if (ahora > antes) break; antes = ahora; }
+  check('tiempo al periapsis (hipérbola): coincide con la integración numérica (±0.5 %)', cerca(tp, t, 0.005), `${tp.toFixed(0)} s vs ${t} s`);
+  check('tiempo al periapsis: 0 cuando ya se aleja', F.tiempoAlPeriapsis(q, M.mu) === 0);
+  const rp2 = L.radio + 100e3; const ra2 = L.radio + 1000e3;
+  let el2 = { r: [rp2, 0, 0], v: [0, Math.sqrt(L.mu * (2 / rp2 - 2 / (rp2 + ra2))), 0] };
+  for (let i = 0; i < 700; i++) el2 = F.paso(el2, L.mu, 5);   // 3 500 s de un periodo de ~6 400 s: camino al apoapsis
+  const per = F.elementos(el2, L.mu).periodo;
+  let q2 = el2; let t2 = 0; let a2 = F.norma(q2.r);
+  if (F.punto(q2.r, q2.v) > 0) { while (F.punto(q2.r, q2.v) > 0) q2 = F.paso(q2, L.mu, 5); }
+  const tp2 = F.tiempoAlPeriapsis(q2, L.mu);
+  let q3 = q2; let t3 = 0; let prev = F.norma(q3.r);
+  while (true) { q3 = F.paso(q3, L.mu, 1); t3 += 1; const now = F.norma(q3.r); if (now > prev) break; prev = now; }
+  check('tiempo al periapsis (elipse): coincide con la integración (±0.5 %)', cerca(tp2, t3, 0.005), `${tp2.toFixed(0)} s vs ${t3} s; periodo ${per.toFixed(0)} s`);
+}
+
 // --- Ecuación del cohete ---
 check('Tsiolkovsky: Δv con Isp 300 s y m0/mf = 2 ≈ 2039 m/s', cerca(F.dvDisponible(300, 2, 1), 2039, 1e-3));
 check('propelente = m·(1 − e^(−Δv/Isp·g0)) es consistente con Δv', cerca(F.dvDisponible(300, 1000, 1000 - F.propelenteGastado(1000, 700, 300)), 700, 1e-9));
