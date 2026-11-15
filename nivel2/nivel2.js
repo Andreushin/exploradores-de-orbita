@@ -231,6 +231,8 @@ function render3D(result) {
   const sat = m.satellite;
   const struct = data.pieces.find((p) => p.id === sat.formFactor);
   $('n2-viewer').setAttribute('aria-label', t('viewerLabel'));
+  // Destino: el ventanal muestra la Luna, Marte o Europa al fondo (is-moon | is-mars | is-europa)
+  for (const id of ['moon', 'mars', 'europa']) $('n2-viewer').classList.toggle(`is-${id}`, id === m.missionId);
   view.fit.hidden = !struct;
   view.empty.hidden = !!struct;
   view.hud.hidden = !struct;
