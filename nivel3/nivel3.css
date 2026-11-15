@@ -66,6 +66,8 @@ body.n3 {
 /* Despegue: el simulador de cohetes reales ocupa el escenario (sin canvas ni HUD de la travesía) */
 .n3-sim { display: block; width: 100%; height: min(78vh, 720px); height: min(78dvh, 720px); min-height: 420px; border: 0; background: #02040c; }
 .n3-sim[hidden] { display: none; }
+/* Pilotaje: su interfaz (radar, instrumentos, asistente, lugares) necesita más alto */
+.n3-sim.is-pilot { height: min(90vh, 880px); height: min(90dvh, 880px); min-height: 560px; }
 .n3-stage.is-sim-phase .n3-canvas, .n3-stage.is-sim-phase .n3-hud { display: none; }
 
 /* Fase 1: tarjeta sobre el canvas (iniciar, choque, despliegue) */

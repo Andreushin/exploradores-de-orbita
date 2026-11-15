@@ -5,7 +5,9 @@ import * as M from './mision.js?v=9';
 import * as F from './fisica.js?v=9';
 import { DESTINOS } from './destinos.js?v=9';
 import { CUERPOS } from './cuerpos-datos.js?v=9';
-import { TEXTOS } from './textos.js?v=9';
+import { TEXTOS } from './textos.js?v=10';
+// Modo incrustado (Nivel 3, tras los asteroides): ?destino=…&lock=1&embed=1. Ver ../embed.js.
+import { leerParametrosPilotaje, mensajePilotaje, SIM_LANG } from '../embed.js';
 
 for (const k of Object.keys(DESTINOS)) {
   if (DESTINOS[k]) DESTINOS[k].jugable = true;
@@ -33,13 +35,10 @@ const tx = (o) => (o && typeof o === 'object' ? o[idioma] ?? o.es : o ?? '');
 const nombreCoheteCorto = (id) => COHETE_CORTO[id] || id || 'Cohete';
 
 // --- Estado de la cabina ---------------------------------------------------------------
-let destinoActual = (() => {
-  try {
-    const p = new URLSearchParams(location.search).get('destino');
-    if (p && DESTINOS[p]) return p;
-  } catch { /* sin URLSearchParams */ }
-  return 'luna';
+const modo = (() => {
+  try { return leerParametrosPilotaje(location.search, Object.keys(DESTINOS)); } catch { return { destino: null, lock: false, embed: false }; }
 })();
+let destinoActual = modo.destino ?? 'luna';
 let m;                 // misión activa
 let escena = null;     // vista 3D (null sin WebGL)
 let pausado = false;   // empieza en vivo desde el primer segundo (sin bloqueo modal)
@@ -122,14 +121,23 @@ function mostrarDescubrimiento(lugar, calidad) {
 function pintarSelectorMisiones() {
   const nav = $('pil-selector-misiones');
   if (!nav) return;
-  nav.replaceChildren(...ORDEN_MISIONES.map((id, idx) => {
+  // Con la misión fijada (lock) solo se ve la del juego, sin poder cambiarla
+  const ids = modo.lock ? [m.destino] : ORDEN_MISIONES;
+  nav.replaceChildren(...ids.map((id) => {
+    const idx = ORDEN_MISIONES.indexOf(id);
     const d = DESTINOS[id];
     const c = CUERPOS[d.cuerpo];
     const b = document.createElement('button');
     b.type = 'button';
     b.className = `pil-tab-mision${id === m.destino ? ' activa' : ''}`;
     b.dataset.destino = id;
-    b.innerHTML = `<span>${d.icono || '🪐'}</span><span>${idx + 1}. ${tx(c.nombre)}</span><small>🚀 ${nombreCoheteCorto(d.cohete)}</small>`;
+    b.innerHTML = `<span>${modo.lock ? '🔒' : d.icono || '🪐'}</span><span>${modo.lock ? '' : `${idx + 1}. `}${tx(c.nombre)}</span><small>🚀 ${nombreCoheteCorto(d.cohete)}</small>`;
+    if (modo.lock) {
+      b.classList.add('bloqueada');
+      b.setAttribute('aria-disabled', 'true');
+      b.title = t('misionFijada');
+      return b;
+    }
     const activar = (e) => {
       e.preventDefault();
       const ahora = performance.now();
@@ -426,6 +434,7 @@ function alternarVista() {
 
 function cambiarMision(nuevoDestinoId, { abrirBriefing = false } = {}) {
   if (!DESTINOS[nuevoDestinoId]) return;
+  if (modo.lock && m && nuevoDestinoId !== m.destino) return; // la misión del juego no se cambia (repetir sí)
   destinoActual = nuevoDestinoId;
   cerrar($('pil-resultado'));
   if (!abrirBriefing) cerrar($('pil-briefing'));
@@ -672,7 +681,7 @@ function pintarAsistente(forzar = false) {
     const sigNombre = tx(CUERPOS[DESTINOS[sigId].cuerpo].nombre);
     botonesHTML = `
       <button type="button" class="pil-btn pil-btn-sm exito" data-accion="terminar">${t('asistente.btnVerInforme')}</button>
-      <button type="button" class="pil-btn pil-btn-sm info" data-accion="cambiar-mision" data-destino="${sigId}">${t('asistente.btnSiguienteMision', { sig: sigNombre })}</button>`;
+      ${modo.lock ? '' : `<button type="button" class="pil-btn pil-btn-sm info" data-accion="cambiar-mision" data-destino="${sigId}">${t('asistente.btnSiguienteMision', { sig: sigNombre })}</button>`}`;
   }
 
   cont.className = `pil-asistente ${estadoCls}`.trim();
@@ -1051,8 +1060,8 @@ function mostrarBriefing() {
     <h2>${d.icono || '🚀'} ${tx(d.mision.nombre)} → ${tx(m.cuerpo.nombre)}</h2>
     <p class="nota">${tx(d.mision.fecha)} · ${t('briefing.coheteAsignado')}: <b>${t(`cohetes.${d.cohete}`)}</b></p>
 
-    <h3>${t('briefing.eligeMision')}</h3>
-    <div class="pil-cards-misiones">${cardsMisiones}</div>
+    ${modo.lock ? '' : `<h3>${t('briefing.eligeMision')}</h3>
+    <div class="pil-cards-misiones">${cardsMisiones}</div>`}
 
     <h3>${t('briefing.comoJugar')}</h3>
     <div class="pil-guia-grid">
@@ -1121,13 +1130,23 @@ function mostrarResultado() {
     </dl>
     <ul>${m.observados.map((o) => { const l = m.dest.lugares.find((x) => x.id === o.id); return `<li>★ <b>${tx(l.nombre)}</b> (${t('resultado.calidad', { q: nf(o.calidad * 100) })}) — ${tx(l.dato)}</li>`; }).join('')}</ul>
     ${consejo ? `<p class="nota">${consejo}</p>` : ''}
+    ${modo.embed ? `<p class="nota pil-nota-etapa">${t('resultado.notaEtapa')}</p>` : ''}
     <div class="pil-pie-dialogo">
       <button class="pil-btn" id="pil-reintentar" type="button">${t('resultado.reintentar')}</button>
-      <button class="pil-btn principal" id="pil-siguiente-mision" type="button">${t('resultado.siguiente', { sig: sigNombre })}</button>
+      ${modo.embed
+    ? `<button class="pil-btn principal" id="pil-continuar" type="button">${t('resultado.continuar')}</button>`
+    : `<button class="pil-btn principal" id="pil-siguiente-mision" type="button">${t('resultado.siguiente', { sig: sigNombre })}</button>`}
     </div>`;
   abrir(dlg);
   $('pil-reintentar').addEventListener('click', reintentar, { once: true });
-  $('pil-siguiente-mision').addEventListener('click', () => cambiarMision(sigId, { abrirBriefing: false }), { once: true });
+  if (modo.embed) {
+    // Incrustado en el Nivel 3: «Continuar» devuelve el control a la página (también tras un choque o escape)
+    $('pil-continuar').addEventListener('click', () => {
+      if (window.parent !== window) window.parent.postMessage(mensajePilotaje(ev, m.destino), location.origin);
+    }, { once: true });
+  } else {
+    $('pil-siguiente-mision').addEventListener('click', () => cambiarMision(sigId, { abrirBriefing: false }), { once: true });
+  }
 }
 
 function reintentar() {
@@ -1263,7 +1282,23 @@ export const api = {
   pausado: () => pausado, registro: () => registro,
 };
 
+/** Incrustado: sin marca ni botón de idioma (los pone la página de fuera), idioma por mensaje y sin cerrar el informe con Esc. */
+function prepararIncrustado() {
+  document.body.classList.add('pil-embed');
+  addEventListener('message', (e) => {
+    if (e.source !== window.parent || e.origin !== location.origin || e.data?.type !== SIM_LANG) return;
+    idioma = e.data.lang === 'en' ? 'en' : 'es';
+    try { localStorage.setItem(LLAVE_IDIOMA, idioma); } catch { /* sin almacenamiento */ }
+    textosEstaticos();
+    if ($('pil-briefing').open) mostrarBriefing();
+    if ($('pil-resultado').open) mostrarResultado();
+  });
+  // Sin informe abierto no hay botón «Continuar»: Esc no lo cierra
+  $('pil-resultado').addEventListener('cancel', (e) => e.preventDefault());
+}
+
 async function arrancar() {
+  if (modo.embed) prepararIncrustado();
   m = M.crearMision(destinoActual);
   prepararLlegadaVisible(m);
   objetivo = m.dest.lugares[0]?.id ?? null;

@@ -30,6 +30,7 @@
     "budget": 100,
     "simRocket": {
       "id": "saturno-v",
+      "destino": "luna",
       "name": {
         "es": "Saturno V",
         "en": "Saturn V"
@@ -67,6 +68,7 @@
     "budget": 160,
     "simRocket": {
       "id": "atlas-agena-d",
+      "destino": "marte",
       "name": {
         "es": "Atlas-Agena D",
         "en": "Atlas-Agena D"
@@ -104,6 +106,7 @@
     "budget": 230,
     "simRocket": {
       "id": "falcon-heavy",
+      "destino": "europa",
       "name": {
         "es": "Falcon Heavy",
         "en": "Falcon Heavy"

@@ -767,7 +767,7 @@ function selectMission(m) {
     missionId: m.id,
     budget: { total: m.budget },
     plan: { scienceTargetIdx: null },
-    simulation: { rocketId: m.simRocket?.id ?? null, locked: false, done: false, result: null },
+    simulation: { rocketId: m.simRocket?.id ?? null, locked: false, done: false, result: null, pilot: { done: false, result: null } },
   });
   renderStage();
   renderLive(null, true);

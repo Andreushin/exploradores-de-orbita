@@ -1,7 +1,9 @@
 // Pruebas del modo incrustado (Nivel 3) y del cohete de cada misión:  node simulador/tests/embed.test.mjs
 import { readFileSync } from 'node:fs';
-import { leerParametros, mensajeFin, SIM_DONE } from '../embed.js';
+import { leerParametros, mensajeFin, SIM_DONE, leerParametrosPilotaje, mensajePilotaje, PIL_DONE } from '../embed.js';
 import { simular } from '../ascenso.js';
+import { DESTINOS } from '../pilotaje/destinos.js';
+import * as M from '../pilotaje/mision.js';
 
 const datos = JSON.parse(readFileSync(new URL('../cohetes.json', import.meta.url)));
 const misiones = JSON.parse(readFileSync(new URL('../../data/missions.json', import.meta.url)));
@@ -41,6 +43,29 @@ for (const c of datos.cohetes) {
   check(`${c.id}: mensaje de fin completo`, msg.type === SIM_DONE && msg.rocketId === c.id && msg.ok
     && [msg.perigeoKm, msg.apogeoKm, msg.tiempoS, msg.propRestanteKg].every(Number.isFinite), JSON.stringify(msg));
   check(`${c.id}: el mensaje se puede clonar (postMessage)`, JSON.stringify(structuredClone(msg)) === JSON.stringify(msg));
+}
+
+// 4) Pilotaje: parámetros, destino de cada misión con su mismo cohete y mensaje de fin
+const idsPil = Object.keys(DESTINOS);
+const pp = leerParametrosPilotaje('?destino=marte&lock=1&embed=1', idsPil);
+check('pilotaje: destino válido + lock + embed', pp.destino === 'marte' && pp.lock && pp.embed, JSON.stringify(pp));
+const ppMalo = leerParametrosPilotaje('?destino=pluton&lock=1&embed=1', idsPil);
+check('pilotaje: destino inexistente se ignora y no bloquea', ppMalo.destino === null && !ppMalo.lock && ppMalo.embed);
+check('pilotaje: sin parámetros, página suelta', JSON.stringify(leerParametrosPilotaje('', idsPil)) === JSON.stringify({ destino: null, lock: false, embed: false }));
+check('pilotaje: destino sin lock se puede cambiar', !leerParametrosPilotaje('?destino=europa', idsPil).lock);
+for (const m of misiones) {
+  const d = m.simRocket?.destino;
+  check(`${m.id}: pilotaje ${d} existe`, Boolean(DESTINOS[d]));
+  check(`${m.id}: el pilotaje de ${d} usa el mismo cohete (${m.simRocket?.id})`, DESTINOS[d]?.cohete === m.simRocket?.id, DESTINOS[d]?.cohete);
+}
+for (const id of idsPil) {
+  const mis = M.crearMision(id);
+  M.terminar(mis);
+  const msg = mensajePilotaje(M.evaluar(mis), id);
+  check(`${id}: mensaje del pilotaje completo`, msg.type === PIL_DONE && msg.destino === id && msg.fin === 'terminada'
+    && typeof msg.orbita === 'boolean' && Number.isFinite(msg.estrellas) && Number.isFinite(msg.lugares)
+    && Number.isFinite(msg.dvUsado) && Number.isFinite(msg.tiempoS), JSON.stringify(msg));
+  check(`${id}: el mensaje del pilotaje se puede clonar`, JSON.stringify(structuredClone(msg)) === JSON.stringify(msg));
 }
 
 console.log(`\n${pass} PASS · ${fail} FAIL`);

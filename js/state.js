@@ -36,6 +36,10 @@ function initialState() {
       locked: false,       // Nivel 3: true al abrir el simulador; desde ahí el cohete ya no se cambia
       done: false,         // Nivel 3: true cuando el cohete llegó a órbita (o el jugador saltó el despegue)
       result: null,        // Nivel 3: { ok, perigeoKm, apogeoKm, tiempoS, propRestanteKg } o { skipped: true }
+      pilot: {             // Nivel 3: pilotaje orbital (simulador/pilotaje/) tras los asteroides; no suma ni resta puntos
+        done: false,       // true al pulsar «Continuar» en su informe (o saltarlo)
+        result: null,      // { fin, orbita, estrellas, lugares, dvUsado, tiempoS } o { skipped: true }
+      },
     },
     satellite: {
       formFactor: null,    // id de pieza con category "structure" (ej. "struct-6u")

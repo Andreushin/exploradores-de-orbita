@@ -10,8 +10,14 @@
 //   simulador → página   { type: SIM_DONE, rocketId, ok, perigeoKm, apogeoKm, tiempoS, propRestanteKg }
 //   página → simulador   { type: SIM_LANG, lang: 'es' | 'en' }
 
+//
+// Pilotaje (simulador/pilotaje/?destino=luna&lock=1&embed=1), tras los asteroides del Nivel 3:
+//   pilotaje → página   { type: PIL_DONE, destino, fin, orbita, estrellas, lugares, dvUsado, tiempoS }
+//   página → pilotaje   { type: SIM_LANG, lang } (el mismo mensaje de idioma)
+
 export const SIM_DONE = 'eo:sim-done';
 export const SIM_LANG = 'eo:sim-lang';
+export const PIL_DONE = 'eo:pil-done';
 
 /** Lee los parámetros de la URL (`location.search`) contra la lista de cohetes de cohetes.json. */
 export function leerParametros(search, cohetes) {
@@ -22,6 +28,33 @@ export function leerParametros(search, cohetes) {
     rocketId,
     lock: rocketId !== null && p.get('lock') === '1',
     embed: p.get('embed') === '1',
+  };
+}
+
+/** Parámetros del pilotaje: `destino` es un id de pilotaje/destinos.js (luna, marte, europa). */
+export function leerParametrosPilotaje(search, ids) {
+  const p = new URLSearchParams(search || '');
+  const id = p.get('destino');
+  const destino = (ids || []).includes(id) ? id : null;
+  return {
+    destino,
+    lock: destino !== null && p.get('lock') === '1',
+    embed: p.get('embed') === '1',
+  };
+}
+
+/** Resumen serializable del informe del pilotaje (pilotaje/mision.js → evaluar()). */
+export function mensajePilotaje(ev, destino) {
+  const r = (n) => (Number.isFinite(n) ? Math.round(n) : null);
+  return {
+    type: PIL_DONE,
+    destino,
+    fin: String(ev.fin ?? 'terminada'),
+    orbita: Boolean(ev.orbita),
+    estrellas: r(ev.estrellas) ?? 0,
+    lugares: Array.isArray(ev.lugares) ? ev.lugares.length : 0,
+    dvUsado: r(ev.dvUsado),
+    tiempoS: r(ev.tiempoMision),
   };
 }
 
