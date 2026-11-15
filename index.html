@@ -15,6 +15,7 @@
   <!-- Los CSS de cada nivel se cargan al abrirlo (js/levels.js). -->
 </head>
 <body>
+  <a class="skip-link" href="#app" data-i18n="common.skip"></a>
   <!-- OWNER: Rol 1. Las pantallas generan su propio DOM dentro de cada <section>. -->
   <header class="app-header">
     <button class="brand" type="button"><img src="assets/logo.svg" alt="" width="32" height="32"><span data-i18n="common.appName"></span></button>
@@ -26,7 +27,7 @@
     </div>
   </header>
 
-  <main id="app">
+  <main id="app" tabindex="-1">
     <p class="error" id="app-error" role="alert" hidden></p>
     <section class="screen" id="screen-start" hidden></section>
     <section class="screen" id="screen-levels" hidden></section>

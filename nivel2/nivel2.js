@@ -783,6 +783,8 @@ function render() {
   document.documentElement.lang = lang;
   document.title = `${t('title')} · ${brand}`;
   $('n2-brand-name').textContent = brand;
+  $('n2-title').textContent = t('title');
+  $('n2-skip').textContent = t('skip');
   $('n2-menu').title = t('menu');
   $('n2-lang').textContent = t('lang');
   $('n2-lang').setAttribute('aria-label', t('langLabel'));

@@ -150,7 +150,7 @@ body.n3 {
 /* Barra de precisión del frenado */
 .n3-precision { position: relative; margin: 12px 0 6px; }
 .n3-zones { display: flex; height: 34px; border-radius: 10px; overflow: hidden; border: 1px solid var(--n3-border); }
-.n3-zones i { display: flex; align-items: center; justify-content: center; font: 500 0.7rem var(--n3-mono); color: var(--n3-on-accent); overflow: hidden; white-space: nowrap; }
+.n3-zones i { display: flex; align-items: center; justify-content: center; font: 500 0.75rem var(--n3-mono); color: var(--n3-on-accent); overflow: hidden; white-space: nowrap; }
 .n3-zones .z-flyby { background: rgba(154, 166, 207, 0.35); color: var(--n3-text); }
 .n3-zones .z-ecc { background: var(--n3-warn); }
 .n3-zones .z-orbit { background: var(--n3-ok); }
@@ -182,3 +182,8 @@ body.n3 {
 @media (prefers-reduced-motion: reduce) {
   .n3-fuel-fill, .n3-btn { transition: none; }
 }
+
+/* Accesibilidad: salto al contenido */
+.n3-skip { position: absolute; left: 8px; top: -64px; z-index: 100; padding: 10px 16px; border-radius: 10px; font-weight: 700; text-decoration: none; color: #0a0f22; background: #ff6b35; border: 2px solid #eef2ff; }
+.n3-skip:focus { top: 8px; }
+.n3-main:focus { outline: none; }
