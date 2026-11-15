@@ -7,10 +7,18 @@ export const SEGMENTS = ['launch', 'space', 'ground', 'user'];
 export const STEPS = ['project', ...SEGMENTS, 'review'];
 const PASSING = new Set(['optimal', 'margin', 'oversized']);
 
-/** Paso 1 completo: nombre, destino y objetivo científico. */
+/** Letras mínimas del nombre del proyecto (cuenta letras de cualquier alfabeto; los dígitos no suman). */
+export const NAME_MIN_LETTERS = 3;
+
+/** El nombre es válido si tiene al menos 3 letras: así no puede ser solo números ni símbolos. */
+export function validProjectName(name) {
+  return (String(name ?? '').match(/\p{L}/gu) ?? []).length >= NAME_MIN_LETTERS;
+}
+
+/** Paso 1 completo: nombre válido, destino y objetivo científico. */
 export function projectComplete(state) {
   const plan = state.plan ?? {};
-  return Boolean(plan.projectName?.trim() && state.missionId && plan.scienceTargetIdx != null);
+  return Boolean(validProjectName(plan.projectName) && state.missionId && plan.scienceTargetIdx != null);
 }
 
 /**
@@ -89,7 +97,7 @@ function evaluateSegment(k, card, { mission, req, catalog, rules, penalty }) {
 
 function collectBlockers(plan, mission, segments, spent, total) {
   const blockers = [];
-  if (!plan.projectName?.trim()) blockers.push({ id: 'name' });
+  if (!validProjectName(plan.projectName)) blockers.push({ id: 'name' });
   if (!mission) blockers.push({ id: 'mission' });
   else if (plan.scienceTargetIdx == null) blockers.push({ id: 'science' });
   for (const k of SEGMENTS) {

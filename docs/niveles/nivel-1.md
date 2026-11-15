@@ -52,7 +52,7 @@ En los pasos 2 a 5 se mantiene la **lista de la categoría**:
   - la retroalimentación inmediata (✔ justo / ✔ con margen / ▲ sobra / ✘ no alcanza);
   - un mini resumen de la misión, donde cada fila lleva a su paso.
   - **Se recoge** con **Colapsar ›**, con `Esc` o con un clic fuera del panel. Queda una pestaña en el borde derecho con lo asignado (`$25M Asignado`); un clic en ella lo vuelve a sacar. Recuerda si estaba abierto o recogido al cambiar de paso, pero **cada vez que se entra al Nivel 1 (primera vez, Continuar o tras Reiniciar) empieza abierto**. Al arrastrar una tarjeta del banco se abre solo, porque es el destino del arrastre.
-- **Interacción:** arrastrar y soltar, o los botones **Añadir → / ← Quitar**, que funcionan en celular y con teclado. Soltar otra tarjeta reemplaza la anterior.
+- **Interacción:** arrastrar y soltar, o un clic en cualquier parte de la tarjeta del banco (menos en el `?`, que abre su información). Las tarjetas del banco **no tienen botón «Añadir»**: con teclado se llega a la tarjeta con Tab y se añade con Enter o Espacio. **← Quitar** (solo en la tarjeta ya colocada) la devuelve al banco. Todo funciona en celular. Soltar otra tarjeta reemplaza la anterior.
 
 **Navegación:** **← Anterior** / **Siguiente: {paso} →**. Si no se puede avanzar, un texto explica por qué. Los pasos 2 a 5 se abren al completar el Proyecto; la Revisión se abre cuando hay una tarjeta en cada segmento.
 
@@ -160,9 +160,9 @@ python3 -m http.server 8000
 ```
 
 Recorrido manual sugerido (en ES y EN, escritorio y celular):
-1. Comenzar → Paso 1. Sin nombre, destino u objetivo, «Siguiente» queda deshabilitado con el motivo.
+1. Comenzar → Paso 1. Sin nombre válido, destino u objetivo, «Siguiente» queda deshabilitado con el motivo. El nombre necesita al menos 3 letras (`validProjectName` en `js/budget.js`): «123» o «ab» no valen, «Marte 2» sí. Bajo el campo, un aviso se pone rojo cuando el texto escrito no cumple.
 2. Lanzamiento con Marte: el Colibrí pone el fondo rojo y bloquea; el Cóndor lo pone verde.
-3. Arrastrar una tarjeta y también usar «Añadir»; abrir y cerrar `?` con Esc.
+3. Arrastrar una tarjeta y también añadirla con un clic (o con Tab + Enter); abrir y cerrar `?` con Esc.
 4. Elegir de más (DSN para la Luna): fondo ámbar, la barra baja a CML 3.
 5. Revisión → «Cambiar» → volver → «Siguiente: Taller».
 6. Activar «reducir movimiento» en el sistema: las escenas quedan quietas.

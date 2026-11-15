@@ -4,6 +4,7 @@
 import { G0, deltaV, propellantFor, resolvePieces, dryMass, systemIsp, insertionOutcome } from '../js/physics.js';
 import { loadMission, saveMission, levelHref } from '../js/mision-store.js';
 import { TEXTOS } from './textos.js';
+import { FLIGHT_HITS, createFlight, startFlight, updateFlight, drawFlight, pointerToInput } from './vuelo.js';
 
 // --- Reglas del nivel ---------------------------------------------------------
 const TCM_FRACTION = 0.04;   // Δv de la corrección temprana = 4 % del Δv de inserción
@@ -39,6 +40,9 @@ let mission;       // destino
 let sat;           // { dry, isp, prop0, maxProp, hasEngine, demo }
 let run;           // estado de una travesía (se reinicia en cada intento)
 let attempts = 0;
+let flight;        // Fase 1: la nave nodriza cruza el campo de asteroides (vuelo.js)
+const input = { keys: new Set(), pointer: null };
+const KEYMAP = { ArrowLeft: 'left', KeyA: 'left', ArrowRight: 'right', KeyD: 'right', ArrowUp: 'up', KeyW: 'up', ArrowDown: 'down', KeyS: 'down' };
 
 /** Propelente (kg) que consume un Δv con la masa actual: m · (1 − e^(−Δv / (Isp·g0))). */
 export function propellantUsed(massKg, dv, isp) {
@@ -165,6 +169,8 @@ function draw() {
   const ad = G.sweep * (1 - p);
   const dx = G.cx + G.r2 * Math.cos(ad); const dy = G.cy - G.r2 * Math.sin(ad);
   body(dx, dy, G.moon ? 8 : 9, mission.color, tx(mission.name));
+  // Nave nodriza en el punto de despliegue (en la Luna ya está al centro)
+  if (!G.moon) { const [x0, y0] = ship(G, 0); spaceship(x0 - 20, y0 + 4, 0.6); }
   // Nave o resultado
   if (run.outcome === 'orbit' || run.outcome === 'eccentric') {
     const e = run.outcome === 'orbit' ? 0.15 : 0.7; const rr = run.outcome === 'orbit' ? 20 : 30;
@@ -228,6 +234,62 @@ function renderHud() {
 // --- Fases --------------------------------------------------------------------
 const panel = () => $('n3-panel');
 const btn = (label, cls, on) => { const b = document.createElement('button'); b.type = 'button'; b.className = `n3-btn ${cls}`; b.innerHTML = label; b.addEventListener('click', on); return b; };
+
+// --- Fase 1: campo de asteroides (primera persona) --------------------------------
+function renderFlightHud() {
+  const pct = flight.shield * 100;
+  const lvl = pct > 50 ? 'ok' : pct > 25 ? 'warn' : 'danger';
+  $('n3-hud').innerHTML = `
+    <div class="n3-fuel n3-${lvl}" role="meter" aria-label="${t('hudShield')}" aria-valuemin="0" aria-valuemax="100" aria-valuenow="${Math.round(pct)}">
+      <span>${t('hudShield')}</span><b>${fmt(pct, 0)} %</b>
+      <i class="n3-fuel-track"><i class="n3-fuel-fill" style="width:${pct}%"></i></i>
+    </div>
+    <div><span>${t('hudDeploy')}</span><b>${fmt(flight.progress * 100, 0)} %</b></div>
+    <div><span>${t('hudDodged')}</span><b>${flight.dodged}</b></div>
+    <div><span>${t('hudHits')}</span><b>${flight.hits} / ${FLIGHT_HITS}</b></div>`;
+}
+
+/** Tarjeta sobre el canvas según el estado del vuelo: intro, choque o campo superado. */
+function renderOverlay(focus = false) {
+  const o = $('n3-overlay');
+  const playing = run.phase === 'flight' && flight.state === 'playing';
+  $('n3-stage').classList.toggle('is-flying', playing);
+  $('n3-stage').classList.toggle('is-flight-phase', run.phase === 'flight');
+  resize();
+  if (run.phase !== 'flight' || playing) { o.hidden = true; o.replaceChildren(); return; }
+  const card = document.createElement('div');
+  const row = document.createElement('div'); row.className = 'n3-choices';
+  if (flight.state === 'intro') {
+    card.innerHTML = `<span class="n3-tag">${t('flightTag')}</span><h2>${t('flightTitle')}</h2>
+      <p>${t('flightText')}</p><p class="n3-muted n3-small">${t('flightControls')}</p>`;
+    row.append(btn(t('flightStart'), 'n3-btn-primary', startFlightRun), btn(t('flightSkip'), 'n3-btn-ghost', () => deploy(true)));
+  } else if (flight.state === 'crashed') {
+    card.innerHTML = `<h2 class="n3-bad">${t('flightCrashTitle')}</h2><p>${t('flightCrashText', { n: flight.dodged })}</p>`;
+    row.append(btn(t('flightRetry'), 'n3-btn-primary', startFlightRun), btn(t('flightSkip'), 'n3-btn-ghost', () => deploy(true)));
+  } else {
+    card.innerHTML = `<h2 class="n3-ok">${t('flightDoneTitle')}</h2><p>${t('flightDoneText', { n: flight.dodged, pct: fmt(flight.shield * 100, 0) })}</p>`;
+    row.append(btn(t('deploy'), 'n3-btn-primary', () => deploy(false)));
+  }
+  card.append(row);
+  o.replaceChildren(card);
+  o.hidden = false;
+  if (focus) row.querySelector('button')?.focus({ preventScroll: true });
+}
+
+function startFlightRun() {
+  startFlight(flight);
+  input.keys.clear(); input.pointer = null;
+  run.lastFrame = performance.now();
+  renderOverlay();
+}
+
+/** La nave libera al CubeSat: desde aquí sigue la travesía de siempre. */
+function deploy(skipped) {
+  log(skipped ? t('logFlightSkip') : t('logFlight', { n: flight.dodged, pct: fmt(flight.shield * 100, 0) }));
+  run.phase = 'brief';
+  renderOverlay();
+  renderBrief();
+}
 
 function renderBrief() {
   const tcmDv = Math.round(mission.dvRequired * TCM_FRACTION);
@@ -447,6 +509,17 @@ function restart() {
 function frame(now) {
   const dt = Math.min(0.1, (now - (run.lastFrame || now)) / 1000);
   run.lastFrame = now;
+  if (run.phase === 'flight') {
+    const ev = updateFlight(flight, dt, input);
+    if (ev === 'crashed' || ev === 'cleared') renderOverlay(true);
+    drawFlight(g, W, H, flight, {
+      destColor: mission.color, reduceMotion, now,
+      labels: { shield: t('cockpitShield'), deploy: t('cockpitDeploy') },
+    });
+    renderFlightHud();
+    requestAnimationFrame(frame);
+    return;
+  }
   if (run.phase === 'cruise') {
     const prev = run.progress;
     run.progress = Math.min(1, run.progress + (reduceMotion ? dt * 3 : dt) / CRUISE_SECONDS);
@@ -467,6 +540,12 @@ function frame(now) {
 }
 
 function onKey(e) {
+  const dir = KEYMAP[e.code];
+  if (dir) {
+    if (e.type === 'keyup') { input.keys.delete(dir); return; }
+    if (run.phase === 'flight' && flight.state === 'playing') { e.preventDefault(); input.keys.add(dir); input.pointer = null; }
+    return;
+  }
   if (e.code !== 'Space' || run.phase !== 'moi') return;
   e.preventDefault();
   if (e.type === 'keydown' && !e.repeat) startBurn();
@@ -510,18 +589,28 @@ async function boot() {
   if (!saved) saveMission(DEMO); // solo si no hay nada guardado: nunca pisa datos reales
 
   run = newRun();
+  run.phase = 'flight';
+  flight = createFlight();
   applyLang();
   resize();
-  renderBrief();
+  renderOverlay();
   addEventListener('resize', resize);
   addEventListener('keydown', onKey);
   addEventListener('keyup', onKey);
+  addEventListener('blur', () => input.keys.clear());
+  // Pilotar con ratón o dedo: la nave va hacia donde apuntas
+  const steer = (e) => { if (run.phase === 'flight' && flight.state === 'playing') input.pointer = pointerToInput(e, canvas); };
+  canvas.addEventListener('pointermove', steer);
+  canvas.addEventListener('pointerdown', steer);
+  canvas.addEventListener('pointerleave', () => { input.pointer = null; });
+  canvas.addEventListener('pointerup', (e) => { if (e.pointerType !== 'mouse') input.pointer = null; });
   $('n3-lang').addEventListener('click', () => {
     lang = lang === 'es' ? 'en' : 'es';
     try { localStorage.setItem(LANG_KEY, lang); } catch { /* ignore */ }
     applyLang();
     // Re-dibuja el panel de la fase actual en el nuevo idioma
-    if (run.phase === 'brief') renderBrief();
+    if (run.phase === 'flight') renderOverlay();
+    else if (run.phase === 'brief') renderBrief();
     else if (run.phase === 'result' && run.outcome === 'no-fuel') renderNoFuel();
     else if (run.phase === 'result') renderResult();
     else if (run.phase === 'moi') renderMoi();

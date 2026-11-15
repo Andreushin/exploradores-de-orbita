@@ -20,6 +20,7 @@
     "review": { "title": "Revisión de diseño", "question": "¿Tu misión pasaría una revisión de la NASA? Revisa cada segmento antes de ir al Taller." }
   },
   "projectLabel": "Nombre del proyecto",
+  "projectHint": "Mínimo 3 letras; no puede ser solo números.",
   "projectPlaceholder": "Ej. Colibrí Lunar",
   "pickMission": "Elige un destino para ver lo que exige y su presupuesto máximo.",
   "slider": { "label": "Destinos disponibles", "prev": "Destino anterior", "next": "Destino siguiente" },
@@ -77,11 +78,11 @@
       "avoid": "Olvidar este segmento: una misión sin procesamiento de datos gasta todo su presupuesto y no entrega resultados científicos."
     }
   },
-  "add": "Añadir →",
+  "addCard": "Añadir {name}",
   "remove": "← Quitar",
   "bank": {
     "title": "Opciones disponibles",
-    "help": "Arrastra una tarjeta a tu misión o pulsa «Añadir». Pulsa «?» para saber qué considerar."
+    "help": "Arrastra una tarjeta a tu misión o haz clic en ella para añadirla. Pulsa «?» para saber qué considerar."
   },
   "config": {
     "title": "Misión configurada",
@@ -136,7 +137,7 @@
     "needBetter": "La tarjeta de {seg} no alcanza para {dest}: cámbiala para continuar."
   },
   "blockers": {
-    "name": "Ponle nombre al proyecto.",
+    "name": "Ponle nombre al proyecto (mínimo 3 letras, no solo números).",
     "mission": "Elige un destino.",
     "science": "Elige el objetivo científico.",
     "missing": "Falta el segmento de {seg}.",

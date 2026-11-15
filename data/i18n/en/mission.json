@@ -20,6 +20,7 @@
     "review": { "title": "Design review", "question": "Would your mission pass a NASA review? Check every segment before heading to the Workshop." }
   },
   "projectLabel": "Project name",
+  "projectHint": "At least 3 letters; it can't be only numbers.",
   "projectPlaceholder": "e.g. Lunar Hummingbird",
   "pickMission": "Pick a destination to see what it demands and its max budget.",
   "slider": { "label": "Available destinations", "prev": "Previous destination", "next": "Next destination" },
@@ -77,11 +78,11 @@
       "avoid": "Forgetting this segment: a mission without data processing spends its whole budget and delivers no science results."
     }
   },
-  "add": "Add →",
+  "addCard": "Add {name}",
   "remove": "← Remove",
   "bank": {
     "title": "Available options",
-    "help": "Drag a card into your mission or press \"Add\". Press \"?\" to see what to consider."
+    "help": "Drag a card into your mission or click it to add it. Press \"?\" to see what to consider."
   },
   "config": {
     "title": "Configured mission",
@@ -136,7 +137,7 @@
     "needBetter": "The {seg} card falls short for {dest}: swap it to continue."
   },
   "blockers": {
-    "name": "Name the project.",
+    "name": "Name the project (at least 3 letters, not only numbers).",
     "mission": "Pick a destination.",
     "science": "Pick the science objective.",
     "missing": "The {seg} segment is missing.",
