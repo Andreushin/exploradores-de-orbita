@@ -142,5 +142,12 @@
     "overBudget": "Recorta ${over}M: la misión excede el presupuesto."
   },
   "ready": "«{name}» pasa la revisión. CML máximo alcanzable: {cml}.",
-  "validate": "Siguiente: Taller del CubeSat →"
+  "validate": "Siguiente: Taller del CubeSat →",
+  "lockedDest": "Pon un CubeSat en órbita alrededor de {prev} para desbloquear este destino.",
+  "resultKicker": "Nivel 1 · Diseña tu misión",
+  "resultTitle": "¡Tu misión pasó la revisión!",
+  "resultText": "Madurez inicial {maturity}/100 · CML máximo alcanzable: {cap}.",
+  "hint1Penalty": "Perdiste {pts} puntos por elegir de más: elige justo lo que exige el destino para 3 ★.",
+  "hint1Cap": "Tu plan limita el CML a {cap}: un plan equilibrado deja llegar a CML 4.",
+  "keepPlanning": "Mejorar el plan"
 }

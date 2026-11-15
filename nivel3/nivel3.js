@@ -3,6 +3,8 @@
 // finito en kg (depende de la masa, ecuación del cohete) y escribe `journey`.
 import { G0, deltaV, propellantFor, resolvePieces, dryMass, systemIsp, insertionOutcome } from '../js/physics.js';
 import { loadMission, saveMission, levelHref } from '../js/mision-store.js';
+import { recordLevel, starsLevel3, reachedOrbit } from '../js/campaign.js';
+import { showResult, sfx, engineStart, engineStop, soundToggle } from '../js/game-ui.js';
 import { TEXTOS } from './textos.js';
 
 // --- Reglas del nivel ---------------------------------------------------------
@@ -200,7 +202,7 @@ function renderHud() {
 
 // --- Fases --------------------------------------------------------------------
 const panel = () => $('n3-panel');
-const btn = (label, cls, on) => { const b = document.createElement('button'); b.type = 'button'; b.className = `n3-btn ${cls}`; b.innerHTML = label; b.addEventListener('click', on); return b; };
+const btn = (label, cls, on) => { const b = document.createElement('button'); b.type = 'button'; b.className = `n3-btn ${cls}`; b.innerHTML = label; b.addEventListener('click', (e) => { sfx('decision'); on(e); }); return b; };
 
 function renderBrief() {
   const tcmDv = Math.round(mission.dvRequired * TCM_FRACTION);
@@ -327,8 +329,8 @@ function renderMoi() {
   p.append(hold);
 }
 
-function startBurn() { if (run.phase === 'moi' && run.prop > 0) { run.burning = true; run.lastFrame = performance.now(); } }
-function stopBurn() { if (run.burning) { run.burning = false; finishMoi(); } }
+function startBurn() { if (run.phase === 'moi' && run.prop > 0 && !run.burning) { run.burning = true; run.lastFrame = performance.now(); engineStart(); } }
+function stopBurn() { if (run.burning) { run.burning = false; engineStop(); finishMoi(); } }
 
 function updateNeedle() {
   const ratio = run.burnApplied / run.insertionNeed;
@@ -350,6 +352,28 @@ function finishMoi() {
   run.phase = 'result';
   persist();
   renderResult();
+  celebrate();
+}
+
+/** Estrellas del nivel (js/campaign.js) y pantalla de resultado (js/game-ui.js). */
+function celebrate() {
+  const ratio = run.burnApplied / run.insertionNeed;
+  const stars = starsLevel3({ outcome: run.outcome, insertionRatio: ratio });
+  const record = recordLevel(mission.id, 3, stars, { cleared: reachedOrbit({ outcome: run.outcome }) });
+  const next = record.unlocked && data.missions.find((m) => m.id === record.unlocked);
+  const reasons = [];
+  if (run.outcome === 'orbit') reasons.push(t('hint3Precision', { pct: fmt(ratio * 100, 0) }));
+  if (run.outcome === 'eccentric') reasons.push(t('hint3Ecc'));
+  if (run.outcome === 'flyby' || run.outcome === 'crash') reasons.push(t('hint3Fail'));
+  if (run.tcm !== 'early') reasons.push(t('hint3Tcm'));
+  showResult({
+    kicker: t('resultKicker'),
+    title: t(`outcomes.${run.outcome}`, { dest: esc(tx(mission.name)) }),
+    text: t('resultStats', { kg: fmt(sat.prop0 - run.prop, 2), pct: fmt(sat.prop0 ? ((sat.prop0 - run.prop) / sat.prop0) * 100 : 0, 0), dv: fmt(run.dvUsed, 0), n: run.maneuvers }),
+    stars, record, unlockedName: next ? esc(tx(next.name)) : '', reasons,
+    primary: { label: t('toReport'), onClick: () => goLevel(4) },
+    secondary: { label: t('retry'), onClick: restart },
+  });
 }
 
 function renderResult() {
@@ -369,6 +393,9 @@ function noFuel() {
   run.outcome = 'no-fuel';
   run.phase = 'result';
   persist();
+  recordLevel(mission.id, 3, 0);
+  engineStop();
+  sfx('fail');
   log(t('noFuelTitle'), 'n3-warn');
   renderNoFuel();
 }
@@ -432,7 +459,7 @@ function frame(now) {
     run.burnApplied += r.dv;
     run.moiKg = (run.moiKg || 0) + (before - run.prop);
     updateNeedle();
-    if (r.out) { run.burning = false; finishMoi(); }
+    if (r.out) { run.burning = false; engineStop(); finishMoi(); }
   }
   draw();
   renderHud();
@@ -489,6 +516,7 @@ async function boot() {
   addEventListener('resize', resize);
   addEventListener('keydown', onKey);
   addEventListener('keyup', onKey);
+  $('n3-lang').before(soundToggle('n3-btn n3-btn-ghost'));
   $('n3-lang').addEventListener('click', () => {
     lang = lang === 'es' ? 'en' : 'es';
     try { localStorage.setItem(LANG_KEY, lang); } catch { /* ignore */ }

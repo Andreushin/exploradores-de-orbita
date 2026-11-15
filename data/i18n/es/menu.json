@@ -3,7 +3,8 @@
     "kicker": "NASA Space Apps Challenge 2026 · Space Mission Design Game",
     "tagline": "Dirige una misión científica real: reparte el presupuesto, arma un CubeSat, cruza el espacio con combustible finito y entra en órbita. Cada decisión tiene consecuencias.",
     "play": "Comenzar",
-    "resourcesTitle": "Basado en recursos oficiales de la NASA"
+    "resourcesTitle": "Basado en recursos oficiales de la NASA",
+    "stars": "⭐ {n} de {max} estrellas en la campaña"
   },
   "levels": {
     "title": "Elige un nivel",
@@ -20,7 +21,10 @@
       "report": { "title": "Reporte de madurez", "desc": "Recibe tus datos científicos y el nivel de madurez CML de tu diseño." }
     },
     "back": "← Inicio",
-    "reset": "Reiniciar misión"
+    "reset": "Reiniciar misión",
+    "campaignTitle": "Campaña · {n} de {max} ★",
+    "destStars": "{n} de 12 ★",
+    "destLocked": "Bloqueado"
   },
   "loadError": "No se pudo cargar el nivel ({msg}). Revisa tu conexión y vuelve a intentarlo."
 }

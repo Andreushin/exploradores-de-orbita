@@ -4,6 +4,8 @@
 import { validateDesign, KG_PER_U } from '../js/physics.js';
 import { loadMission, saveMission, levelHref } from '../js/mision-store.js';
 import { grams, meterData, rocketOverload, instrumentStatus, incompatibleSelected } from '../js/taller-reglas.js';
+import { recordLevel, starsLevel2 } from '../js/campaign.js';
+import { showResult, soundToggle } from '../js/game-ui.js';
 import { TEXTOS } from './textos.js';
 
 const CATEGORIES = ['structure', 'power', 'propulsion', 'comms', 'adcs', 'obc', 'instrument'];
@@ -217,7 +219,20 @@ function renderPanel() {
     // Contrato: solo `satellite`. En demo se guarda la misión de ejemplo, pero nunca sobre datos reales.
     if (!demo) saveMission({ satellite });
     else if (!loadMission()) saveMission({ missionId: m.missionId, rocketId: m.rocketId, budget: m.budget, plan: m.plan, satellite });
-    goLevel(3);
+    // Campaña: estrellas por margen de Δv bien dimensionado (js/campaign.js)
+    const dest = data.missions.find((d) => d.id === m.missionId);
+    const stars = starsLevel2(satellite, dest);
+    const margin = Math.round(((satellite.dvAvailable / dest.dvRequired) - 1) * 100);
+    showResult({
+      kicker: t('resultKicker'),
+      title: t('resultTitle'),
+      text: t('resultMargin', { pct: margin }),
+      stars,
+      record: recordLevel(m.missionId, 2, stars),
+      reasons: [t(margin < 3 ? 'hint2Short' : 'hint2Over')],
+      primary: { label: t('launchNow'), onClick: () => goLevel(3) },
+      secondary: { label: t('keepTuning'), onClick: () => {} },
+    });
   });
   footer.append(back, launch);
   panel.append(h, list, footer);
@@ -263,6 +278,7 @@ async function boot() {
   }
   removedIds = bad;
 
+  $('n2-lang').before(soundToggle('n2-btn n2-btn-ghost'));
   $('n2-lang').addEventListener('click', () => {
     lang = lang === 'es' ? 'en' : 'es';
     try { localStorage.setItem(LANG_KEY, lang); } catch { /* ignore */ }

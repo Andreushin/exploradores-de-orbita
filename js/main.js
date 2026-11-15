@@ -5,6 +5,7 @@ import { loadTranslations, getSavedLang, setLang, t, tx, applyStatic } from './i
 import * as physics from './physics.js';
 import { LEVELS, levelStatus } from './levels.js';
 import { loadMission, saveMission, pickSections, levelUrl } from './mision-store.js';
+import { soundToggle } from './game-ui.js';
 import startScreen from './screens/start.js';
 import levelsScreen from './screens/levels.js';
 
@@ -168,6 +169,7 @@ async function boot() {
   if (saved) update(pickSections(saved));
   subscribe((st) => saveMission(pickSections(st)));
   subscribe(renderChrome);
+  document.getElementById('lang-toggle').before(soundToggle('btn btn-ghost'));
   document.getElementById('lang-toggle').addEventListener('click', toggleLang);
   document.getElementById('nav-levels').addEventListener('click', () => void goTo('levels'));
   document.querySelector('.brand').addEventListener('click', () => void goTo('start'));

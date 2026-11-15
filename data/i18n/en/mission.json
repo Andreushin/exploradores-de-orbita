@@ -142,5 +142,12 @@
     "overBudget": "Cut ${over}M: the mission exceeds its budget."
   },
   "ready": "\"{name}\" passes the review. Max reachable CML: {cml}.",
-  "validate": "Next: CubeSat Workshop →"
+  "validate": "Next: CubeSat Workshop →",
+  "lockedDest": "Put a CubeSat in orbit around {prev} to unlock this destination.",
+  "resultKicker": "Level 1 · Design your mission",
+  "resultTitle": "Your mission passed the review!",
+  "resultText": "Initial maturity {maturity}/100 · Highest reachable CML: {cap}.",
+  "hint1Penalty": "You lost {pts} points by over-choosing: pick just what the destination needs for 3 ★.",
+  "hint1Cap": "Your plan caps the CML at {cap}: a balanced plan can reach CML 4.",
+  "keepPlanning": "Improve the plan"
 }

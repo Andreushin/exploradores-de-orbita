@@ -3,6 +3,8 @@
 // Estado que escribe: report.{score,cml,scienceData}
 // Lógica sin DOM (CML final, sugerencias, series): js/science-data.js. Datos y referencias NASA: data/science.json.
 import { finalCml, improvementHints, instrumentSeries, reportScore, seededRandom, hashSeed } from '../science-data.js';
+import { ORDER, bestStars, recordLevel, starsLevel4 } from '../campaign.js';
+import { sfx, starLine } from '../game-ui.js';
 
 const CML_LEVELS = [1, 2, 3, 4];
 // Ruta relativa a este módulo: funciona en la raíz o en una subruta (como en GitHub Pages).
@@ -159,6 +161,26 @@ function renderCml(final) {
   return section;
 }
 
+/** Campaña (js/campaign.js): registra las estrellas del Nivel 4 y muestra las de los 4 niveles del destino. */
+function renderCampaign(mission, final) {
+  const { t, tx, data } = ctx;
+  const stars = starsLevel4({ cml: final.cml });
+  recordLevel(mission.id, 4, stars);
+  const best = bestStars(mission.id);
+  const total = Object.values(best).reduce((a, n) => a + n, 0);
+  const box = el('section', 'report-section report-campaign');
+  box.append(el('h2', null, t('report.campaignTitle', { dest: tx(mission.name), n: total })));
+  const ul = el('ul', 'campaign-levels');
+  for (const n of [1, 2, 3, 4]) ul.append(el('li', null, `<span>${t(`common.steps.${['mission', 'workshop', 'journey', 'report'][n - 1]}`)}</span> ${starLine(best[n])}`));
+  box.append(ul);
+  const next = data.missions.find((m) => m.id === ORDER[ORDER.indexOf(mission.id) + 1]);
+  const inOrbit = ['orbit', 'eccentric'].includes(ctx.state.journey.outcome);
+  if (next && inOrbit) box.append(el('p', 'ok', t('report.nextUnlocked', { dest: tx(next.name) })));
+  else if (!next && inOrbit) box.append(el('p', 'ok', t('report.campaignDone')));
+  sfx(stars > 0 ? 'success' : 'fail');
+  return box;
+}
+
 function renderHints(final, hints) {
   const { t } = ctx;
   const box = el('section', 'report-section report-hints' + (final.cml === 4 ? ' is-max' : ''));
@@ -263,7 +285,7 @@ function render() {
   root.append(el('p', `lead ${outcome === 'orbit' ? 'ok' : 'warn'}`,
     t(`report.outcomes.${outcome || 'flyby'}`, { dest: tx(mission.name) })));
 
-  root.append(renderCml(final), renderHints(final, hints));
+  root.append(renderCampaign(mission, final), renderCml(final), renderHints(final, hints));
 
   // Ciencia
   const sci = el('section', 'report-section');

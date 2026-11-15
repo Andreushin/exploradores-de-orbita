@@ -7,6 +7,8 @@
 // Reglas: js/budget.js · Documentación: docs/niveles/nivel-1.md
 import { SEGMENTS, STEPS, cardCatalog, requiredLevels, evaluatePlan, stepStatus } from '../budget.js';
 import { createScenes } from './mission-scenes.js';
+import { ORDER, isUnlocked, recordLevel, starsLevel1 } from '../campaign.js';
+import { showResult } from '../game-ui.js';
 
 let ctx;
 let root;
@@ -164,8 +166,12 @@ function destinationGrid() {
   const grid = el('div', 'card-grid lvl-dest');
   for (const m of data.missions) {
     const on = m.id === state.missionId;
-    const card = el('button', 'card mission-card' + (on ? ' is-selected' : ''));
+    // Campaña (js/campaign.js): cada destino se desbloquea al poner un CubeSat en órbita del anterior
+    const locked = !isUnlocked(m.id);
+    const prev = data.missions.find((x) => x.id === ORDER[ORDER.indexOf(m.id) - 1]);
+    const card = el('button', 'card mission-card' + (on ? ' is-selected' : '') + (locked ? ' is-locked' : ''));
     card.type = 'button';
+    card.disabled = locked;
     card.setAttribute('aria-pressed', String(on));
     card.innerHTML = `
       <span class="planet-dot" style="--c:${m.color}"></span>
@@ -174,7 +180,8 @@ function destinationGrid() {
       <ul class="stats">
         <li>${t('mission.difficulty')}: ${'★'.repeat(m.difficulty)}</li>
         <li>${t('mission.maxBudget')}: $${m.budget}M</li>
-      </ul>`;
+      </ul>
+      ${locked ? `<p class="warn">🔒 ${t('mission.lockedDest', { prev: tx(prev?.name) })}</p>` : ''}`;
     card.addEventListener('click', () => selectMission(m));
     grid.append(card);
   }
@@ -559,7 +566,22 @@ function validateAndContinue() {
   ctx.update({
     plan: { projectName: ctx.state.plan.projectName.trim(), maturity: ev.maturity, penalty: ev.penalty, cmlCap: ev.cmlCap, validated: true },
   });
-  ctx.goTo('workshop');
+  // Campaña: estrellas del plan (js/campaign.js) y pantalla de resultado (js/game-ui.js)
+  const { t } = ctx;
+  const stars = starsLevel1(ctx.state.plan);
+  const reasons = [];
+  if (ev.penalty > 0) reasons.push(t('mission.hint1Penalty', { pts: ev.penalty }));
+  if (ev.cmlCap < 4) reasons.push(t('mission.hint1Cap', { cap: ev.cmlCap }));
+  showResult({
+    kicker: t('mission.resultKicker'),
+    title: t('mission.resultTitle'),
+    text: t('mission.resultText', { maturity: ev.maturity, cap: ev.cmlCap }),
+    stars,
+    record: recordLevel(ctx.state.missionId, 1, stars),
+    reasons,
+    primary: { label: t('mission.validate'), onClick: () => ctx.goTo('workshop') },
+    secondary: { label: t('mission.keepPlanning'), onClick: () => {} },
+  });
 }
 
 function selectMission(m) {

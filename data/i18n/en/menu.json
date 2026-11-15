@@ -3,7 +3,8 @@
     "kicker": "NASA Space Apps Challenge 2026 · Space Mission Design Game",
     "tagline": "Lead a real science mission: split the budget, build a CubeSat, cross space on finite fuel and get into orbit. Every decision has consequences.",
     "play": "Start",
-    "resourcesTitle": "Based on official NASA resources"
+    "resourcesTitle": "Based on official NASA resources",
+    "stars": "⭐ {n} of {max} campaign stars"
   },
   "levels": {
     "title": "Choose a level",
@@ -20,7 +21,10 @@
       "report": { "title": "Maturity report", "desc": "Get your science data and your design's CML maturity level." }
     },
     "back": "← Home",
-    "reset": "Restart mission"
+    "reset": "Restart mission",
+    "campaignTitle": "Campaign · {n} of {max} ★",
+    "destStars": "{n} of 12 ★",
+    "destLocked": "Locked"
   },
   "loadError": "Couldn't load the level ({msg}). Check your connection and try again."
 }

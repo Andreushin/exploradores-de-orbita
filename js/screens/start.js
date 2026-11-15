@@ -1,5 +1,6 @@
 // OWNER: Rol 1 — Pantalla de inicio.
 import { mountStarryBackground } from '../canvas/starry-bg.js';
+import { totalStars, MAX_STARS } from '../campaign.js';
 
 const RESOURCES = ['Design and Develop Science Missions', 'CubeSat 101', 'GMAT / NASA Mission Viz', 'Concept Maturity Levels'];
 
@@ -19,6 +20,7 @@ export default {
       <h1 class="start-title">${t('common.appName')}</h1>
       <p class="lead start-tagline">${t('menu.start.tagline')}</p>
       <button class="btn btn-primary btn-xl" type="button">${t('menu.start.play')}</button>
+      ${totalStars() ? `<p class="start-stars">${t('menu.start.stars', { n: totalStars(), max: MAX_STARS })}</p>` : ''}
       <p class="muted start-resources-title">${t('menu.start.resourcesTitle')}</p>
       <ul class="start-resources">${RESOURCES.map((r) => `<li>${r}</li>`).join('')}</ul>`;
     const play = wrap.querySelector('button');

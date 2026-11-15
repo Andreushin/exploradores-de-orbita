@@ -75,5 +75,8 @@
   "learn": "Cada kilo extra exige más propelente (ecuación del cohete), la energía solar cae con el cuadrado de la distancia y el presupuesto de Tierra y Usuario decide cuánta ciencia llega realmente a los científicos.",
   "mainMenu": "Menú principal",
   "redesign": "Rediseñar CubeSat",
-  "newMission": "Nueva misión"
+  "newMission": "Nueva misión",
+  "campaignTitle": "Campaña · {dest}: {n} de 12 estrellas",
+  "nextUnlocked": "🔓 Desbloqueaste {dest}. Empieza una Nueva misión para viajar allá.",
+  "campaignDone": "🏆 ¡Completaste los tres destinos de la campaña!"
 }

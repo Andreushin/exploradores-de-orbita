@@ -75,5 +75,8 @@
   "learn": "Every extra kilogram demands more propellant (rocket equation), solar power falls with the square of distance, and the Ground and User budgets decide how much science actually reaches scientists.",
   "mainMenu": "Main menu",
   "redesign": "Redesign CubeSat",
-  "newMission": "New mission"
+  "newMission": "New mission",
+  "campaignTitle": "Campaign · {dest}: {n} of 12 stars",
+  "nextUnlocked": "🔓 You unlocked {dest}. Start a New mission to travel there.",
+  "campaignDone": "🏆 You completed all three campaign destinations!"
 }
