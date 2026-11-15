@@ -1,0 +1,74 @@
+# Simulador de cohetes reales · fuentes, modelo y calibración
+
+Prototipo local (rama `feat/simulador-cohetes`, sin publicar). Tres cohetes reales, cada uno con la misión real que le corresponde en el juego:
+
+| Cohete | Misión del juego | Misión real |
+|---|---|---|
+| Saturno V (AS-506) | Luna | Apolo 11, 16-jul-1969 |
+| Atlas LV-3 Agena D | Marte | Mariner 4, 28-nov-1964: la primera nave que llegó a Marte |
+| Falcon Heavy (desechable) | Europa / Júpiter | Europa Clipper, 14-oct-2024 |
+
+Los modelos 3D son de JU4NMAX (`modelos/originales/`). `modelos/*.js` se generan desde ellos: solo la construcción del cohete, sin cambios.
+
+## Fuentes de los datos (`cohetes.json`)
+
+**Saturno V / Apolo 11 (NASA)**
+- *Saturn V Launch Vehicle Flight Evaluation Report AS-506* (NASA; [texto](https://archive.org/stream/nasa_techdoc_19900066485/19900066485_djvu.txt)):
+  - masa al encender: 2 938 315 kg; al soltar los brazos de sujeción: 2 899 008 kg; al cortar la S-IC: 827 292 kg;
+  - S-IC seca: 130 122 kg; interetapas: 5 206 y 3 663 kg; S-II seca: 36 158 kg; S-IVB: 119 119 kg total y 11 189 kg seca;
+  - unidad de instrumentos: 1 939 kg; nave: 45 693 kg;
+  - tiempos: corte del motor central de la S-IC a 135.20 s, corte de la S-IC a 161.63 s, LES a 197.9 s, motor central de la S-II a 460.6 s, corte de la S-II a 548.22 s, órbita a 709.34 s (183.8 × 186.5 km), TLI de 346.9 s.
+- *Apollo 11 Mission Operations Report* M-932-69-11 ([PDF](https://faculty.tamuc.edu/cdavis/resources/apollo_press/Apollo%2011%20Mission%20Operations%20Report.pdf)) y [Press Kit](https://www.nasa.gov/wp-content/uploads/static/apollo50th/pdf/A11_PressKit.pdf): masas por etapa en libras.
+- Isp de F-1 y J-2: [Saturn V](https://en.wikipedia.org/wiki/Saturn_V), [S-IC](https://en.wikipedia.org/wiki/S-IC).
+- **Estimado:** la masa de la torre de escape (4 170 kg) y el empuje del J-2 (1 000 kN).
+
+**Atlas LV-3 Agena D / Mariner 4**
+- Mariner 4, 260.7 kg: [JPL Mission Library](https://space.jpl.nasa.gov/msl/QuickLooks/mariner34QL.html) y [Mariner 4](https://en.wikipedia.org/wiki/Mariner_4).
+- Encendidos del Agena: 2 min 24 s a la órbita de espera y 1 min 35 s hacia Marte (relato de la misión, misma fuente).
+- Etapas: [Atlas Agena D](https://astronautix.com/a/atlasagenad.html) y [Agena D](http://www.astronautix.com/a/agenad.html) en Encyclopedia Astronautica (Agena 6 821 kg total, 673 kg seca, 71.17 kN, Isp 300 s); [Atlas-Agena](https://en.wikipedia.org/wiki/Atlas-Agena); [MA-2](https://en.wikipedia.org/wiki/MA-2_(rocket_stage)) (~1 517 kN al despegar); 117 934 kg y 28.4 m en total.
+- **Estimado:** la cofia y el adaptador (500 kg) y el reparto de propelente del Atlas, que sale de la masa total.
+
+**Falcon Heavy / Europa Clipper**
+- [NASA – Liftoff of Europa Clipper](https://science.nasa.gov/blogs/europa-clipper/2024/10/14/liftoff-of-nasas-europa-clipper-2/); [JPL – press kit](https://www.jpl.nasa.gov/press-kits/europa-clipper/mission/): Falcon Heavy completamente desechable y ruta con asistencias de Marte (2025) y la Tierra (2026).
+- [NASASpaceFlight](https://www.nasaspaceflight.com/2024/10/europa-clipper-launch/) y [Space.com](https://www.space.com/spacex-falcon-heavy-europa-clipper-launch): núcleo central desechado a 4 min 11 s y la afirmación de que el Falcon Heavy *no* podía mandarla directo a Júpiter.
+- Masa de 6 065 kg: [Europa Clipper](https://en.wikipedia.org/wiki/Europa_Clipper).
+- Etapas (Falcon 9 Block 5: 1.ª etapa 25.6 t seca y 395.7 t de propelente; 2.ª etapa 4 t y 107.5 t; Merlin 1D 845 kN, Isp 282/311 s; MVac 981 kN, Isp 348 s): [Falcon Heavy](https://en.wikipedia.org/wiki/Falcon_Heavy). Son fuentes secundarias: spacex.com no se pudo consultar.
+- **Estimado:** la cofia (1 900 kg) y la regulación del núcleo central, ajustada para que su separación coincida con T+4:11.
+
+## Modelo físico (`ascenso.js`)
+- **Ascenso** en el plano de la trayectoria, en coordenadas inerciales con centro en la Tierra:
+  - gravedad μ/r²;
+  - rotación terrestre según la latitud del sitio;
+  - Isp interpolado entre nivel del mar y vacío según la presión;
+  - arrastre ½ρv²·Cd·A (Cd = 0.5) con la atmósfera de [NASA Glenn](https://www.grc.nasa.gov/www/k-12/airplane/atmosmet.html) hasta 50 km y una caída exponencial más arriba.
+- **Guiado:** programa de cabeceo en la atmósfera, como los cohetes reales. Después, la etapa superior busca la órbita de ~185 km y se apaga cuando el perigeo llega a la meta. El programa de cada cohete se calibró buscando una órbita circular y los tiempos históricos.
+- **Salida al destino:** la ecuación del cohete con el propelente que queda en la etapa superior y un encendido impulsivo.
+  - C3 = v² − 2μ/r.
+  - El C3 necesario sale de la **transferencia de Hohmann**: Luna ≈ −2.0; Marte ≈ 8.7 (InSight lanzó con 8.19 y MAVEN con 12.2); Júpiter directo ≈ 77.3 km²/s².
+  - No se encontró el C3 publicado de Mariner 4 ni el de Europa Clipper, así que no se inventa.
+
+## Calibración contra la historia (`tests/simulador.test.mjs`, 27 pruebas)
+| | Simulado | Real | Diferencia |
+|---|---|---|---|
+| Saturno V · corte de la S-IC | 166 s | 161.63 s | +2.6 % |
+| Saturno V · corte de la S-II | 553 s | 548.22 s | +0.9 % |
+| Saturno V · órbita | 705 s, 170 × 188 km | 709.34 s, 183.8 × 186.5 km | −0.6 % |
+| Agena · 1.er encendido | 140 s | 144 s | −3 % |
+| Agena · encendido a Marte | 108 s | 95 s | +14 % |
+| Falcon Heavy · separación del núcleo central | 244 s | 251 s | −3 % |
+| **Falcon Heavy → Marte (carga máx.)** | **16 763 kg** | 16 800 kg (SpaceX) | −0.2 % |
+| **Saturno V → Luna (carga máx.)** | **48 041 kg** | ~48 t | ✓ |
+| Europa Clipper directo a Júpiter | no llega (C3 70.8 < 77.3) | no podía | ✓ |
+
+Las dos capacidades **no se ajustaron a mano**: salen solas de los datos de las etapas. Es la mejor señal de que el modelo es razonable.
+
+**Lo que no cuadra:**
+- La TLI del Saturno V dura 287 s contra 346.9 s reales (−17 %). El simulador calcula el mínimo para llegar a la distancia lunar; el Apolo 11 tomó una trayectoria de retorno libre, y el J-2 cambió su mezcla durante el encendido.
+- La ficha del modelo 3D del Atlas menciona las misiones Gemini (vehículo blanco Agena). Mariner 4 voló en un Atlas LV-3 Agena D con otra cofia.
+
+## Vista 3D (`escena.js`)
+- Three.js 0.160.0, la misma versión que los modelos originales.
+- **Vista local** a escala real (1 unidad = 1 m) con **origen flotante**: el cohete queda en el origen y la Tierra se mueve, así no tiembla por la precisión numérica.
+- **Vista global** en km, con la órbita y la salida al destino.
+- El mapa de la Tierra es **estilizado** (no es un mapa real) y no descarga imágenes.
+- Las etapas se sueltan según la asignación de piezas de `modelos/index.js` y caen con gravedad.

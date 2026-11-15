@@ -250,7 +250,8 @@ export function simular(coheteOriginal, datos, { masaNave = coheteOriginal.misio
   const a = -mu / (2 * energia);
   const ecc = Math.sqrt(Math.max(0, 1 + (2 * energia * hAng * hAng) / (mu * mu)));
   const insercion = { t, h: r - R, v: Math.sqrt(v2), perigeoKm: (a * (1 - ecc) - R) / 1000, apogeoKm: (a * (1 + ecc) - R) / 1000, masa: masaTotal() };
-  serie.push({ t, x, y, h: r - R, v: Math.sqrt(v2), masa: insercion.masa, grupo, empuje: 0 });
+  const previo = serie.at(-1) || {};
+  serie.push({ t, x, y, h: r - R, v: Math.sqrt(v2), vr: (vx * x + vy * y) / r, vt: (vx * y - vy * x) / r, masa: insercion.masa, pitch: previo.pitch ?? Math.PI / 2, a: 0, grupo, empuje: 0 });
 
   // Encendido hacia el destino con lo que queda en la etapa superior
   let salida = null;
