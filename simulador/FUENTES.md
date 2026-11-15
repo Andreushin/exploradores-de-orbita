@@ -20,20 +20,21 @@ Los modelos 3D son de JU4NMAX (`modelos/originales/`). `modelos/*.js` se generan
   - tiempos: corte del motor central de la S-IC a 135.20 s, corte de la S-IC a 161.63 s, LES a 197.9 s, motor central de la S-II a 460.6 s, corte de la S-II a 548.22 s, órbita a 709.34 s (183.8 × 186.5 km), TLI de 346.9 s.
 - *Apollo 11 Mission Operations Report* M-932-69-11 ([PDF](https://faculty.tamuc.edu/cdavis/resources/apollo_press/Apollo%2011%20Mission%20Operations%20Report.pdf)) y [Press Kit](https://www.nasa.gov/wp-content/uploads/static/apollo50th/pdf/A11_PressKit.pdf): masas por etapa en libras.
 - Isp de F-1 y J-2: [Saturn V](https://en.wikipedia.org/wiki/Saturn_V), [S-IC](https://en.wikipedia.org/wiki/S-IC).
-- **Estimado:** la masa de la torre de escape (4 170 kg) y el empuje del J-2 (1 000 kN).
+- Motores: F-1 de 1 522 000 lbf (= 6 770 kN) al nivel del mar y Isp 265 s ([Purdue/Rocketdyne](https://engineering.purdue.edu/AAE/research/propulsion/Info/rockets/liquids/f1)); J-2 de 1 033.1 kN en vacío, Isp 421 s en vacío y 200 s al nivel del mar ([Rocketdyne J-2](https://www.wikipedia.org/wiki/J-2S), [Astronautix](https://dcmpx.remotevs.com/com/astronautix/www/PL/j/j-2.html)).
+- Torre de escape (LES): 4 200 kg ([Drew Ex Machina](https://www.drewexmachina.com/2024/12/08/apollo-a-002-testing-the-limits-of-the-launch-escape-system/)); el empuje de su motor (147 000 lbf) y el del motor de desprendimiento (31 500 lbf) vienen de la [tabla de datos clave del Apolo](https://www.nasa.gov/wp-content/uploads/static/history/SP-4029/Apollo_18-13_Launch_Vehicle-Spacecraft_Key_Facts.htm), que no da su masa. La masa de la torre es la de un ensayo: no es la de vuelo del AS-506.
 
 **Atlas LV-3 Agena D / Mariner 4**
 - Mariner 4, 260.7 kg: [JPL Mission Library](https://space.jpl.nasa.gov/msl/QuickLooks/mariner34QL.html) y [Mariner 4](https://en.wikipedia.org/wiki/Mariner_4).
 - Encendidos del Agena: 2 min 24 s a la órbita de espera y 1 min 35 s hacia Marte (relato de la misión, misma fuente).
 - Etapas: [Atlas Agena D](https://astronautix.com/a/atlasagenad.html) y [Agena D](http://www.astronautix.com/a/agenad.html) en Encyclopedia Astronautica (Agena 6 821 kg total, 673 kg seca, 71.17 kN, Isp 300 s); [Atlas-Agena](https://en.wikipedia.org/wiki/Atlas-Agena); [MA-2](https://en.wikipedia.org/wiki/MA-2_(rocket_stage)) (~1 517 kN al despegar); 117 934 kg y 28.4 m en total.
-- **Estimado:** la cofia y el adaptador (500 kg) y el reparto de propelente del Atlas, que sale de la masa total.
+- **Sin fuente independiente:** la cofia (500 kg) es el residuo del total publicado, y el reparto del propelente del Atlas sale de ese mismo total. Mariner 4 voló con una cofia metálica nueva, pero ninguna fuente consultada da su masa ([relato JPL/Drew Ex Machina](https://www.drewexmachina.com/mariner-4-to-mars/)).
 
 **Falcon Heavy / Europa Clipper**
 - [NASA – Liftoff of Europa Clipper](https://science.nasa.gov/blogs/europa-clipper/2024/10/14/liftoff-of-nasas-europa-clipper-2/); [JPL – press kit](https://www.jpl.nasa.gov/press-kits/europa-clipper/mission/): Falcon Heavy completamente desechable y ruta con asistencias de Marte (2025) y la Tierra (2026).
 - [NASASpaceFlight](https://www.nasaspaceflight.com/2024/10/europa-clipper-launch/) y [Space.com](https://www.space.com/spacex-falcon-heavy-europa-clipper-launch): núcleo central desechado a 4 min 11 s y la afirmación de que el Falcon Heavy *no* podía mandarla directo a Júpiter.
 - Masa de 6 065 kg: [Europa Clipper](https://en.wikipedia.org/wiki/Europa_Clipper).
 - Etapas (Falcon 9 Block 5: 1.ª etapa 25.6 t seca y 395.7 t de propelente; 2.ª etapa 4 t y 107.5 t; Merlin 1D 845 kN, Isp 282/311 s; MVac 981 kN, Isp 348 s): [Falcon Heavy](https://en.wikipedia.org/wiki/Falcon_Heavy). Son fuentes secundarias: spacex.com no se pudo consultar.
-- **Estimado:** la cofia (1 900 kg) y la regulación del núcleo central, ajustada para que su separación coincida con T+4:11.
+- **Sin fuente:** la cofia (1 900 kg) y la regulación del núcleo central, ajustada para que su separación coincida con T+4:11. La búsqueda de la masa de la cofia del Falcon 9 no dio ninguna cifra; las dimensiones (5.2 m × 13.1 m) sí vienen de [SpaceX](https://www.spacex.com/vehicles/falcon-9/).
 
 ## Modelo físico (`ascenso.js`)
 - **Ascenso** en el plano de la trayectoria, en coordenadas inerciales con centro en la Tierra:
@@ -47,7 +48,7 @@ Los modelos 3D son de JU4NMAX (`modelos/originales/`). `modelos/*.js` se generan
   - El C3 necesario sale de la **transferencia de Hohmann**: Luna ≈ −2.0; Marte ≈ 8.7 (InSight lanzó con 8.19 y MAVEN con 12.2); Júpiter directo ≈ 77.3 km²/s².
   - No se encontró el C3 publicado de Mariner 4 ni el de Europa Clipper, así que no se inventa.
 
-## Calibración contra la historia (`tests/simulador.test.mjs`, 27 pruebas)
+## Calibración contra la historia (`tests/simulador.test.mjs`, 36 pruebas)
 | | Simulado | Real | Diferencia |
 |---|---|---|---|
 | Saturno V · corte de la S-IC | 166 s | 161.63 s | +2.6 % |
@@ -72,3 +73,11 @@ Las dos capacidades **no se ajustaron a mano**: salen solas de los datos de las 
 - **Vista global** en km, con la órbita y la salida al destino.
 - El mapa de la Tierra es **estilizado** (no es un mapa real) y no descarga imágenes.
 - Las etapas se sueltan según la asignación de piezas de `modelos/index.js` y caen con gravedad.
+
+## Valores sin fuente (declarados)
+| Valor | Efecto en el resultado |
+|---|---|
+| Cofia del Atlas (500 kg) | 0 kg cambia la carga máxima en 3.6 % |
+| Cofia del Falcon (1 900 kg) | 0–3 000 kg cambia la carga máxima en ±1.5 % |
+| Regulación del núcleo central del Falcon | calibrada contra T+4:11 |
+| Cd = 0.5 y programa de cabeceo | calibrados contra los tiempos históricos |

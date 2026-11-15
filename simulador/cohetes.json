@@ -1,5 +1,5 @@
 {
-  "_nota": "Masas en kg, empuje en kN, Isp en s, tiempos en s desde el despegue. Todos los valores tienen fuente (FUENTES.md); los derivados de totales publicados lo indican en `derivada`.",
+  "_nota": "Masas en kg, empuje en kN, Isp en s, tiempos en s desde el despegue. Cada valor tiene fuente en FUENTES.md salvo los marcados con `sinFuente`, que se declaran así en pantalla y en la documentación.",
   "constantes": {
     "muTierra": 398600441800000.0,
     "radioTierra": 6378137,
@@ -194,7 +194,7 @@
           "suelta": {
             "altitudKm": 110
           },
-          "derivada": "117 934 kg totales (thisdayinaviation) − Atlas − Agena − Mariner 4; ver FUENTES.md"
+          "sinFuente": "Residuo del total publicado (117 934 kg) tras restar las etapas, que a su vez salen del mismo total: no es independiente. Efecto: 500→0 kg cambia la carga máxima en 3.6 %."
         }
       ],
       "fases": [
@@ -298,7 +298,8 @@
           "masa": 1900,
           "suelta": {
             "altitudKm": 115
-          }
+          },
+          "sinFuente": "Ninguna fuente consultada da la masa de la cofia. Efecto: 0→3 000 kg cambia la carga máxima en ±1.5 %."
         }
       ],
       "fases": [
