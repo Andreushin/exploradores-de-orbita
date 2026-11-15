@@ -81,16 +81,23 @@ export function startColibriApp({ getState, subscribe, data, t, tx }) {
     for (const [id, vars] of plan.react ?? []) colibri.react(id, vars);
   };
 
-  const unsubscribe = subscribe(() => {
+  // Colibrí es un extra: esta función corre dentro de update() del estado, así que si algo falla aquí no puede romper el juego.
+  let broken = false;
+  const guard = (fn) => (...args) => {
+    if (broken) return;
+    try { fn(...args); } catch (err) { broken = true; console.warn('Colibrí se desactivó:', err); }
+  };
+
+  const unsubscribe = subscribe(guard(() => {
     const s = snap();
     if (s.lang !== prev.lang) colibri.setLang(s.lang);
     if (s.screen === entered) run(changes(prev, s));
     prev = s;
-  });
+  }));
 
   return {
     /** js/main.js lo llama cuando una pantalla ya está montada (y también al arrancar). */
-    onScreen(id) {
+    onScreen: guard((id) => {
       if (id === entered && !fresh) return; // re-montaje por cambio de idioma: setLang ya repintó lo que hace falta
       fresh = false;
       const s = snap();
@@ -102,7 +109,7 @@ export function startColibriApp({ getState, subscribe, data, t, tx }) {
       const wide = globalThis.matchMedia?.('(min-width: 900px)').matches;
       colibri.float({ tam: plan.tam ?? 'normal', y: plan.tam === 'grande' && wide ? '56px' : '12px' });
       run(plan);
-    },
+    }),
     /** «Reiniciar» / «Nueva misión»: Colibrí vuelve a contar la historia desde el principio. */
     forget() { forgetColibri(); fresh = true; },
     destroy() { unsubscribe(); colibri.destroy(); },
