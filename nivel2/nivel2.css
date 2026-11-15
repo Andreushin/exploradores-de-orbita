@@ -270,6 +270,7 @@ body.n2 {
 .n2-pending { color: var(--n2-muted); }
 .n2-pending-note { margin: 0; color: var(--n2-muted); font-size: 0.72rem; }
 .n2-tips { list-style: none; margin: 0; padding: 7px 10px; display: grid; gap: 5px; font-size: 0.75rem; border: 1px solid var(--n2-warn); border-radius: 8px; color: var(--n2-text); }
+.n2-tips[hidden], .n2-pending-note[hidden] { display: none; } /* si no, `display` pisa al atributo hidden y queda una caja vacía */
 .n2-footer { display: flex; gap: 8px; }
 .n2-footer a, .n2-footer button { flex: 1; text-align: center; }
 .n2-sr { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
@@ -395,9 +396,31 @@ body.n2 {
   #n2-chassis { transition: none; }
 }
 
+/* ── Celular: resumen fijo abajo ── */
+.n2-mini { display: none; }
+.n2-sr { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
+
 /* ── Responsive ── */
 @media (max-width: 860px) {
-  body.n2 { height: auto; overflow: auto; display: block; }
+  body.n2 { height: auto; overflow: auto; display: block; padding-bottom: 84px; }
+  /* El aviso de modo demo deja de flotar sobre el catálogo: entra en el flujo, debajo de la barra */
+  .n2-toasts { position: static; transform: none; padding: 6px 8px 0; }
+  .n2-toast { border-radius: 10px; font-size: 0.72rem; max-width: none; }
+  .n2-mini {
+    position: fixed; left: 0; right: 0; bottom: 0; z-index: 40;
+    display: grid; grid-template-columns: 1fr auto; gap: 8px; align-items: center;
+    padding: 8px 12px calc(8px + env(safe-area-inset-bottom));
+    background: rgba(7, 11, 26, 0.94); border-top: 1px solid var(--n2-border); backdrop-filter: blur(6px);
+  }
+  .n2-mini-list { list-style: none; margin: 0; padding: 0; display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 2px 12px; font-size: 0.75rem; }
+  .n2-mini-list li { display: flex; justify-content: space-between; gap: 6px; min-width: 0; }
+  .n2-mini-list span { color: var(--n2-muted); }
+  .n2-mini-list b { font: 500 0.75rem var(--n2-mono); white-space: nowrap; }
+  .n2-mini-list .lvl-ok b { color: var(--n2-ok); }
+  .n2-mini-list .lvl-warn b { color: var(--n2-warn); }
+  .n2-mini-list .lvl-danger b { color: var(--n2-danger); }
+  .n2-mini-list .lvl-pending b { color: var(--n2-muted); }
+  .n2-mini-more { padding: 8px 10px; font-size: 0.8rem; white-space: nowrap; }
   .n2-workspace { display: flex; flex-direction: column; }
   .n2-col-viewer { height: 300px; border-bottom: 1px solid var(--n2-border); flex-shrink: 0; }
   .n2-col-catalog { border-right: none; border-bottom: 1px solid var(--n2-border); max-height: 420px; }

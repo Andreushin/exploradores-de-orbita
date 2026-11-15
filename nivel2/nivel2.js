@@ -92,15 +92,18 @@ const U_SIZE = 72;   // px por celda U en el viewBox 480×600
 const MIN_PIECE_H = 22;
 const PIECE_GAP = 2;
 
-// Colores por categoría/subsistema
-const CAT_COLOR = {
-  power: '#fbbf24',
-  propulsion: '#ff6b35',
-  comms: '#a78bfa',
-  adcs: '#34d399',
-  obc: '#60a5fa',
-  instrument: '#4ade80',
-};
+// Colores del visor: solo los tokens del nivel (--n2-*), leídos del CSS. Verde, amarillo y rojo quedan
+// reservados para ✔ / ▲ / ✘: la categoría de cada pieza la dice su rótulo, no el color.
+let C = {};
+function palette() {
+  const css = getComputedStyle(document.documentElement);
+  const tok = (name) => css.getPropertyValue(name).trim();
+  C = {
+    accent: tok('--n2-accent'), info: tok('--n2-info'), warn: tok('--n2-warn'), danger: tok('--n2-danger'),
+    muted: tok('--n2-muted'), border: tok('--n2-border'), surface: tok('--n2-surface'),
+  };
+}
+const pieceColor = (piece) => (piece.category === 'propulsion' ? C.accent : C.info);
 
 // Etiqueta corta para cada pieza en el SVG
 const PIECE_ABBR = {
@@ -173,6 +176,7 @@ function hexAlpha(hex, a) {
 function renderSVG() {
   const root = $('n2-cubesat');
   root.replaceChildren();
+  palette();
   const sat = m.satellite;
 
   if (!sat.formFactor) {
@@ -181,7 +185,7 @@ function renderSVG() {
     icon.textContent = '🛰️';
     const hint = svgEl('text', {
       x: '240', y: '300', 'text-anchor': 'middle',
-      fill: '#9aa6cf', 'font-size': '12.5',
+      fill: C.muted, 'font-size': '12.5',
       'font-family': '"Space Grotesk",system-ui,sans-serif',
     });
     hint.textContent = t('pickStructure') + ' →';
@@ -197,27 +201,28 @@ function renderSVG() {
   const chassisRect = svgEl('rect', {
     id: 'n2-chassis',
     x: geom.x, y: geom.y, width: geom.w, height: geom.h,
-    fill: '#0e1530', stroke: '#4fc3f7', 'stroke-width': '1.5', rx: '4',
+    fill: C.surface, stroke: C.info, 'stroke-width': '1.5', rx: '4',
   });
   chassisG.append(chassisRect);
 
   // Líneas de celda U (rejilla interna)
   for (let col = 0; col <= geom.cols; col++) {
     const lx = geom.x + col * U_SIZE;
-    const line = svgEl('line', { x1: lx, y1: geom.y, x2: lx, y2: geom.y + geom.h, stroke: '#263362', 'stroke-width': '0.6' });
+    const line = svgEl('line', { x1: lx, y1: geom.y, x2: lx, y2: geom.y + geom.h, stroke: C.border, 'stroke-width': '0.6' });
     chassisG.append(line);
   }
   for (let row = 0; row <= geom.rows; row++) {
     const ly = geom.y + row * U_SIZE;
-    const line = svgEl('line', { x1: geom.x, y1: ly, x2: geom.x + geom.w, y2: ly, stroke: '#263362', 'stroke-width': '0.6' });
+    const line = svgEl('line', { x1: geom.x, y1: ly, x2: geom.x + geom.w, y2: ly, stroke: C.border, 'stroke-width': '0.6' });
     chassisG.append(line);
   }
 
   // Etiqueta del factor de forma encima del chasis
   const struct = data.pieces.find((p) => p.id === sat.formFactor);
+  const hasAntenna = sat.pieces.includes('comm-uhf') || sat.pieces.includes('comm-x');
   const ffLbl = svgEl('text', {
-    x: geom.x + geom.w / 2, y: geom.y - 8,
-    'text-anchor': 'middle', fill: '#4fc3f7',
+    x: geom.x + geom.w / 2, y: geom.y - (hasAntenna ? 62 : 10),
+    'text-anchor': 'middle', fill: C.info,
     'font-family': '"JetBrains Mono",monospace', 'font-size': '11', 'font-weight': '500',
   });
   ffLbl.textContent = struct ? tx(struct.name) : '';
@@ -231,7 +236,7 @@ function renderSVG() {
   const internalG = svgEl('g');
 
   packed.forEach(({ piece, x, y, w, h, overflow, idx }) => {
-    const color = CAT_COLOR[piece.category] || '#9aa6cf';
+    const color = pieceColor(piece);
     const g = svgEl('g', {
       class: 'n2-svg-piece',
       style: `animation-delay:${idx * 0.06}s`,
@@ -239,7 +244,7 @@ function renderSVG() {
     const rect = svgEl('rect', {
       x, y, width: w, height: h,
       fill: hexAlpha(color, 0.22),
-      stroke: overflow ? '#ff7a7a' : color,
+      stroke: overflow ? C.danger : color,
       'stroke-width': overflow ? '1.5' : '0.9',
       rx: '3',
       class: overflow ? 'n2-svg-overflow' : '',
@@ -271,20 +276,20 @@ function renderSVG() {
         const sx = startX + i * (segW + 2);
         const seg = svgEl('rect', {
           x: sx, y: panelY, width: segW, height: panelH,
-          fill: hexAlpha('#60a5fa', 0.28), stroke: '#4fc3f7',
+          fill: hexAlpha(C.info, 0.28), stroke: C.info,
           'stroke-width': '0.75', rx: '1.5',
         });
         // Línea central de la celda solar (aspecto de panel fotovoltaico)
         const mid = svgEl('line', {
           x1: sx, y1: panelY + panelH / 2,
           x2: sx + segW, y2: panelY + panelH / 2,
-          stroke: '#4fc3f7', 'stroke-width': '0.4', opacity: '0.6',
+          stroke: C.info, 'stroke-width': '0.4', opacity: '0.6',
         });
         // Línea vertical
         const vm = svgEl('line', {
           x1: sx + segW / 2, y1: panelY,
           x2: sx + segW / 2, y2: panelY + panelH,
-          stroke: '#4fc3f7', 'stroke-width': '0.4', opacity: '0.6',
+          stroke: C.info, 'stroke-width': '0.4', opacity: '0.6',
         });
         g.append(seg, mid, vm);
       }
@@ -309,7 +314,7 @@ function renderSVG() {
     // Cuerpo del motor
     const body = svgEl('rect', {
       x: tx0, y: ty0, width: BW, height: BH * 0.55,
-      fill: hexAlpha('#ff6b35', 0.18), stroke: '#ff6b35',
+      fill: hexAlpha(C.accent, 0.18), stroke: C.accent,
       'stroke-width': '1', rx: '2',
     });
     // Tobera (polígono que se ensancha)
@@ -319,25 +324,25 @@ function renderSVG() {
     const ny0 = ty0 + BH * 0.55;
     const nozzle = svgEl('polygon', {
       points: `${nx - BW / 2},${ny0} ${nx + BW / 2},${ny0} ${nx + nW / 2},${ny0 + nH} ${nx - nW / 2},${ny0 + nH}`,
-      fill: hexAlpha('#ff6b35', 0.12), stroke: '#ff6b35', 'stroke-width': '0.75',
+      fill: hexAlpha(C.accent, 0.12), stroke: C.accent, 'stroke-width': '0.75',
     });
     // Llama animada
     const flameG = svgEl('g', { class: 'n2-svg-flame' });
     const flameBase = ny0 + nH;
     const flame1 = svgEl('polygon', {
       points: `${nx - BW * 0.35},${flameBase} ${nx + BW * 0.35},${flameBase} ${nx},${flameBase + 22}`,
-      fill: '#ff6b35', opacity: '0.65',
+      fill: C.accent, opacity: '0.65',
     });
     const flame2 = svgEl('polygon', {
       points: `${nx - BW * 0.2},${flameBase} ${nx + BW * 0.2},${flameBase} ${nx},${flameBase + 14}`,
-      fill: '#fbbf24', opacity: '0.9',
+      fill: C.warn, opacity: '0.9',
     });
     flameG.append(flame1, flame2);
 
     // Etiqueta
     const lbl = svgEl('text', {
       x: nx, y: flameBase + 30,
-      'text-anchor': 'middle', fill: '#ff6b35',
+      'text-anchor': 'middle', fill: C.accent,
       'font-family': '"JetBrains Mono",monospace', 'font-size': '8.5',
     });
     lbl.textContent = propId === 'prop-ion' ? 'ION ⚡' : propId === 'prop-cold' ? 'GAS' : 'MONO';
@@ -358,12 +363,12 @@ function renderSVG() {
       // Dipolo UHF: vástago + brazo en T + ondas
       const ax = hasXBand ? geom.x + geom.w * 0.32 : geom.x + geom.w * 0.5;
       const uhfG = svgEl('g');
-      uhfG.append(svgEl('line', { x1: ax, y1: topY, x2: ax, y2: topY - 26, stroke: '#a78bfa', 'stroke-width': '1.5' }));
-      uhfG.append(svgEl('line', { x1: ax - 10, y1: topY - 26, x2: ax + 10, y2: topY - 26, stroke: '#a78bfa', 'stroke-width': '1.5' }));
+      uhfG.append(svgEl('line', { x1: ax, y1: topY, x2: ax, y2: topY - 26, stroke: C.info, 'stroke-width': '1.5' }));
+      uhfG.append(svgEl('line', { x1: ax - 10, y1: topY - 26, x2: ax + 10, y2: topY - 26, stroke: C.info, 'stroke-width': '1.5' }));
       for (let i = 0; i < 3; i++) {
         const sig = svgEl('circle', {
           cx: ax, cy: topY - 26, r: (i + 1) * 5.5,
-          fill: 'none', stroke: '#a78bfa',
+          fill: 'none', stroke: C.info,
           'stroke-width': '0.6', opacity: '0.55',
           class: 'n2-svg-signal',
           style: `animation-delay:${i * 0.52}s`,
@@ -377,15 +382,15 @@ function renderSVG() {
       // Plato parabólico banda X + ondas
       const ax = hasUHF ? geom.x + geom.w * 0.68 : geom.x + geom.w * 0.5;
       const xbG = svgEl('g');
-      xbG.append(svgEl('line', { x1: ax, y1: topY, x2: ax, y2: topY - 18, stroke: '#a78bfa', 'stroke-width': '1.5' }));
+      xbG.append(svgEl('line', { x1: ax, y1: topY, x2: ax, y2: topY - 18, stroke: C.info, 'stroke-width': '1.5' }));
       xbG.append(svgEl('path', {
         d: `M ${ax - 14} ${topY - 18} Q ${ax} ${topY - 34} ${ax + 14} ${topY - 18}`,
-        fill: hexAlpha('#a78bfa', 0.18), stroke: '#a78bfa', 'stroke-width': '1.4',
+        fill: hexAlpha(C.info, 0.18), stroke: C.info, 'stroke-width': '1.4',
       }));
       for (let i = 0; i < 3; i++) {
         const sig = svgEl('circle', {
           cx: ax, cy: topY - 34, r: (i + 1) * 5,
-          fill: 'none', stroke: '#a78bfa',
+          fill: 'none', stroke: C.info,
           'stroke-width': '0.6', opacity: '0.55',
           class: 'n2-svg-signal',
           style: `animation-delay:${i * 0.52}s`,
@@ -407,12 +412,12 @@ function renderSVG() {
     rtgG.append(svgEl('line', {
       x1: geom.x + geom.w, y1: ry0 + 25,
       x2: rx0, y2: ry0 + 25,
-      stroke: '#ff6b35', 'stroke-width': '1.2', 'stroke-dasharray': '3,2',
+      stroke: C.accent, 'stroke-width': '1.2', 'stroke-dasharray': '3,2',
     }));
     // Cuerpo
     rtgG.append(svgEl('rect', {
       x: rx0, y: ry0, width: 18, height: 50,
-      fill: hexAlpha('#ff6b35', 0.18), stroke: '#ff6b35',
+      fill: hexAlpha(C.accent, 0.18), stroke: C.accent,
       'stroke-width': '1', rx: '3',
     }));
     // Aletas de disipación naranja
@@ -420,13 +425,13 @@ function renderSVG() {
       rtgG.append(svgEl('rect', {
         x: rx0 + 18, y: ry0 + i * 12 + 2,
         width: 9, height: 8,
-        fill: hexAlpha('#ff6b35', 0.3), stroke: '#ff6b35',
+        fill: hexAlpha(C.accent, 0.3), stroke: C.accent,
         'stroke-width': '0.5', rx: '1',
       }));
     }
     const rtgLbl = svgEl('text', {
       x: rx0 + 9, y: ry0 + 60,
-      'text-anchor': 'middle', fill: '#ff6b35',
+      'text-anchor': 'middle', fill: C.accent,
       'font-family': '"JetBrains Mono",monospace', 'font-size': '8',
     });
     rtgLbl.textContent = 'RTG';
@@ -440,7 +445,7 @@ function renderSVG() {
     if (usedU > struct.volumeU) {
       const ovfl = svgEl('text', {
         x: '240', y: '586',
-        'text-anchor': 'middle', fill: '#ff7a7a',
+        'text-anchor': 'middle', fill: C.danger,
         'font-family': '"JetBrains Mono",monospace', 'font-size': '10',
         class: 'n2-svg-overflow',
         filter: 'url(#n2-glow-sm)',
@@ -618,6 +623,7 @@ function renderTelem() {
       propRow.querySelector('output').textContent = `${fmt(e.target.value)} kg`;
       const preview = { ...m, satellite: { ...sat, propellantKg: Number(e.target.value) } };
       metersDiv.innerHTML = metersHTML(preview);
+      renderMini(validateDesign(preview, data));
     });
     input.addEventListener('change', (e) => setSatellite({ propellantKg: Number(e.target.value) }));
     propSec.append(ph, propRow);
@@ -629,7 +635,7 @@ function renderTelem() {
   metersSec.className = 'n2-telem-section';
   const mh = document.createElement('p');
   mh.className = 'n2-telem-heading';
-  mh.textContent = lang === 'en' ? 'Resources' : 'Recursos';
+  mh.textContent = t('resources');
   metersSec.append(mh, metersDiv);
   telem.append(metersSec);
 
@@ -672,6 +678,7 @@ function renderTelem() {
 
   checksSec.append(ch, list, pendingNote, tipsBox);
   telem.append(checksSec);
+  renderMini(result);
 
   // — Botones Atrás / Lanzar —
   const footer = document.createElement('div');
@@ -697,6 +704,28 @@ function renderTelem() {
   telem.append(footer);
 }
 
+// --- Celular: resumen fijo abajo con los 4 medidores clave ---------------------------
+const MINI_MARK = { ok: '✔', warn: '▲', danger: '✘', pending: '○' };
+function renderMini(result) {
+  const box = $('n2-mini');
+  if (!box) return;
+  const x = result.metrics;
+  const dest = data.missions.find((d) => d.id === m.missionId);
+  const M = meterData(x, dest, m.budget.space);
+  const items = [
+    { label: 'Δv', d: M.dv, value: M.dv.level === 'pending' ? '—' : `${fmt(x.dv, 0)}/${fmt(M.dv.required, 0)}` },
+    { label: t('mass'), d: M.mass, value: M.mass.level === 'pending' ? '—' : `${fmt(x.wet, 1)} kg` },
+    { label: t('powerShort'), d: M.power, value: M.power.level === 'pending' ? '—' : signedW(M.power.net) },
+    { label: t('cost'), d: M.cost, value: `$${x.cost}/${m.budget.space}M` },
+  ];
+  const okN = result.checks.filter((c) => checkState(c, x) === 'ok').length;
+  box.innerHTML = `
+    <ul class="n2-mini-list">${items.map((it) => `<li class="lvl-${it.d.level}"><span>${it.label}</span><b><span aria-hidden="true">${MINI_MARK[it.d.level]}</span> ${it.value}</b></li>`).join('')}</ul>
+    <button type="button" class="n2-btn n2-btn-ghost n2-mini-more">${t('mini.more')}</button>
+    <span class="n2-sr">${t('mini.status', { n: okN, t: result.checks.length })}</span>`;
+  box.querySelector('.n2-mini-more').addEventListener('click', () => $('n2-telem').scrollIntoView({ behavior: 'smooth', block: 'start' }));
+}
+
 // ═════════════════════════════════════════════════════════
 // RENDER PRINCIPAL
 // ═════════════════════════════════════════════════════════
@@ -712,12 +741,16 @@ function render() {
   $('n2-menu').title = t('menu');
   $('n2-lang').textContent = t('lang');
   $('n2-lang').setAttribute('aria-label', t('langLabel'));
-  $('n2-reset').title = lang === 'en' ? 'Reset assembly' : 'Reiniciar ensamblaje';
+  $('n2-reset').title = t('reset');
+  $('n2-reset').setAttribute('aria-label', t('reset'));
+  $('n2-catalog').setAttribute('aria-label', t('a11y.catalog'));
+  document.querySelector('.n2-col-viewer').setAttribute('aria-label', t('a11y.viewer'));
+  $('n2-telem').setAttribute('aria-label', t('a11y.telem'));
 
   // Objetivo en la barra superior
   const objBar = $('n2-topbar-obj');
   if (target) {
-    objBar.innerHTML = `🎯 <strong>${tx(target)}</strong> — ${lang === 'en' ? 'Incompatible instruments appear grey' : 'Los instrumentos incompatibles aparecen en gris'}`;
+    objBar.innerHTML = `🎯 ${t('objective', { target: `<strong>${esc(tx(target))}</strong>` })}`;
   } else {
     objBar.textContent = t('title');
   }
@@ -766,6 +799,6 @@ async function boot() {
 if (typeof document !== 'undefined' && document.getElementById('n2-catalog')) {
   boot().catch((err) => {
     console.error(err);
-    $('n2-catalog').innerHTML = `<p style="color:#ff7a7a;padding:12px">${t('loadError')}: ${esc(err.message)}. ${t('serveHint')} <code>python3 -m http.server</code>.</p>`;
+    $('n2-catalog').innerHTML = `<p class="n2-bad" style="padding:12px">${t('loadError')}: ${esc(err.message)}. ${t('serveHint')} <code>python3 -m http.server</code>.</p>`;
   });
 }
