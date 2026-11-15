@@ -1,0 +1,70 @@
+<!doctype html>
+<!-- OWNER: Rol 3 — abrir en http://localhost:8000/tests/taller-reglas.test.html -->
+<html lang="es"><head><meta charset="utf-8"><title>Taller (reglas) tests</title>
+<style>body{font:14px monospace;background:#111;color:#ddd;padding:16px}.ok{color:#4ade80}.fail{color:#f87171}</style></head>
+<body><h1>taller-reglas.js: estados pendientes y consejos</h1><ul id="out"></ul>
+<script type="module">
+import { validateDesign, resolvePieces } from '../js/physics.js';
+import { checkState, meterData, tradeHints } from '../js/taller-reglas.js';
+const out = document.getElementById('out');
+const check = (name, cond) => { const li = document.createElement('li'); li.className = cond ? 'ok' : 'fail'; li.textContent = (cond ? 'PASS ' : 'FAIL ') + name; out.append(li); };
+const load = (f) => fetch(`../data/${f}.json`).then((r) => r.json());
+const [missions, rockets, pieces] = await Promise.all(['missions', 'rockets', 'pieces'].map(load));
+const data = { missions, rockets, pieces };
+const moon = missions.find((m) => m.id === 'moon');
+
+const design = (formFactor, ids, propellantKg = 0, space = 25) => {
+  const state = { missionId: 'moon', rocketId: 'pico', budget: { space }, satellite: { formFactor, pieces: ids, propellantKg } };
+  const result = validateDesign(state, data);
+  const parts = resolvePieces([formFactor, ...ids].filter(Boolean), pieces);
+  return { result, parts, hints: tradeHints(result, parts, pieces, moon, space, { nameOf: (p) => p.id }) };
+};
+const states = (r) => Object.fromEntries(r.checks.map((c) => [c.id, checkState(c, r.metrics)]));
+
+// --- Sin estructura: nada en verde ---
+const empty = design(null, []);
+const se = states(empty.result);
+check('sin estructura: `structure` en rojo', se.structure === 'bad');
+check('sin estructura: el resto pendiente (ningún falso ✔)', Object.entries(se).filter(([id]) => id !== 'structure').every(([, v]) => v === 'pending'));
+const Me = meterData(empty.result.metrics, moon, 25);
+check('sin estructura: medidor de masa pendiente (no 0 / 0)', Me.mass.level === 'pending' && Me.mass.pct === 0);
+check('sin batería ni necesidad: medidor de batería pendiente', Me.battery.level === 'pending');
+check('sin estructura: no hay consejos', empty.hints.length === 0);
+check('sin estructura: ningún medidor juzga (ni costo verde ni energía roja)', Object.values(Me).every((d) => d.level === 'pending'));
+
+// --- Referencia de la Luna: todo en verde ---
+const ref = design('struct-6u', ['battery', 'prop-green', 'comm-uhf', 'obc', 'inst-camera'], 2.5);
+check('referencia Luna válida', ref.result.valid);
+check('referencia Luna: todas las verificaciones en ok', Object.values(states(ref.result)).every((v) => v === 'ok'));
+check('referencia Luna: medidores con nivel real (no pending)', ['mass', 'battery'].every((k) => meterData(ref.result.metrics, moon, 25)[k].level !== 'pending'));
+check('referencia Luna: sin consejos', ref.hints.length === 0);
+
+// --- Estructura sola: la batería queda pendiente, lo demás se evalúa ---
+const bare = states(design('struct-6u', []).result);
+check('6U sola: batería pendiente (no hace falta aún)', bare.battery === 'pending');
+check('6U sola: masa y volumen ya se evalúan', bare.mass === 'ok' && bare.volume === 'ok');
+check('6U sola: falta computadora (rojo)', bare.obc === 'bad');
+
+// --- Consejos con números ---
+const ion = design('struct-6u', ['solar-deploy', 'battery', 'prop-ion', 'comm-uhf', 'obc', 'inst-camera'], 1);
+const cost = ion.hints.find((h) => h.key === 'costSwap');
+check('iónico a $33M: sugiere cambiar a monopropelente verde', cost && cost.vars.name === 'prop-ion' && cost.vars.alt === 'prop-green');
+check('iónico: nunca sugiere gas frío (Isp 70 no llega a 850 m/s)', !ion.hints.some((h) => h.vars.alt === 'prop-cold'));
+check('iónico: el total con el cambio es $26M', cost?.vars.total === 26 && cost?.vars.over === 8);
+
+const small = design('struct-3u', ['battery', 'prop-green', 'comm-uhf', 'obc', 'inst-camera'], 2.2);
+const mass = small.hints.find((h) => h.key === 'massStructure');
+check('3U + verde: explica que la 3U (3 990 g) no alcanza y sugiere la 6U', mass && mass.vars.cap.replace(/\s/g, '') === '3990' && mass.vars.next === 'struct-6u');
+check('3U + verde: la masa necesaria ronda 5 000 g', mass && Number(mass.vars.need.replace(/\s/g, '')) > 4900 && Number(mass.vars.need.replace(/\s/g, '')) < 5200);
+check('como máximo 2 consejos', small.hints.length <= 2);
+
+const short = design('struct-6u', ['battery', 'prop-green', 'comm-uhf', 'obc', 'inst-camera'], 1.5);
+const dv = short.hints.find((h) => h.key === 'dvMore');
+check('Δv corto: dice cuánto falta y cuántos kg cargar', dv && dv.vars.missing > 0 && Number(dv.vars.kg) >= 2 && dv.vars.max === 7);
+const withKg = design('struct-6u', ['battery', 'prop-green', 'comm-uhf', 'obc', 'inst-camera'], Number(dv?.vars.kg));
+check('con los kg sugeridos el Δv alcanza', withKg.result.checks.find((c) => c.id === 'deltaV').ok);
+const bare3 = design('struct-3u', ['battery', 'prop-green', 'comm-uhf', 'obc', 'inst-camera'], 0);
+check('3U sin propelente: no aconseja cargar kg que la 3U no aguanta', !bare3.hints.some((h) => h.key === 'dvMore'));
+check('3U sin propelente: explica el límite de la 3U y sugiere la 6U', bare3.hints.some((h) => h.key === 'massStructure' && h.vars.next === 'struct-6u'));
+</script>
+</body></html>
