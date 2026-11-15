@@ -7,6 +7,7 @@ import { G0, deltaV, propellantFor, resolvePieces, dryMass, systemIsp, insertion
 import { loadMission, saveMission, levelHref } from '../js/mision-store.js';
 import { SIM_DONE, SIM_LANG, PIL_DONE } from '../simulador/embed.js';
 import { TEXTOS } from './textos.js';
+import { createAria } from './aria.js';
 import { FLIGHT_HITS, createFlight, startFlight, updateFlight, drawFlight, pointerToInput } from './vuelo.js';
 
 // --- Reglas del nivel ---------------------------------------------------------
@@ -21,6 +22,7 @@ const EVENT_AT = 0.6;        // fracción del viaje donde aparece el evento
 const IONIC_ISP = 1500;      // para la sugerencia educativa
 const SIM_EXIT_MS = 2500;    // tras llegar a órbita, tiempo para ver el cohete antes de pasar a los asteroides
 const PILOT_ENTER_MS = 3000; // tras superar los asteroides, tiempo del cartel antes de entrar al pilotaje
+const ARIA_HIT_COOLDOWN_MS = 4000; // mínimo entre dos «¡Impacto!» de ARIA
 // Diseño de referencia (docs/fuentes.md) para el modo demo
 const DEMO = {
   missionId: 'moon', rocketId: 'pico',
@@ -243,6 +245,17 @@ function renderHud() {
 const panel = () => $('n3-panel');
 const btn = (label, cls, on) => { const b = document.createElement('button'); b.type = 'button'; b.className = `n3-btn ${cls}`; b.innerHTML = label; b.addEventListener('click', on); return b; };
 
+// --- ARIA: asistente que cuenta lo que pasa en cada fase (nivel3/aria.js, textos en `aria.*`) ---------
+let aria;
+let lastHitSay = 0;
+/** Variables que usan los mensajes de ARIA; se leen al mostrarlos, así siguen el idioma y el estado actuales. */
+const ariaVars = () => ({
+  dest: tx(mission.name), rocket: launch.rocketId ? rocketName() : '', hits: FLIGHT_HITS,
+  n: flight.dodged, pct: fmt(flight.shield * 100, 0),
+});
+/** Reproduce una lista de mensajes de ARIA. `append` los pone al final de lo que ya está diciendo en vez de cortarlo. */
+const say = (id, keys, opts) => aria?.play(id, keys.map((k) => ({ k: `aria.${k}` })), opts);
+
 // --- Despegue: simulador de cohetes reales (iframe, ver simulador/embed.js) ---------
 /** Nombre del cohete para los textos (viene de data/missions.json → simRocket). */
 const rocketName = () => (launch.rocketId === mission.simRocket?.id ? tx(mission.simRocket.name) : launch.rocketId);
@@ -284,6 +297,15 @@ function startSim() {
   openFrame(`../simulador/?rocket=${encodeURIComponent(launch.rocketId)}&lock=1&embed=1`);
   renderOverlay();
   renderSim();
+  // El despegue dura casi 3 minutos: ARIA presenta el cohete (nombre, fecha, por qué es icónico), el combustible y las etapas
+  const r = TEXTOS.es.aria.rocket?.[launch.rocketId] ? (k) => `rocket.${launch.rocketId}.${k}` : null;
+  say('sim', [
+    'hello', 'plan', 'launchHint',
+    ...(r ? [r('intro'), r('why')] : []),
+    'up1', ...(r ? [r('fuel')] : []), 'fuelTypes',
+    'up2', ...(r ? [r('stages')] : []), 'stageWhy',
+    'up3', 'up4', 'up5',
+  ], { gapMs: 4000 });
 }
 
 function renderSim() {
@@ -328,11 +350,13 @@ function finishSim(result) {
   const rocket = rocketName();
   if (result.skipped) {
     log(t('logSimSkip', { rocket }));
+    aria?.stop();
     closeSim();
     return;
   }
   log(t('logSim', { rocket, p: fmt(result.perigeoKm ?? 0, 0), a: fmt(result.apogeoKm ?? 0, 0) }), 'n3-good');
   renderSim();
+  say('orbited', ['orbited']);
   simTimer = setTimeout(closeSim, SIM_EXIT_MS);
 }
 
@@ -344,11 +368,14 @@ function closeSim() {
   run.phase = 'flight';
   run.lastFrame = performance.now();
   renderOverlay(true); // el foco vuelve a esta página: el teclado del juego responde
+  // Tras llegar a órbita, deja terminar el «¡Órbita lograda!»; si se saltó el despegue, ARIA ya está callada
+  say('flightIntro', ['flightIntro', 'flightHow'], { append: Boolean(launch.result && !launch.result.skipped) });
 }
 
 // --- Fase 2: pilotaje orbital (iframe con simulador/pilotaje/, tras los asteroides) ---------
 // Captura la órbita del destino con el mismo cohete. No suma ni resta puntos: no toca `journey` ni `report`.
 const pilotPending = () => Boolean(launch.destino) && !launch.pilotDone;
+let pilotAppend = false; // true si se llega al pilotaje tras superar los asteroides (deja terminar el «¡Lo lograste!»)
 
 function startPilot() {
   run.phase = 'pilot';
@@ -356,6 +383,7 @@ function startPilot() {
   openFrame(`../simulador/pilotaje/?destino=${encodeURIComponent(launch.destino)}&lock=1&embed=1`);
   renderOverlay();
   renderPilot();
+  say('pilot', ['p1', 'p2', 'p3', 'p4', 'p5', 'p6'], { gapMs: 6000, append: pilotAppend });
 }
 
 function renderPilot() {
@@ -381,6 +409,7 @@ function finishPilot(result) {
   run.phase = 'brief';
   renderOverlay();
   renderBrief();
+  say('brief', ['b1', 'b2', 'b3']);
   panel().querySelector('h2')?.setAttribute('tabindex', '-1');
   panel().querySelector('h2')?.focus({ preventScroll: true }); // el foco vuelve a esta página
 }
@@ -434,6 +463,7 @@ function startFlightRun() {
   input.keys.clear(); input.pointer = null;
   run.lastFrame = performance.now();
   renderOverlay();
+  say('flight', ['f1', 'f3', 'f2', 'flightOdd']);
 }
 
 /** La nave llega al destino: pilotaje orbital (si falta) y luego la travesía de siempre. */
@@ -441,10 +471,12 @@ function deploy(skipped) {
   clearTimeout(pilotTimer);
   if (run.phase !== 'flight') return;
   log(skipped ? t('logFlightSkip') : t('logFlight', { n: flight.dodged, pct: fmt(flight.shield * 100, 0) }));
-  if (pilotPending()) { startPilot(); return; }
+  const afterCleared = !skipped && flight.state === 'cleared';
+  if (pilotPending()) { pilotAppend = afterCleared; startPilot(); return; }
   run.phase = 'brief';
   renderOverlay();
   renderBrief();
+  say('brief', ['b1', 'b2', 'b3'], { append: afterCleared });
 }
 
 function renderBrief() {
@@ -483,6 +515,7 @@ function startCruise() {
   log(t('logLaunch'));
   panel().innerHTML = '';
   run.lastFrame = performance.now();
+  say('cruise', ['c1']);
 }
 
 function renderTcm() {
@@ -545,7 +578,10 @@ function chooseEvent(ev, c, i) {
   resume();
 }
 
-function resume() { panel().innerHTML = ''; run.currentEvent = null; run.phase = 'cruise'; run.lastFrame = performance.now(); }
+function resume() {
+  panel().innerHTML = ''; run.currentEvent = null; run.phase = 'cruise'; run.lastFrame = performance.now();
+  say('cruise-on', [run.eventDone ? 'f4' : 'c2']);
+}
 
 function renderMoi() {
   run.phase = 'moi';
@@ -595,6 +631,7 @@ function finishMoi() {
   run.phase = 'result';
   persist();
   renderResult();
+  say('result', [outcome === 'orbit' ? 'resultOrbit' : outcome === 'eccentric' ? 'resultEcc' : 'resultMiss']);
 }
 
 function renderResult() {
@@ -616,6 +653,7 @@ function noFuel() {
   persist();
   log(t('noFuelTitle'), 'n3-warn');
   renderNoFuel();
+  say('result', ['resultNoFuel']);
 }
 
 function renderNoFuel() {
@@ -659,6 +697,7 @@ function restart() {
   $('n3-log').replaceChildren();
   run = newRun();
   renderBrief();
+  say('brief', ['b1', 'b2', 'b3']);
 }
 
 // --- Bucle principal ------------------------------------------------------------
@@ -669,6 +708,9 @@ function frame(now) {
   if (run.phase === 'flight') {
     const ev = updateFlight(flight, dt, input);
     if (ev === 'crashed' || ev === 'cleared') renderOverlay(true);
+    if (ev === 'hit' && now - lastHitSay > ARIA_HIT_COOLDOWN_MS) { lastHitSay = now; aria?.interject({ k: 'aria.hit' }); }
+    if (ev === 'crashed') say('crashed', ['flightCrashed']);
+    if (ev === 'cleared') say('cleared', ['flightCleared', 'flightOdd2']);
     if (ev === 'cleared') { clearTimeout(pilotTimer); pilotTimer = setTimeout(() => deploy(false), PILOT_ENTER_MS); }
     drawFlight(g, W, H, flight, {
       destColor: mission.color, reduceMotion, now,
@@ -681,9 +723,9 @@ function frame(now) {
   if (run.phase === 'cruise') {
     const prev = run.progress;
     run.progress = Math.min(1, run.progress + (reduceMotion ? dt * 3 : dt) / CRUISE_SECONDS);
-    if (prev < TCM_AT && run.progress >= TCM_AT && !run.tcm) { run.progress = TCM_AT; run.phase = 'decision'; renderTcm(); }
-    else if (prev < EVENT_AT && run.progress >= EVENT_AT && !run.eventDone) { run.progress = EVENT_AT; run.eventDone = true; run.phase = 'decision'; renderEvent(); }
-    else if (run.progress >= 1) renderMoi();
+    if (prev < TCM_AT && run.progress >= TCM_AT && !run.tcm) { run.progress = TCM_AT; run.phase = 'decision'; renderTcm(); say('tcm', ['tcm', 'tcm2'], { append: true }); }
+    else if (prev < EVENT_AT && run.progress >= EVENT_AT && !run.eventDone) { run.progress = EVENT_AT; run.eventDone = true; run.phase = 'decision'; renderEvent(); say('event', ['event'], { append: true }); }
+    else if (run.progress >= 1) { renderMoi(); say('moi', ['moi1', 'moi2', 'moi3']); }
   } else if (run.phase === 'moi' && run.burning) {
     const before = run.prop;
     const r = burn(run.insertionNeed * BURN_RATE * dt);
@@ -724,6 +766,7 @@ function applyLang() {
   $('n3-log-title').textContent = t('logTitle');
   if (launch.rocketId) $('n3-sim').title = t('simFrame', { rocket: rocketName() });
   document.title = `${t('title')} · ${lang === 'en' ? 'Orbit Explorers' : 'Exploradores de Órbita'}`;
+  aria?.refresh();
 }
 
 async function boot() {
@@ -761,11 +804,17 @@ async function boot() {
   run = newRun();
   run.phase = 'flight';
   flight = createFlight();
+  aria = createAria({
+    text: (s) => t(s.k, s.v ? s.v() : ariaVars()),
+    muteLabel: (muted) => t(muted ? 'aria.unmute' : 'aria.mute'),
+    avatarSrc: '../assets/companion.png',
+  });
   applyLang();
   resize();
   renderOverlay();
   // Si el despegue ya se hizo (recarga, vuelta desde el Taller), se va directo a los asteroides
   if (launch.rocketId && !launch.done) startSim();
+  else say('intro', ['hello', 'plan', 'flightIntro', 'flightHow']); // el despegue ya se hizo: ARIA saluda en los asteroides
   addEventListener('message', onSimMessage);
   // Al cargar un simulador, el teclado va a él (lanzar con espacio, WASD, C, R…) sin clic previo
   $('n3-sim').addEventListener('load', (e) => {
