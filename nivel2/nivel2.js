@@ -1,7 +1,7 @@
 // OWNER: Rol 3 (@JU4NMAX) — Nivel 2 · Taller del CubeSat (docs/niveles/nivel-2.md).
 // Lee la misión del Nivel 1 de `eo-mision` (docs/contrato-niveles.md), deja armar el CubeSat bajo
 // los límites de masa, energía y presupuesto, y escribe solo la sección `satellite`.
-import { validateDesign, resolvePieces, KG_PER_U } from '../js/physics.js';
+import { validateDesign, resolvePieces, KG_PER_U, propellantFor, dryMass } from '../js/physics.js';
 import { loadMission, saveMission, levelHref } from '../js/mision-store.js';
 import { grams, meterData, rocketOverload, instrumentStatus, incompatibleSelected, powerText, signedW, checkState, tradeHints, checkDetail, nextSatellite, pieceFacts, alertingMeters } from '../js/taller-reglas.js';
 import { TEXTOS } from './textos.js';
@@ -68,10 +68,20 @@ function persist() {
 }
 
 function setSatellite(patch) {
+  hideUndo(); // otro cambio vuelve obsoleto el «Deshacer» del reinicio
   m.satellite = { ...m.satellite, ...patch };
   removedIds = [];
   persist();
   render();
+}
+
+let flashProp = false;
+/** Propelente (kg, redondeado hacia arriba a 0.1) con el que el motor `p` llega al Δv del destino, sin pasar su tanque. */
+function suggestedPropellant(p, otherIds) {
+  const dest = data.missions.find((d) => d.id === m.missionId);
+  const dry = dryMass(resolvePieces([m.satellite.formFactor, ...otherIds].filter(Boolean), data.pieces)) + p.massKg;
+  const kg = Math.ceil(propellantFor(dest?.dvRequired || 0, p.isp, dry) * 10) / 10;
+  return Math.min(p.maxPropellantKg || 0, kg);
 }
 
 function togglePiece(p) {
@@ -80,7 +90,11 @@ function togglePiece(p) {
   const has = sat.pieces.includes(p.id);
   if (p.category === 'propulsion') {
     const others = sat.pieces.filter((id) => data.pieces.find((x) => x.id === id)?.category !== 'propulsion');
-    return setSatellite({ pieces: has ? others : [...others, p.id], propellantKg: has ? 0 : sat.propellantKg });
+    // Al agregar un motor se precarga el propelente que pide el destino: con 0 kg el Δv queda en 0 y el jugador
+    // no sabe que existe el control. El destello (flashProp) le muestra dónde está.
+    const kg = has ? 0 : sat.propellantKg || suggestedPropellant(p, others);
+    flashProp = !has;
+    return setSatellite({ pieces: has ? others : [...others, p.id], propellantKg: kg });
   }
   return setSatellite({ pieces: has ? sat.pieces.filter((id) => id !== p.id) : [...sat.pieces, p.id] });
 }
@@ -383,13 +397,14 @@ function metersHTML(mission) {
       : meterHTML({ label: t('mass'), d: M.mass, value: `${grams(x.wet)} / ${grams(M.mass.cap)} g`, aria: `${grams(x.wet)} g / ${grams(M.mass.cap)} g` }),
     meterHTML({
       label: t('power'), d: M.power,
-      value: M.power.level === 'pending' ? '—' : signedW(M.power.net),
+      // Positivo pero bajo el mínimo del destino: «+3.5 W» en rojo confunde; mejor decir cuánto falta
+      value: M.power.level === 'pending' ? '—' : M.power.net >= 0 && M.power.powerLow ? t('powerMissing', { n: fmt(M.power.minW - x.power.generated) }) : signedW(M.power.net),
       aria: `${signedW(M.power.net)}: ${use}`,
       note: [M.power.powerLow ? t('minPower', { n: M.power.minW }) : '', use, sun].filter(Boolean).join(' · '),
     }),
     M.battery.level === 'pending'
       ? meterHTML({ label: t('battery'), d: M.battery, value: '—', aria: t('noBattery'), note: t('noBattery') })
-      : meterHTML({ label: t('battery'), d: M.battery, value: `${fmt(s.neededWh, 0)} / ${fmt(s.usableWh, 0)} Wh`, aria: storeUse, note: storeUse }),
+      : meterHTML({ label: t('battery'), d: M.battery, value: s.capacityWh > 0 ? `${fmt(s.neededWh, 0)} / ${fmt(s.usableWh, 0)} Wh` : t('noBatteryShort', { n: fmt(s.neededWh, 0) }), aria: storeUse, note: storeUse }),
     meterHTML({ label: t('cost'), d: M.cost, value: `$${x.cost}M / $${mission.budget.space}M`, aria: `$${x.cost}M / $${mission.budget.space}M` }),
     rocketOverload(x, rocket)
       ? `<p class="n2-alert" role="alert">🚫 ${t('rocketLimit', { name: tx(rocket.name), n: grams(rocket.maxPayloadKg) })}</p>`
@@ -675,7 +690,8 @@ function renderTelem() {
     ph.className = 'n2-telem-heading';
     ph.textContent = t('propellant');
     const propRow = document.createElement('label');
-    propRow.className = 'n2-prop';
+    propRow.className = `n2-prop${flashProp ? ' is-new' : ''}`;
+    flashProp = false;
     propRow.innerHTML = `
       <div class="n2-prop-row">
         <span>${t('propellant')}</span>
@@ -811,6 +827,26 @@ function render() {
   restoreFocus(focusBefore);
 }
 
+// --- ↺ Reiniciar: aviso con «Deshacer» durante unos segundos ---------------------------
+let undoTimer = 0;
+function hideUndo() {
+  clearTimeout(undoTimer);
+  const el = $('n2-undo');
+  if (el) el.hidden = true;
+}
+function showUndo(snapshot) {
+  const el = $('n2-undo');
+  const btn = document.createElement('button');
+  btn.type = 'button';
+  btn.className = 'n2-undo-btn';
+  btn.textContent = t('undo');
+  btn.addEventListener('click', () => { setSatellite(snapshot); }); // setSatellite oculta el aviso
+  el.replaceChildren(`${t('resetDone')} `, btn);
+  el.hidden = false;
+  clearTimeout(undoTimer);
+  undoTimer = setTimeout(hideUndo, 7000);
+}
+
 // ═════════════════════════════════════════════════════════
 // BOOT
 // ═════════════════════════════════════════════════════════
@@ -835,7 +871,9 @@ async function boot() {
   });
 
   $('n2-reset').addEventListener('click', () => {
+    const before = { formFactor: m.satellite.formFactor, pieces: [...m.satellite.pieces], propellantKg: m.satellite.propellantKg };
     setSatellite({ formFactor: null, pieces: [], propellantKg: 0 });
+    if (before.formFactor || before.pieces.length) showUndo(before);
   });
 
   initInfo();

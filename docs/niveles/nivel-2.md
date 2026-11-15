@@ -47,7 +47,7 @@ El jugador entra al taller de ensamblaje. Según [CubeSat 101](https://www3.nasa
 ## 2. Qué ve el jugador
 
 - **Pantalla de 3 columnas, sin scroll de página** (escritorio): **catálogo** a la izquierda (con scroll propio), **visor del CubeSat** al centro y **telemetría** (propelente, medidores, verificaciones, consejos y botones) a la derecha. En celular (≤ 860 px) se apilan y una barra fija abajo resume Δv, masa, energía y costo.
-- **↺ Reiniciar ensamblaje** (barra superior): vacía la estructura, las piezas y el propelente.
+- **↺ Reiniciar ensamblaje** (barra superior): vacía la estructura, las piezas y el propelente, y muestra «Ensamblaje reiniciado. **Deshacer**» durante 7 s. Cualquier otro cambio oculta el aviso.
 - **Objetivo científico** del Nivel 1 en el encabezado (🎯), con el aviso de que los instrumentos que no sirven aparecen en gris.
 - **Catálogo por categoría.** Cada pieza muestra masa en gramos, volumen en U, energía, costo y TRL con su significado corto («TRL 4 · en laboratorio»).
   - **Botón ⓘ** en cada pieza: una sola ventana de información (popover nativo; sin soporte usa las clases `.n2-no-popover` / `.is-open`) con tres secciones, sin el párrafo genérico del TRL repetido:
@@ -67,7 +67,7 @@ El jugador entra al taller de ensamblaje. Según [CubeSat 101](https://www3.nasa
   - **Batería:** una barra vertical dentro de cada bloque de batería muestra los Wh que piden eclipses y quemados contra los Wh usables (50 % de la capacidad), con el mismo verde / amarillo / rojo del medidor. Se actualiza mientras se arrastra el propelente.
   - **Lanzar bloqueado:** el botón usa `aria-disabled` (un `disabled` no emite `click`). Si se pulsa sin pasar las verificaciones, el visor tiembla y la viñeta roja del Nivel 1 (`inset 0 0 220px 30px` sobre los bordes de toda la página) parpadea; no navega.
   - `prefers-reduced-motion` desactiva las animaciones (la viñeta queda como un solo destello suave).
-- **Slider de propelente**, si hay propulsión.
+- **Slider de propelente**, si hay propulsión. Al agregar un motor se **precarga el propelente que pide el destino** (`suggestedPropellant`, sin pasar el tanque) y el control destella dos veces: con 0 kg el Δv quedaba en 0 y no se descubría el control.
 - **5 medidores en vivo** (`role="meter"`). Se actualizan al agregar o quitar piezas y **mientras se arrastra** el propelente:
 
 | Medidor | Muestra | Verde | Amarillo | Rojo |
@@ -79,6 +79,8 @@ El jugador entra al taller de ensamblaje. Según [CubeSat 101](https://www3.nasa
 | Costo | costo contra el segmento Espacio | < 85 % | 85–100 % | > 100 % |
 
 - **Aviso del cohete:** si la masa supera la carga útil del cohete del Nivel 1, y ese es el límite que manda, aparece "🚫 … solo lleva N g: así no podrá despegar".
+- **Rótulos claros en rojo:** si la energía es positiva pero no llega al mínimo del destino, el medidor dice «faltan 4.5 W» (no «+3.5 W» en rojo); la batería sin instalar dice «1 Wh · sin batería». Con consumo mayor que la generación se mantiene el valor negativo.
+- **Lenguaje llano y legibilidad:** el texto nunca baja de 12 px (antes el 61 % era menor). Las ventanas definen la jerga en el lugar: Δv, Isp, eclipse y quemado, y el aviso de lanzar explica qué es el CML 1. En pantallas táctiles el ⓘ mide 36 px.
 - **Antes de elegir estructura nada se juzga:** los medidores quedan en gris (`— / — g`, «Elige una estructura») y las verificaciones en ○ pendiente, en vez de mostrar ✔ porque «0 g cabe en cualquier límite». La batería sigue pendiente mientras no haga falta ni haya una. Reglas: `checkState` y `meterData` en `js/taller-reglas.js`.
 - **Panel guía** (columna derecha): cabecera «Verificaciones 8 de 11» con barra, los consejos arriba y debajo las 11 verificaciones como filas compactas (✔ / ✘ / ○). Toda fila y todo consejo se puede pulsar y abre la misma ventana de información:
   - **Verificación:** qué mide · fórmula · valor contra límite con barra (`checkDetail`) · cómo arreglarla (los consejos de esa verificación, con su botón).
@@ -86,7 +88,7 @@ El jugador entra al taller de ensamblaje. Según [CubeSat 101](https://www3.nasa
   - **Empujón:** si el jugador no toca nada ~8 s (sin `pointerdown`, `keydown` ni `wheel`) y hay algo en rojo, la primera fila en rojo y el primer consejo laten (anillo naranja + chevron). Cualquier gesto lo apaga y se rearma tras cada cambio. Con `prefers-reduced-motion` queda un contorno fijo.
 - **Viñeta roja:** los bordes de la página parpadean con la misma viñeta del Nivel 1 (`inset 0 0 220px 30px` en `--danger`) cuando el jugador **se pasa de un límite** (`alertingMeters` en `js/taller-reglas.js`): masa o costo por encima, energía neta negativa, o batería insuficiente teniendo una instalada. Las barras que solo están incompletas (Δv sin motor o sin propelente, energía bajo el mínimo del destino, sin batería todavía) siguen rojas en su medidor pero no encienden la viñeta: mientras se arma el satélite casi todo está incompleto y una alarma permanente se ignora. Solo se anima `opacity` y `will-change: opacity` existe únicamente mientras late.
 - **🚀 Lanzar siempre responde:** en verde lanza; con rojos abre «Tu diseño aún tiene N verificaciones en rojo» (lista + consecuencia: CML 1 en el Reporte) con **Seguir corrigiendo** / **Lanzar de todos modos**; sin estructura explica qué falta y ofrece elegirla. El botón va fijo al pie de la columna de telemetría (`position: sticky`), así se ve sin scroll aunque haya 11 verificaciones y 3 consejos; en celular vuelve a ser normal porque ya existe la barra de resumen.
-- **Consejos priorizados por dependencia** (`tradeHints`, orden `HINT_ORDER`): estructura → computadora → masa → volumen → energía → batería → radio → propulsión → Δv → costo → **ciencia al final**. Cubren las 11 verificaciones; cada uno trae `{ check, key, vars, action }`. Los títulos son imperativos («Cambia a la Estructura 6U», «Agrega Batería 80 Wh», «Carga 2.0 kg de propelente»). Un cambio de estructura rankea con la masa aunque nazca del Δv; si dos consejos proponen el mismo cambio, el panel lo muestra una vez. Con 6U vacía, aplicar solo el primer consejo en cada paso llega a un diseño válido en la Luna, Marte y Europa (`tests/taller-reglas.test.html`).
+- **Consejos priorizados por dependencia** (`tradeHints`, orden `HINT_ORDER`): estructura → computadora → masa → volumen → energía → batería → radio → propulsión → Δv → costo → **ciencia al final**. Cubren las 11 verificaciones; cada uno trae `{ check, key, vars, action }`. Los títulos son imperativos («Cambia a la Estructura 6U», «Agrega Batería 80 Wh», «Carga 2.0 kg de propelente»). Un cambio de estructura rankea con la masa aunque nazca del Δv; si dos consejos proponen el mismo cambio, el panel lo muestra una vez. Con 6U vacía, aplicar solo el primer consejo en cada paso llega a un diseño válido en la Luna, Marte y Europa (`tests/taller-reglas.test.html`). Sin piezas todavía, la estructura que se aconseja sale del destino (Luna 6U; Marte y Europa 12U, como los diseños de referencia), para no cambiarla cinco pasos después. Si la falta de energía la causa un motor que gasta todo el tiempo (el iónico) y quitar su consumo cierra la brecha, el consejo es cambiarlo por uno químico (`powerSwapProp`) en vez de comprar un generador.
 - **En celular (≤ 860 px)** una barra fija abajo resume Δv, masa, energía y costo con ✔ / ▲ / ✘ / ○, y **Ver detalle ↓** lleva al panel completo.
 - **Teclado:** el catálogo y el panel se reconstruyen en cada cambio, así que `render()` guarda qué elemento tenía el foco (`focusKey`) y lo restaura al terminar (`restoreFocus`): activar una pieza con Enter o espacio deja el foco en esa pieza, y tras **Aplicar** pasa al siguiente consejo.
 
@@ -229,6 +231,8 @@ Recorrido manual sugerido (en ES y EN, escritorio y 360 px):
 - [ ] Prueba visual en navegador real (escritorio y celular, ES y EN).
 - [x] #15: vista del CubeSat ensamblado con las U ocupadas (visor 3D en CSS, ver «Qué ve el jugador»).
 - [x] #16: tooltips de CubeSat 101 por subsistema: el ⓘ de cada pieza explica qué es en la vida real, cómo afecta a tu misión y su compromiso.
+- [ ] Esqueleto fantasma de la 6U en el visor antes de elegir estructura (hoy dice «← Elige una estructura»).
+- [ ] Acordeón de verificaciones (plegadas cuando todo está en verde). Con Lanzar fijo al pie ya no es urgente.
 - **Balanceo (revisado con `gemini-code-leve-2-fix.md`):** no hace falta rebalancear. 6U + monopropelente verde ya cumple la Luna con $20M (Δv 1027 / 850 m/s); 3U + verde es físicamente imposible (el motor ocupa 3U y la Luna pide ~5 kg contra 3.99 kg de la 3U), y es justo lo que enseña el nivel. El presupuesto mayor (ruta iónica) ya existe en el Nivel 1 con la nave interplanetaria ($50M).
 
 ---

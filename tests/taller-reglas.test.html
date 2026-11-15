@@ -185,5 +185,20 @@ check('iónico a $33M con $25M: se pasó de costo → viñeta', alerts('moon', s
 check('iónico (20 W) sin paneles en Marte: gasta más de lo que genera → viñeta', alerts('mars', sat('struct-6u', ['prop-ion', 'obc'], 1)).a.includes('power'));
 check('con batería instalada pero corta: viñeta de batería', alerts('moon', sat('struct-6u', ['battery', 'prop-green', 'obc', 'inst-spectro', 'inst-radar', 'comm-uhf'], 2.5)).a.includes('battery'));
 check('sin batería todavía (solo falta agregarla): sin viñeta de batería', !alerts('moon', sat('struct-6u', ['obc', 'prop-green'], 2.5)).a.includes('battery'));
+
+// --- Estructura inicial por destino y causa de la falta de energía ---
+check('sin piezas: Luna → 6U, Marte → 12U, Europa → 12U (sin vaivén de estructura)', ['moon', 'mars', 'europa'].map((id) => sim(id, sat(null, [])).hints[0].action.id).join() === 'struct-6u,struct-12u,struct-12u');
+check('con piezas ya elegidas se mantiene «la más chica donde caben» (no se fuerza la del destino)', sim('mars', { formFactor: null, pieces: ['obc'], propellantKg: 0 }).hints[0].action.id === 'struct-3u');
+const ionSat = sat('struct-6u', ['prop-ion', 'comm-uhf', 'obc', 'inst-camera', 'battery'], 1);
+const ionMoon = sim('moon', ionSat);
+const swapHint = ionMoon.hints.find((h) => h.key === 'powerSwapProp');
+check('Luna con iónico: la energía falla y el consejo es cambiarlo por monopropelente, diciendo que gasta 20 W continuos',
+  !ok(ionMoon, 'power') && swapHint?.action.type === 'swap' && swapHint.action.remove === 'prop-ion' && swapHint.action.add === 'prop-green' && swapHint.vars.w === 20);
+check('…en lugar de agregar un generador', !ionMoon.hints.some((h) => h.key === 'powerAdd' || h.key === 'powerPartial'));
+check('aplicar ese cambio hace pasar la verificación de energía', ok(sim('moon', nextSatellite(ionSat, swapHint.action, pieces)), 'power'));
+check('Marte 6U con iónico (quitarlo no alcanza el mínimo de 8 W): sigue sugiriendo un generador', (() => {
+  const h = sim('mars', sat('struct-6u', ['prop-ion', 'obc'], 1)).hints;
+  return !h.some((x) => x.key === 'powerSwapProp') && h.some((x) => x.check === 'power' && x.action?.type === 'add');
+})());
 </script>
 </body></html>
