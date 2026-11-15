@@ -1,6 +1,6 @@
 // OWNER: Rol 3 — Reglas del Nivel 1: tarjetas por segmento (Design and Develop Science Missions).
 // Módulo puro (sin DOM): lo usan js/screens/mission.js y tests/budget.test.html.
-// Valores en data/segments.json (+ rockets.json para Lanzamiento). Documentación: docs/levelOne.md
+// Valores en data/segments.json (+ rockets.json para Lanzamiento). Documentación: docs/niveles/nivel-1.md
 
 export const SEGMENTS = ['launch', 'space', 'ground', 'user'];
 /** Pasos del Nivel 1: proyecto → un paso por segmento → revisión. */

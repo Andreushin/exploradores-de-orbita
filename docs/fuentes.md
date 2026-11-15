@@ -114,4 +114,4 @@ Los 4 segmentos vienen de *Design and Develop Science Missions*. Cada segmento o
 | Tierra | 8 / 15 / 25 | Nivel exigido = `commsDifficulty`; 25 M$ (`GROUND_FULL`) es donde `scienceScore` llega al factor Tierra completo |
 | Usuario | 5 / 8 / 12 | 12 M$ (`USER_FULL`) es donde `scienceScore` llega al factor Usuario completo |
 
-Reglas (ludificadas): nivel menor al exigido → bloquea. Por encima del exigido se tolera un margen (Lanzamiento 0, Espacio 1, Tierra 1, Usuario 2); más allá resta 15 pts por nivel. Pasarse del presupuesto bloquea y resta 1 pt por M$ (máx. 40). Madurez = 100 − penalización → tope de CML: ≥90 → 4, ≥65 → 3, ≥40 → 2, si no 1. Detalle en `docs/levelOne.md`; escenarios en `tests/budget.test.html`.
+Reglas (ludificadas): nivel menor al exigido → bloquea. Por encima del exigido se tolera un margen (Lanzamiento 0, Espacio 1, Tierra 1, Usuario 2); más allá resta 15 pts por nivel. Pasarse del presupuesto bloquea y resta 1 pt por M$ (máx. 40). Madurez = 100 − penalización → tope de CML: ≥90 → 4, ≥65 → 3, ≥40 → 2, si no 1. Detalle en `docs/niveles/nivel-1.md`; escenarios en `tests/budget.test.html`.

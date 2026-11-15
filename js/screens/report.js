@@ -5,7 +5,7 @@
 import { finalCml, improvementHints, instrumentSeries, reportScore, seededRandom, hashSeed } from '../science-data.js';
 
 const CML_LEVELS = [1, 2, 3, 4];
-// Ruta relativa a este módulo: funciona en la raíz o en una subruta (GitHub Pages, Firebase Hosting).
+// Ruta relativa a este módulo: funciona en la raíz o en una subruta (como en GitHub Pages).
 const SCIENCE_URL = new URL('../../data/science.json', import.meta.url);
 
 let ctx;

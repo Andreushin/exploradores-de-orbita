@@ -1,5 +1,5 @@
 // OWNER: Rol 3 — Reglas puras del Taller del CubeSat (Nivel 2), sin DOM.
-// Las usan js/screens/workshop.js (app principal) y nivel2/nivel2.js. Ver docs/levelTwo.md.
+// Las usa nivel2/nivel2.js (Nivel 2 · Taller). Ver docs/niveles/nivel-2.md.
 
 /** Gramos con separador de miles fino: 15960 → "15 960". */
 export const grams = (kg) => String(Math.round(kg * 1000)).replace(/\B(?=(\d{3})+(?!\d))/g, ' ');

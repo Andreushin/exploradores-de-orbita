@@ -27,11 +27,6 @@ export function dryMass(pieceObjs) {
   return pieceObjs.reduce((sum, p) => sum + (p.massKg || 0), 0);
 }
 
-/** Masa total = seca + propelente. */
-export function totalMass(pieceObjs, propellantKg = 0) {
-  return dryMass(pieceObjs) + propellantKg;
-}
-
 /** Volumen ocupado en U (la estructura no ocupa volumen, lo provee). */
 export function usedVolume(pieceObjs) {
   return pieceObjs.filter((p) => p.category !== 'structure').reduce((s, p) => s + (p.volumeU || 0), 0);

@@ -115,21 +115,29 @@ function showError(err) {
 function renderChrome() {
   const s = getState();
   applyStatic();
+  document.title = t('common.appName');
   const inLevel = LEVELS.some((l) => l.id === s.screen);
-  document.getElementById('lang-toggle').textContent = s.lang === 'es' ? 'EN' : 'ES';
+  const toggle = document.getElementById('lang-toggle');
+  toggle.textContent = s.lang === 'es' ? 'EN' : 'ES';
+  toggle.setAttribute('aria-label', t('common.switchLang'));
   document.getElementById('nav-levels').hidden = !inLevel;
 
+  // Presupuesto: etiqueta y cifras por separado; en pantallas angostas solo se ven las cifras.
   const hud = document.getElementById('hud-budget');
   hud.hidden = !inLevel;
   const b = s.budget;
-  hud.textContent = t('common.budgetHud', { spent: b.launch + b.space + b.ground + b.user, total: b.total });
+  const spent = b.launch + b.space + b.ground + b.user;
+  hud.innerHTML = `<span class="pill-label">${t('common.budgetLabel')}:</span> $${spent}M / $${b.total}M`;
+  hud.setAttribute('aria-label', t('common.budgetHud', { spent, total: b.total }));
+  hud.classList.toggle('is-over', spent > b.total);
 
+  // Niveles: completados en verde, el actual resaltado.
   const steps = document.getElementById('steps');
   steps.hidden = !inLevel;
-  steps.replaceChildren(...LEVELS.map((lv, i) => {
+  steps.replaceChildren(...levelStatus(s).map((lv) => {
     const el = document.createElement('span');
-    el.className = 'step' + (lv.id === s.screen ? ' is-active' : '');
-    el.textContent = `${i + 1}. ${t(`common.steps.${lv.id}`)}`;
+    el.className = 'step' + (lv.done ? ' is-done' : '') + (lv.id === s.screen ? ' is-active' : '');
+    el.textContent = `${lv.done ? '✓' : `${lv.num}.`} ${t(`common.steps.${lv.id}`)}`;
     return el;
   }));
 }
@@ -146,9 +154,12 @@ async function boot() {
   try {
     await Promise.all([loadData(), loadTranslations()]);
   } catch (err) {
-    document.getElementById('app').innerHTML =
-      `<p class="error">Error cargando datos: ${err.message}.<br>
-       Si abriste el archivo directamente, ejecuta <code>python3 -m http.server</code> y entra a http://localhost:8000</p>`;
+    // Las traducciones pueden no haber cargado: mensaje bilingüe fijo.
+    document.getElementById('app').innerHTML = getSavedLang() === 'es'
+      ? `<p class="error">Error cargando datos: ${err.message}.<br>
+         Si abriste el archivo directamente, ejecuta <code>python3 -m http.server</code> y entra a http://localhost:8000</p>`
+      : `<p class="error">Error loading data: ${err.message}.<br>
+         If you opened the file directly, run <code>python3 -m http.server</code> and open http://localhost:8000</p>`;
     throw err;
   }
   const lang = getSavedLang();

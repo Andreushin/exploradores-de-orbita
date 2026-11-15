@@ -1,43 +1,57 @@
-# Cómo trabajamos (4 roles, sin pisarnos)
+# Cómo trabajamos
 
-**Regla de oro:** cada archivo tiene un único dueño (ver comentario `OWNER:` al inicio). Si necesitas un cambio en un archivo ajeno, pídeselo a su dueño.
+🗂 **Tablero Kanban:** https://github.com/users/Andreushin/projects/2 · 📖 **Guía del equipo:** [issue #24](https://github.com/Andreushin/exploradores-de-orbita/issues/24) · 🔗 **Contrato entre niveles:** [`docs/contrato-niveles.md`](docs/contrato-niveles.md)
 
-🗂 **Tablero Kanban:** https://github.com/users/Andreushin/projects/2 · 📖 **Guía del equipo:** [issue #24](https://github.com/Andreushin/exploradores-de-orbita/issues/24)
+## Un nivel por persona
 
-| Rol | Responsable | Rama | Archivos |
+Cada quien es dueño de su nivel y solo toca sus archivos. Lo compartido (`js/` común, `data/`, contrato) se cambia avisando en el PR.
+
+| Nivel | Responsable | Dónde vive | Documento |
 |---|---|---|---|
-| 1 · Core e integración | @Andreushin | `feat/core` | `index.html`, `assets/`, `e2e/`, `playwright.config.mjs`, `package.json`, `.github/`, `js/main.js`, `js/state.js`, `js/i18n.js`, `css/base.css`, `data/i18n/*/common.json`, `README.md`, `CONTRIBUTING.md` |
-| 2 · Datos y física | @tommycc2010-hub | `feat/data-physics` | `data/{missions,rockets,pieces,events}.json`, `js/physics.js`, `tests/`, `docs/fuentes.md` |
-| 3 · Pantallas 1–2 | @JU4NMAX | `feat/screens-1-2` | `js/screens/{mission,workshop}.js`, `css/screens/{mission,workshop}.css`, `data/i18n/*/{mission,workshop}.json` |
-| 4 · Pantallas 3–4 | @AslanCM | `feat/screens-3-4` | `js/screens/{journey,report}.js`, `js/canvas/*`, `css/screens/{journey,report}.css`, `data/i18n/*/{journey,report}.json` |
+| 1 · Diseña tu misión | @AslanCM | app principal: `js/screens/mission.js`, `mission-scenes.js`, `js/budget.js`, `css/screens/mission.css`, `data/segments.json` | [`nivel-1.md`](docs/niveles/nivel-1.md) |
+| 2 · Taller del CubeSat | @JU4NMAX | `nivel2/`, `js/taller-reglas.js`, `data/workshop.json` | [`nivel-2.md`](docs/niveles/nivel-2.md) |
+| 3 · Travesía e inserción | @Andreushin | `nivel3/` | [`nivel-3.md`](docs/niveles/nivel-3.md) |
+| 4 · Reporte y CML | @tommycc2010-hub | app principal: `js/screens/report.js`, `js/science-data.js`, `css/screens/report.css`, `data/science.json` | [`nivel-4.md`](docs/niveles/nivel-4.md) |
 
-## Contratos (no se cambian sin avisar)
+**Compartido:**
+- **Núcleo de la app**, @Andreushin: `index.html`, `js/main.js`, `js/state.js`, `js/i18n.js`, `js/levels.js`, `js/mision-store.js`, `js/screens/{start,levels}.js`, `css/base.css`, `css/screens/menu.css`, `assets/`, `.github/`.
+- **Física y datos comunes**, @tommycc2010-hub: `js/physics.js`, `data/{missions,rockets,pieces,events}.json`, `docs/fuentes.md`, `tests/`.
+
+## Reglas
+
+1. **Datos entre niveles:** solo por `eo-mision` con `js/mision-store.js` (ver el [contrato](docs/contrato-niveles.md)). Cada nivel escribe **solo su sección**.
+2. **No copies lógica:** importa `js/physics.js` y `data/*.json`.
+3. **Estilos aislados:** los niveles en carpeta usan solo su `nivelN.css`, con prefijo de clases (`n2-`, `n3-`). La app principal usa `css/base.css` y el CSS de su pantalla.
+4. **Bilingüe ES/EN:** todo texto nuevo va en los dos idiomas. App principal: `data/i18n/{es,en}/<ns>.json`. Niveles en carpeta: su `textos.js`.
+5. **Modo demo:** cada nivel funciona solo, aunque no haya datos del nivel anterior.
+6. **Sin código muerto:** si algo deja de usarse, se borra en el mismo PR (archivos, claves de i18n, clases CSS).
+
+### Pantallas de la app principal (niveles 1 y 4, inicio y menú)
 - **Pantalla:** `export default { id, mount(container, ctx), unmount() }`. Cada pantalla crea su propio DOM dentro de `container`.
 - **ctx:** `{ state, update, subscribe, reset, data, physics, t, tx, goTo }`.
   - `update({ budget: { space: 60 } })` mezcla por rama (no borra el resto de `budget`).
-  - `t('mission.title', vars)` → textos de `data/i18n/<lang>/<ns>.json`. `tx({es, en})` → textos dentro de los JSON de datos.
-- **Estado:** ver esquema en `js/state.js`.
-- **Física:** firmas exportadas en `js/physics.js` (`deltaV`, `validateDesign`, `insertionOutcome`, `scienceScore`, `computeCML`, …).
-- **Textos nuevos:** agrégalos SIEMPRE en `es` y `en` del namespace de tu pantalla.
+  - `t('mission.title', vars)` busca en `data/i18n/<lang>/<ns>.json`; `tx({ es, en })` traduce los textos de los JSON de datos.
+- **Niveles:** se registran en `js/levels.js`. Si un nivel vive en su carpeta, lleva `folder: N` y `goTo` redirige ahí.
 
 ## Cómo llegan los commits a `main`
-`main` está protegida: **nadie hace push directo**, ni el admin. Todo entra por Pull Request.
 
-1. **Rama** desde `main` actualizado: `feat/…`, `fix/…`, `data/…`, `docs/…` o `chore/…`.
+`main` está protegida: nadie hace push directo, todo entra por Pull Request.
+
+1. **Rama** desde `main` actualizado: `feat/…`, `fix/…`, `refactor/…`, `docs/…` o `chore/…`.
 2. **Commits** pequeños con el formato de abajo.
-3. **PR** a `main` usando la plantilla. El **título del PR** también sigue el formato, porque se convierte en el commit final.
-4. **Revisión:** aprobación de @Andreushin (CODEOWNERS). Sus propios PRs los fusiona él como admin.
-5. **Check automático** `Formato del título del PR` en verde.
-6. **Merge:** solo *Squash and merge* (1 PR = 1 commit en `main`). La rama se borra sola.
+3. **PR** con la plantilla y `Closes #N`. El **título** sigue el mismo formato, porque se convierte en el commit final.
+4. **Revisión:** @Andreushin aprueba (CODEOWNERS) o pide cambios explicando el motivo.
+5. **Check automático:** `Formato del título del PR` en verde.
+6. **Merge:** solo *Squash and merge* (1 PR = 1 commit en `main`); la rama se borra sola.
 
 ```bash
 git checkout main && git pull
-git checkout -b feat/taller-medidores
+git checkout -b feat/nivel2-tooltips
 # ... trabajar ...
-git commit -m "feat(taller): barra de masa con color por límite"
-git pull --rebase origin main      # nunca merge de main en tu rama
-git push -u origin feat/taller-medidores
-gh pr create --fill                # o desde la web
+git commit -m "feat(nivel2): tooltips de CubeSat 101 por subsistema"
+git pull --rebase origin main
+git push -u origin feat/nivel2-tooltips
+gh pr create --fill
 ```
 
 ### Formato de mensajes (Conventional Commits, en español)
@@ -51,37 +65,22 @@ tipo(alcance): descripción en imperativo, minúsculas, sin punto final
 | `data` | cambios en JSON de datos o balanceo |
 | `style` | CSS / aspecto visual |
 | `i18n` | textos y traducciones |
-| `docs` | README, CONTRIBUTING, fuentes |
-| `refactor` | reorganizar código sin cambiar comportamiento |
+| `docs` | documentación |
+| `refactor` | reorganizar o limpiar código sin cambiar el comportamiento |
 | `test` | pruebas |
 | `chore` | configuración, repo, tareas varias |
 
-**Alcances:** `core`, `fisica`, `datos`, `mision`, `taller`, `travesia`, `reporte`, `canvas`, `repo`, `nivel1`–`nivel4` (uno por carpeta de nivel). El alcance es opcional.
-
-Ejemplos: `feat(travesia): quemado de inserción con barra de precisión` · `fix(taller): Δv no se actualizaba al quitar propelente` · `data(fisica): subir Isp del iónico a 1600 s`.
-
-### Reglas de los PR
-- Un PR por tarea; pequeño y fácil de revisar (idealmente < 300 líneas).
-- Solo tocas archivos de tu rol (ver tabla). Si no, avisa en la descripción.
-- Antes de pedir revisión: juegas el flujo completo en local, en ES y EN, sin errores en consola.
-- Después del **H24 (feature freeze)** solo se aceptan `fix`, `data`, `style`, `i18n` y `docs`.
+**Alcances:** `nivel1`, `nivel2`, `nivel3`, `nivel4` (uno por nivel), `core`, `fisica`, `datos`, `repo`. También se aceptan `mision`, `taller`, `travesia`, `reporte` y `canvas`. El alcance es opcional.
 
 ## Pruebas
-> ⏸ **El E2E está en pausa hasta el H32.** El flujo cambió con #45 (Inicio → Niveles → asistente). Ya no corre en cada PR ni bloquea fusiones; se adapta y se reactiva al cierre (issue #3). Las pruebas de física y ciencia siguen vigentes.
 
-| Qué | Comando | Cuándo |
+| Qué | Dónde (con `python3 -m http.server 8000`) | Cuándo |
 |---|---|---|
-| Física y diseños de referencia | abrir `http://localhost:8000/tests/physics.test.html` | antes de un PR de datos |
-| E2E: Luna, Marte y Europa de punta a punta, idioma y móvil | `npm install` (una vez) → `npx playwright install chromium` (una vez) → `npm run e2e` | antes de pedir revisión |
-| E2E contra el sitio publicado | `npm run e2e:live` | en cada checkpoint (H12, H24) |
+| Física y diseños de referencia | `http://localhost:8000/tests/physics.test.html` | al cambiar datos o `physics.js` |
+| Puntaje científico y CML | `tests/science.test.html` | al cambiar la fórmula de ciencia |
+| Reporte (CML final, sugerencias, series) | `tests/report.test.html` | al cambiar el Nivel 4 |
+| Presupuesto del Nivel 1 | `tests/budget.test.html` | al cambiar el Nivel 1 |
 
-- La CI corre el E2E en **cada PR** y **cada vez que GitHub Pages publica**. Si falla, revisa el reporte en la pestaña *Actions*.
-- La prueba usa los textos e ids de los JSON, no el HTML: si cambias una pantalla, mantén botones con su texto visible.
-- **Bug encontrado** → issue nuevo asignado al dueño del archivo; la prueba afectada se agrega a `KNOWN_BUGS` en `e2e/checkpoint.spec.mjs` hasta que se arregle.
-- Si cambias el balance de datos (Rol 2), actualiza `REFERENCE` en el E2E y los diseños de `docs/fuentes.md`.
+Antes de pedir revisión, **juega el flujo completo** (Inicio → Nivel 1 → `nivel2/` → `nivel3/` → Reporte) en ES y EN, sin errores en la consola, y revisa el ancho de 360 px.
 
-## Checkpoints (≤36 h)
-- **H12:** flujo de 4 pantallas navegable en `main` + primer deploy a GitHub Pages.
-- **H24:** feature freeze. Después solo balanceo, bugs, móvil y textos.
-- **H32–H36:** video demo, README y entrega.
-- Recortables en orden: eventos aleatorios → gráfica del reporte → animación elaborada → 3er destino.
+Si cambias el balance de datos, actualiza los diseños de referencia en `docs/fuentes.md` y en `tests/physics.test.html`.

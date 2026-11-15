@@ -1,8 +1,8 @@
 # Nivel 1 · Diseña tu misión
 
-> Referencia para revisar y mantener el Nivel 1. **Owner:** Rol 3.
+> Referencia para revisar y mantener el Nivel 1. **Responsable:** @AslanCM · vive en la app principal (`js/screens/mission.js`).
 > **Recurso NASA:** Design and Develop Science Missions (DDSM).
-> **Relacionados:** [`context.md`](context.md) · [`fuentes.md`](fuentes.md)
+> **Relacionados:** [`fuentes.md`](../fuentes.md)
 
 ## Índice
 1. [Resumen](#1-resumen)
@@ -188,7 +188,7 @@ Después de cambiar datos, corre `tests/budget.test.html`. La prueba «con $X de
 - **Sobredimensionar penaliza pero no bloquea:** una misión cara puede aprobarse con menor madurez. Lo que bloquea es lo que haría fallar la misión.
 - **Presupuesto por destino y no un valor fijo de $100M:** con 100 M$ fijos, Europa sería imposible, porque su único cohete cuesta 80 M$.
 - **Fondos en SVG + CSS y no WebGL:** son ligeros, se ven nítidos a cualquier tamaño y respetan el movimiento reducido.
-- **Arquitectura modular y no un `index.html` autocontenido:** `context.md` pide datos en `/data`, y las otras pantallas comparten el router y el estado.
+- **Arquitectura modular y no un `index.html` autocontenido:** el proyecto pide datos en `/data`, y las otras pantallas comparten el router y el estado.
 - **Accesibilidad:**
   - el arrastre es opcional (hay botones equivalentes);
   - el foco vuelve a la tarjeta movida;
