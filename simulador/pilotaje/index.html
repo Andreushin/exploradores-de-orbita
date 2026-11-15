@@ -1,0 +1,49 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <!-- OWNER: Rol 3 (@JU4NMAX) — Simulador de pilotaje en primera persona (prototipo local, ver ../FUENTES.md). -->
+  <title>Simulador de pilotaje · Exploradores de Órbita</title>
+  <meta name="theme-color" content="#000000">
+  <link rel="icon" type="image/svg+xml" href="../../assets/logo.svg">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@500&family=Space+Grotesk:wght@400;600;700&display=swap">
+  <link rel="stylesheet" href="pilotaje.css">
+  <script type="importmap">
+    { "imports": {
+      "three": "https://unpkg.com/three@0.160.0/build/three.module.js",
+      "three/addons/": "https://unpkg.com/three@0.160.0/examples/jsm/"
+    } }
+  </script>
+</head>
+<body class="pil">
+  <canvas class="pil-canvas" id="pil-canvas" aria-label="Vista desde la cabina"></canvas>
+  <div class="pil-marco" aria-hidden="true"></div>
+  <div class="pil-mira" id="pil-mira" aria-hidden="true"><i></i></div>
+  <div class="pil-etiquetas" id="pil-etiquetas" aria-hidden="true"></div>
+  <div class="pil-llama" id="pil-llama" aria-hidden="true"></div>
+
+  <header class="pil-top">
+    <a class="pil-brand" href="../../"><img src="../../assets/logo.svg" alt="" width="26" height="26"><span id="pil-marca">Exploradores de Órbita</span></a>
+    <span class="pil-mision" id="pil-nombre-mision"></span>
+    <button class="pil-btn" id="pil-idioma" type="button">EN</button>
+  </header>
+
+  <section class="pil-hud" id="pil-hud" aria-label="Instrumentos"></section>
+  <section class="pil-lugares" id="pil-lugares" aria-label="Lugares por observar"></section>
+  <section class="pil-registro" aria-label="Registro">
+    <ol id="pil-registro" aria-live="polite"></ol>
+  </section>
+
+  <nav class="pil-botones" id="pil-botones" aria-label="Controles"></nav>
+  <p class="pil-pie" id="pil-pie"></p>
+  <p class="pil-aviso" id="pil-aviso" hidden></p>
+
+  <dialog class="pil-dialogo" id="pil-briefing"></dialog>
+  <dialog class="pil-dialogo" id="pil-resultado"></dialog>
+
+  <script type="module" src="cabina.js"></script>
+</body>
+</html>

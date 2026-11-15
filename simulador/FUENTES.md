@@ -110,3 +110,32 @@ Origen: los zips `Luna-`, `Marte-`, `Tierra-` y `Europa-3D-NASA-4K` que aportó 
 - Tierra: Blue Marble y Black Marble de [NASA Earth Observatory](https://earthobservatory.nasa.gov/features/BlueMarble/BlueMarble.php).
 
 **Licencia y crédito.** La NASA indica que [sus imágenes no son de dominio público](https://www.nasa.gov/multimedia/guidelines/index.html) y se usan según sus pautas de uso, con crédito. Antes de publicar: confirmar el origen de cada textura y acreditar a NASA (Earth Observatory para la Tierra).
+
+### Lugares reales (`pilotaje/destinos.js`; longitudes en este positivo)
+| Destino | Lugar | Lat, lon | Fuente |
+|---|---|---|---|
+| Luna | Base Tranquilidad (Apolo 11) | 0.67409° N, 23.47298° E | [NASA Apollo Lunar Surface Journal](https://nasa.gov/wp-content/uploads/static/history/alsj/a11/a11ov.html) (NSSDC) |
+| Luna | Cráter Shackleton (Ø 20.92 km) | 89.67° S, 129.78° E | [USGS Gazetteer](https://planetarynames.wr.usgs.gov/Feature/5450); profundidad ~4.1 km (LOLA) en [MIT News](https://news.mit.edu/2012/shackletons-crater-0620.html). El USGS lista más de un juego de coordenadas (ESA midió 89.54° S, Ø 19 km) |
+| Luna | Sitio de Chang'e 4 (cráter Von Kármán, Ø 186 km) | 45.457° S, 177.588° E | [ISPRS](https://isprs-archives.copernicus.org/articles/XLII-2-W13/1425/2019/isprs-archives-XLII-2-W13-1425-2019.pdf); [JGR Planets](https://research.vu.nl/en/publications/geological-characteristics-of-von-k%C3%A1rm%C3%A1n-crater-northwestern-sout/) |
+| Marte | Cráter Jezero (Ø 45–50 km según la fuente) | 18.38° N, 77.58° E | [USGS](https://www.usgs.gov/media/images/jezero-crater-mars-2); [Planetary Society](https://planetary.org/articles/jezero-landing-site-mars-2020-rover) |
+| Marte | Monte Olimpo (21.9 km, datum MOLA) | 18.65° N, 226.2° E (= 133.8° O) | [NASA Photojournal](https://science.nasa.gov/photojournal/pj-olympus-mons-25/) |
+| Marte | Casquete polar norte (~1 000–1 100 km) | 90° N | [Mare Boreum](https://en.wikipedia.org/wiki/Mare_Boreum_quadrangle) (fuente secundaria) |
+| Europa | Conamara Chaos (Ø 143.7 km) | 9.70° N, 272.70° O = 87.30° E | [USGS Gazetteer](https://planetarynames.wr.usgs.gov/Feature/1282) (IAU, 1997) |
+| Europa | Tara Regio | 7.5° S, 74.5° O | **Derivado**: punto medio del recuadro del [USGS](https://planetarynames.wr.usgs.gov/Feature/14296) (lat −35…20, lon 42…107° O); no hay centro oficial. NaCl: [Trumbo et al.](https://arxiv.org/pdf/2201.01333) |
+| Europa | Región polar sur | 90° S (región) | Hubble, diciembre de 2012 ([NASA/JPL](https://www.jpl.nasa.gov/news/hubble-sees-evidence-of-water-vapor-at-jupiter-moon/)); no hay latitud publicada en las fuentes consultadas |
+
+Las coordenadas del USGS vienen en "oeste positivo, 0–360"; se convirtieron a este positivo (`lon_este = −lon_oeste`). Una prueba (`tests/destinos.test.mjs`) comprueba las conversiones y los rangos.
+
+### Alineación de las texturas (comprobada mirando cada imagen)
+| Cuerpo | Estado | Cómo se comprobó |
+|---|---|---|
+| Luna | **verificada**: lon 0° al centro, este a la derecha | Mare Crisium (17° N, 59° E), Mare Serenitatis (28° N, 17.5° E) y la cuenca Orientale (19° S, 93° O) caen donde les toca. La textura es en **escala de grises** (albedo), no a color |
+| Marte | **verificada**: igual | Monte Olimpo (18.65° N, 133.8° O) y Valles Marineris |
+| Europa | **no verificada** | El USGS dice "oeste positivo, 0–360" pero no dónde cae el 0° en la imagen; ningún rasgo reconocible permitió decidirlo. Hay que resolverlo antes de colocar marcadores en Europa |
+
+### Misión de la Luna (Apolo 11): qué es real y qué es de juego
+- **Real y verificado:** la órbita de referencia, 61.6 × 169.5 millas náuticas = **114.1 × 313.9 km**, medida por seguimiento tras el primer encendido de entrada en órbita ([Apollo Flight Journal, NASA](https://www.nasa.gov/history/afj/ap11fj/12day4-loi2.html)). La duración de ese encendido aparece como 5:57 y 6:02 según la fuente.
+- **No verificado, por eso no se muestra como dato:** el Δv de ese encendido, el número de órbitas lunares y la segunda órbita (LOI-2).
+- **Simplificado para el juego y rotulado en pantalla:** velocidad de llegada (800 m/s), Δv disponible (1 400 m/s), fuerza del motor (3 m/s²), ritmo del tiempo (×1 a ×120) y plano de llegada polar con el periapsis a 30° S y el nodo en 10° E, elegido para que los 3 lugares queden a la vista en una vuelta. El Sol se coloca sobre 100° E para que Tranquilidad y Chang'e 4 reciban luz.
+- **Distancia Tierra–Luna:** 384 400 km ([NSSDCA Moon Fact Sheet](https://nssdc.gsfc.nasa.gov/planetary/factsheet/moonfact.html)); radio de la Tierra 6 371.000 km y día sidéreo 23.9345 h ([NSSDCA Earth Fact Sheet](https://nssdc.gsfc.nasa.gov/planetary/factsheet/earthfact.html)).
+- **Cambio respecto al respaldo:** la tecla **E** gira la nave (como pedía el respaldo) y por eso **escanear** pasó a la barra espaciadora; en el respaldo las dos usaban la E.

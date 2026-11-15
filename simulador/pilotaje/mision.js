@@ -87,6 +87,9 @@ export const elementosActuales = (m) => F.elementos({ r: m.r, v: m.v }, m.cuerpo
 export const dvRestante = (m) => Math.max(0, AJUSTES.dvMax - m.dvUsado);
 const tierraInercial = (m) => F.esc(rotar([1, 0, 0], Z, (2 * Math.PI * m.t) / m.cuerpo.rotacion), DISTANCIA_TIERRA);
 
+/** Posición inercial de la Tierra (m). Sirve para dibujarla y para decidir la señal. */
+export const posicionTierra = tierraInercial;
+
 /** ¿La Luna tapa la Tierra? (sin señal) */
 export const sinSenal = (m) => F.tapado(m.r, tierraInercial(m), m.cuerpo.radio);
 
