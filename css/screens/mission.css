@@ -41,7 +41,7 @@
   background: var(--surface-2); font-size: 0.95rem;
 }
 .stp-label { display: grid; line-height: 1.15; font-size: 0.85rem; font-weight: 600; min-width: 0; }
-.stp-label small { font-weight: 400; font-size: 0.7rem; color: var(--muted); }
+.stp-label small { font-weight: 400; font-size: 0.75rem; color: var(--muted); }
 .stp.is-done button { color: var(--text); border-bottom-color: var(--ok); }
 .stp.is-done .stp-dot { background: rgba(74, 222, 128, 0.2); color: var(--ok); }
 .stp.is-current button { color: var(--text); border-bottom-color: var(--accent-2); }
@@ -49,7 +49,7 @@
 
 .budget-bar { display: grid; gap: 6px; }
 .bb-nums { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 2px 16px; margin: 0; }
-.bb-nums dt { font-size: 0.72rem; color: var(--muted); }
+.bb-nums dt { font-size: 0.75rem; color: var(--muted); }
 .bb-nums dd { margin: 0; font-weight: 700; font-variant-numeric: tabular-nums; overflow-wrap: anywhere; }
 .bb-cml.cml-4 { color: var(--ok); }
 .bb-cml.cml-3 { color: var(--warn); }
@@ -68,7 +68,7 @@
 .is-compact .budget-bar { flex: 1 1 360px; min-width: 0; gap: 3px; }
 .is-compact .bb-nums { display: flex; flex-wrap: wrap; justify-content: space-between; gap: 0 14px; }
 .is-compact .bb-nums > div { display: flex; align-items: baseline; gap: 6px; }
-.is-compact .bb-nums dt { font-size: 0.68rem; }
+.is-compact .bb-nums dt { font-size: 0.75rem; }
 .is-compact .bb-nums dd { font-size: 0.82rem; }
 .is-compact .bb-track { height: 4px; }
 .sw-launch { background: var(--seg-launch); }
@@ -394,3 +394,8 @@
   .lvl-scenes *, .step-stage, .slot .opt, .opt, .dock-panel, .dock-tab, .dock-chev, .dock-badge, .lvl-nav .btn-primary { animation: none !important; transition: none !important; }
   .opt:hover { transform: none; }
 }
+
+/* Aviso hacia el simulador de cohetes reales (paso de Lanzamiento) */
+.sim-hint { margin: 12px 0 0; font-size: 0.85rem; }
+.sim-hint a { color: var(--accent-2); text-underline-offset: 3px; }
+.sim-hint a:focus-visible { outline: 2px solid var(--accent-2); outline-offset: 2px; border-radius: 4px; }

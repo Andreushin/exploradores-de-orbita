@@ -145,5 +145,7 @@
     "overBudget": "Recorta ${over}M: la misión excede el presupuesto."
   },
   "ready": "«{name}» pasa la revisión. CML máximo alcanzable: {cml}.",
-  "validate": "Siguiente: Taller del CubeSat →"
+  "validate": "Siguiente: Taller del CubeSat →",
+  "simHint": "¿Curiosidad por cohetes reales?",
+  "simLink": "Míralos en el simulador 3D (se abre en otra pestaña) →"
 }

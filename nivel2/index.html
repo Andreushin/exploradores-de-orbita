@@ -7,12 +7,11 @@
   <title>Nivel 2 · Exploradores de Órbita</title>
   <meta name="theme-color" content="#070b1a">
   <link rel="icon" type="image/svg+xml" href="../assets/logo.svg">
-  <link rel="preconnect" href="https://fonts.googleapis.com">
-  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@500&family=Space+Grotesk:wght@400;600;700&display=swap">
+  <link rel="stylesheet" href="../assets/fonts/fonts.css">
   <link rel="stylesheet" href="nivel2.css">
 </head>
 <body class="n2">
+  <a class="n2-skip" id="n2-skip" href="#n2-main"></a>
 
   <!-- ── Barra superior 48 px ────────────────────────────────── -->
   <header class="n2-topbar">
@@ -34,7 +33,8 @@
   </div>
 
   <!-- ── Workspace: 3 columnas ──────────────────────────────── -->
-  <div class="n2-workspace">
+  <main class="n2-workspace" id="n2-main" tabindex="-1">
+    <h1 class="n2-sr" id="n2-title"></h1>
 
     <!-- Col izquierda: catálogo con scroll propio -->
     <section class="n2-col-catalog" id="n2-catalog" aria-label="Catálogo de piezas"></section>
@@ -60,7 +60,7 @@
     <!-- Col derecha: telemetría con scroll si hace falta -->
     <aside class="n2-col-telem" id="n2-telem" aria-label="Telemetría y verificaciones"></aside>
 
-  </div>
+  </main>
 
   <!-- Celular: resumen fijo abajo (en escritorio la telemetría ya está a la vista) -->
   <div class="n2-mini" id="n2-mini"></div>
@@ -72,5 +72,6 @@
   <div class="n2-alarm" id="n2-alarm" aria-hidden="true"></div>
 
   <script type="module" src="nivel2.js"></script>
+  <script type="module" src="../js/sw-register.js"></script>
 </body>
 </html>

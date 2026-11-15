@@ -7,6 +7,7 @@
 // Reglas: js/budget.js · Documentación: docs/niveles/nivel-1.md
 import { SEGMENTS, STEPS, cardCatalog, requiredLevels, evaluatePlan, stepStatus, validProjectName } from '../budget.js';
 import { createScenes } from './mission-scenes.js';
+import { SIMULADORES_LISTOS } from './explorar.js';
 
 let ctx;
 let root;
@@ -509,6 +510,8 @@ function renderSegmentBody(k, ev) {
   const list = el('div', 'bank-list');
   for (const card of catalog[k].filter((c) => c.id !== plan.cards[k])) list.append(cardEl(card, false));
   bank.append(list);
+  // Los cohetes de las tarjetas son del juego; el simulador muestra los reales. Se abre en otra pestaña para no perder el paso.
+  if (k === 'launch' && SIMULADORES_LISTOS) bank.append(el('p', 'muted sim-hint', `${t('mission.simHint')} <a href="simulador/" target="_blank" rel="noopener">${t('mission.simLink')}</a>`));
   dropZone(bank, (d) => d.placed, (d) => placeCard(d.seg, null));
 
   const board = el('div', 'board');

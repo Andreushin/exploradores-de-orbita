@@ -556,6 +556,7 @@ function onKey(e) {
 function applyLang() {
   document.documentElement.lang = lang;
   $('n3-title').textContent = t('title');
+  $('n3-skip').textContent = t('skip');
   $('n3-lead').textContent = t('lead', { dest: tx(mission.name) });
   $('n3-demo').textContent = t('demo');
   $('n3-lang').textContent = t('lang');

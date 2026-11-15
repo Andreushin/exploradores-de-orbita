@@ -1,5 +1,6 @@
 // OWNER: Rol 1 — Selector de niveles. Cada nivel se carga al seleccionarlo (ver js/levels.js).
 import { levelStatus, hasProgress } from '../levels.js';
+import { explorarLinks } from './explorar.js';
 
 function el(tag, cls, html) {
   const e = document.createElement(tag);
@@ -43,6 +44,7 @@ export default {
       grid.append(card);
     }
     container.append(grid);
+    container.append(explorarLinks(t));
 
     const footer = el('div', 'screen-footer');
     const back = el('button', 'btn btn-ghost', t('menu.levels.back'));

@@ -7,14 +7,13 @@
   <meta name="description" content="Space Mission Design Game — NASA Space Apps 2026">
   <meta name="theme-color" content="#070b1a">
   <link rel="icon" type="image/svg+xml" href="assets/logo.svg">
-  <link rel="preconnect" href="https://fonts.googleapis.com">
-  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@500&family=Space+Grotesk:wght@400;600;700&display=swap">
+  <link rel="stylesheet" href="assets/fonts/fonts.css">
   <link rel="stylesheet" href="css/base.css">
   <link rel="stylesheet" href="css/screens/menu.css">
   <!-- Los CSS de cada nivel se cargan al abrirlo (js/levels.js). -->
 </head>
 <body>
+  <a class="skip-link" href="#app" data-i18n="common.skip"></a>
   <!-- OWNER: Rol 1. Las pantallas generan su propio DOM dentro de cada <section>. -->
   <header class="app-header">
     <button class="brand" type="button"><img src="assets/logo.svg" alt="" width="32" height="32"><span data-i18n="common.appName"></span></button>
@@ -26,7 +25,7 @@
     </div>
   </header>
 
-  <main id="app">
+  <main id="app" tabindex="-1">
     <p class="error" id="app-error" role="alert" hidden></p>
     <section class="screen" id="screen-start" hidden></section>
     <section class="screen" id="screen-levels" hidden></section>
@@ -37,5 +36,6 @@
   <footer class="app-footer" data-i18n="common.footer"></footer>
 
   <script type="module" src="js/main.js"></script>
+  <script type="module" src="js/sw-register.js"></script>
 </body>
 </html>

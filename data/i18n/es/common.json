@@ -1,5 +1,6 @@
 {
   "appName": "Exploradores de Órbita",
+  "skip": "Saltar al contenido",
   "footer": "Parche ColomboMexicano · NASA Space Apps 2026 · Datos ludificados con base en recursos de la NASA",
   "budgetHud": "Presupuesto: ${spent}M / ${total}M",
   "levelsNav": "☰ Niveles",

@@ -3,6 +3,7 @@
 
 export const TEXTOS = {
   es: {
+    skip: 'Saltar a la travesía',
     title: 'Nivel 3 · Travesía e inserción orbital',
     lead: 'Lleva tu CubeSat a su destino ({dest}) con el combustible que cargaste. Cada maniobra gasta propelente, y un satélite más pesado gasta más para el mismo cambio de velocidad.',
     demo: 'Modo demo: no hay un satélite del Nivel 2, así que usamos el diseño de referencia de la Luna.',
@@ -106,6 +107,7 @@ export const TEXTOS = {
     noEngine: 'Tu CubeSat no lleva sistema de propulsión: sin motor no hay inserción orbital.',
   },
   en: {
+    skip: 'Skip to the journey',
     title: 'Level 3 · Journey and orbit insertion',
     lead: 'Fly your CubeSat to its destination ({dest}) with the propellant you loaded. Every maneuver burns propellant, and a heavier spacecraft burns more for the same change in velocity.',
     demo: 'Demo mode: there is no Level 2 spacecraft yet, so we use the Moon reference design.',
