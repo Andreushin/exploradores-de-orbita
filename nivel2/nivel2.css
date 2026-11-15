@@ -677,3 +677,10 @@ body.n2 {
   .n2-brand-txt { display: none; }
   .n2-topbar-obj { display: none; }
 }
+
+/* Accesibilidad: salto al contenido, foco que el pie fijo no tapa y slider con zona de toque amplia */
+.n2-skip { position: absolute; left: 8px; top: -64px; z-index: 100; padding: 10px 16px; border-radius: 10px; font-weight: 700; text-decoration: none; color: var(--n2-on-accent); background: var(--n2-accent); border: 2px solid var(--n2-text); }
+.n2-skip:focus { top: 8px; }
+.n2-workspace:focus { outline: none; }
+.n2-col-telem { scroll-padding-bottom: 92px; } /* el botón Lanzar fijo mide ~66 px: un elemento enfocado no debe quedar debajo */
+.n2-prop input[type=range] { height: 28px; cursor: pointer; }

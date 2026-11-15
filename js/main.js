@@ -70,7 +70,17 @@ function makeCtx() {
 }
 
 /** Navega a una pantalla. Nunca rechaza: los errores de carga se muestran en pantalla. */
-async function goTo(screenId) {
+/** Mueve el foco al título de la pantalla nueva: quien navega con teclado o lector de pantalla no se queda en el vacío. */
+function focusScreen(container) {
+  const target = container.querySelector('h1, h2');
+  if (!target || container.contains(document.activeElement)) return; // si la pantalla ya enfocó algo, se respeta
+  target.setAttribute('tabindex', '-1');
+  target.focus({ preventScroll: true });
+}
+
+let booted = false; // la primera pantalla no roba el foco: el primer Tab debe caer en «Saltar al contenido»
+
+async function goTo(screenId, { fromHistory = false } = {}) {
   // Niveles en carpeta propia (nivelN/): guardar la misión y redirigir (docs/contrato-niveles.md)
   const folder = LEVELS.find((l) => l.id === screenId)?.folder;
   if (folder) {
@@ -90,6 +100,7 @@ async function goTo(screenId) {
       old.hidden = true;
       old.replaceChildren();
     }
+    const changed = !active || active.id !== screenId; // re-montar la misma pantalla (cambio de idioma) no es navegar
     active = next;
     update({ screen: screenId });
     const container = document.getElementById(`screen-${screenId}`);
@@ -98,6 +109,12 @@ async function goTo(screenId) {
     document.getElementById('app-error').hidden = true;
     renderChrome();
     window.scrollTo(0, 0);
+    // El botón «Atrás» del navegador vuelve a la pantalla anterior en vez de salir del juego
+    if (changed) {
+      if (!fromHistory) history.pushState({ screen: screenId }, '', location.pathname);
+      if (booted) focusScreen(container);
+    }
+    booted = true;
   } catch (err) {
     console.error(err);
     if (token === navToken) showError(err);
@@ -115,8 +132,9 @@ function showError(err) {
 function renderChrome() {
   const s = getState();
   applyStatic();
-  document.title = t('common.appName');
   const inLevel = LEVELS.some((l) => l.id === s.screen);
+  // Título por pantalla: el historial y las pestañas muestran dónde está el jugador
+  document.title = inLevel ? `${t(`common.steps.${s.screen}`)} · ${t('common.appName')}` : t('common.appName');
   const toggle = document.getElementById('lang-toggle');
   toggle.textContent = s.lang === 'es' ? 'EN' : 'ES';
   toggle.setAttribute('aria-label', t('common.switchLang'));
@@ -177,8 +195,10 @@ async function boot() {
   // para volver a una pantalla de la app. Solo si ese nivel ya está desbloqueado.
   const wanted = location.hash.slice(1);
   const target = levelStatus(getState()).find((l) => l.id === wanted && l.unlocked);
-  if (wanted) history.replaceState(null, '', location.pathname);
-  void goTo(target ? target.id : 'start');
+  const first = target ? target.id : 'start';
+  history.replaceState({ screen: first }, '', location.pathname);
+  window.addEventListener('popstate', (e) => { if (e.state?.screen) void goTo(e.state.screen, { fromHistory: true }); });
+  void goTo(first, { fromHistory: true });
 }
 
 boot();

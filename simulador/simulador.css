@@ -53,15 +53,15 @@ body.sim { min-height: 100vh; background: var(--sim-bg); color: var(--sim-text);
 .sim-hud b { text-align: right; }
 .sim-hud .sim-hud-capa { grid-column: 1 / -1; margin-top: 3px; padding-top: 3px; border-top: 1px solid rgba(154, 166, 207, 0.2); color: var(--sim-info); font-size: 0.76rem; }
 .sim-hud .sim-hud-etapa { grid-column: 1 / -1; color: var(--sim-accent); }
-.sim-hud .sim-hud-hint { grid-column: 1 / -1; color: var(--sim-muted); font-size: 0.72rem; opacity: 0.85; }
+.sim-hud .sim-hud-hint { grid-column: 1 / -1; color: var(--sim-muted); font-size: 0.75rem; opacity: 0.85; }
 .sim-aviso { position: absolute; inset: auto 10px 10px 10px; margin: 0; padding: 8px 12px; border-radius: 10px; background: rgba(7, 11, 26, 0.85); color: var(--sim-warn); font-size: 0.9rem; }
 
 /* Tarjeta de inspección de etapas en el visor 3D */
 .sim-etapa-card { position: absolute; top: 10px; right: 10px; width: min(320px, calc(100% - 20px)); padding: 12px 14px; border-radius: 12px; background: rgba(14, 21, 48, 0.88); backdrop-filter: blur(12px); border: 1px solid var(--sim-border); box-shadow: 0 12px 28px rgba(0, 0, 0, 0.55); font-size: 0.84rem; z-index: 5; }
 .sim-etapa-head { display: flex; justify-content: space-between; align-items: flex-start; gap: 8px; margin-bottom: 8px; }
 .sim-etapa-head h3 { margin: 2px 0 0; font-size: 0.96rem; color: var(--sim-text); }
-.sim-etapa-sub { margin: 2px 0 0; font-family: var(--sim-mono); font-size: 0.74rem; color: var(--sim-info); }
-.sim-etapa-badge { display: inline-block; font: 500 0.68rem var(--sim-mono); text-transform: uppercase; letter-spacing: 0.06em; padding: 2px 7px; border-radius: 999px; }
+.sim-etapa-sub { margin: 2px 0 0; font-family: var(--sim-mono); font-size: 0.75rem; color: var(--sim-info); }
+.sim-etapa-badge { display: inline-block; font: 500 0.75rem var(--sim-mono); text-transform: uppercase; letter-spacing: 0.06em; padding: 2px 7px; border-radius: 999px; }
 .sim-etapa-badge.is-attached { background: rgba(74, 222, 128, 0.16); color: var(--sim-ok); border: 1px solid rgba(74, 222, 128, 0.4); }
 .sim-etapa-badge.is-sep { background: rgba(251, 191, 36, 0.16); color: var(--sim-warn); border: 1px solid rgba(251, 191, 36, 0.4); }
 .sim-etapa-close { background: var(--sim-surface-2); color: var(--sim-text); border: 1px solid var(--sim-border); border-radius: 50%; width: 26px; height: 26px; cursor: pointer; display: inline-flex; align-items: center; justify-content: center; font-size: 0.8rem; }
@@ -69,7 +69,7 @@ body.sim { min-height: 100vh; background: var(--sim-bg); color: var(--sim-text);
 .sim-etapa-desc { margin: 0 0 10px; color: var(--sim-muted); line-height: 1.4; font-size: 0.8rem; }
 .sim-etapa-specs { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; margin: 0 0 10px; }
 .sim-etapa-specs div { background: rgba(7, 11, 26, 0.55); border: 1px solid rgba(38, 51, 98, 0.6); border-radius: 8px; padding: 5px 8px; }
-.sim-etapa-specs dt { font: 500 0.68rem var(--sim-mono); color: var(--sim-muted); text-transform: uppercase; }
+.sim-etapa-specs dt { font: 500 0.75rem var(--sim-mono); color: var(--sim-muted); text-transform: uppercase; }
 .sim-etapa-specs dd { margin: 1px 0 0; font: 600 0.78rem var(--sim-mono); color: var(--sim-text); }
 .sim-etapa-actions { display: flex; justify-content: flex-end; }
 .sim-etapa-actions .sim-btn { padding: 5px 10px; font-size: 0.78rem; }
