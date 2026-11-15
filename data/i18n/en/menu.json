@@ -26,5 +26,12 @@
     "back": "← Home",
     "reset": "Restart mission"
   },
-  "loadError": "Couldn't load the level ({msg}). Check your connection and try again."
+  "loadError": "Couldn't load the level ({msg}). Check your connection and try again.",
+  "explore": {
+    "title": "Explore more",
+    "rockets": "Real rocket simulator",
+    "rocketsDesc": "Saturn V, Atlas-Agena D and Falcon Heavy with real physics",
+    "orbital": "3D orbital missions",
+    "orbitalDesc": "Fly to the Moon, Mars and Europa"
+  }
 }

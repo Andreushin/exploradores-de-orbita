@@ -6,7 +6,7 @@
 // Si agregas o quitas archivos: `node scripts/precache.mjs` actualiza el bloque de abajo.
 
 /* PRECACHE:INICIO — generado por scripts/precache.mjs, no editar a mano */
-const VERSION = "7260a2e14a";
+const VERSION = "03bc4438c5";
 const NUCLEO = [
   "",
   "nivel2/",
@@ -49,6 +49,7 @@ const NUCLEO = [
   "js/mision-store.js",
   "js/physics.js",
   "js/science-data.js",
+  "js/screens/explorar.js",
   "js/screens/levels.js",
   "js/screens/mission-scenes.js",
   "js/screens/mission.js",
@@ -90,6 +91,7 @@ const NUCLEO = [
   "simulador/pilotaje/textos.js",
   "simulador/simulador.css",
   "simulador/simulador.js",
+  "simulador/textos.js",
 ];
 const PESADOS = [
   "simulador/modelos/originales/atlas-agena-d/atlas-agena-assembled.html",

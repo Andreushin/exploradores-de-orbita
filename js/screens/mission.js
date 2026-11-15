@@ -509,6 +509,8 @@ function renderSegmentBody(k, ev) {
   const list = el('div', 'bank-list');
   for (const card of catalog[k].filter((c) => c.id !== plan.cards[k])) list.append(cardEl(card, false));
   bank.append(list);
+  // Los cohetes de las tarjetas son del juego; el simulador muestra los reales. Se abre en otra pestaña para no perder el paso.
+  if (k === 'launch') bank.append(el('p', 'muted sim-hint', `${t('mission.simHint')} <a href="simulador/" target="_blank" rel="noopener">${t('mission.simLink')}</a>`));
   dropZone(bank, (d) => d.placed, (d) => placeCard(d.seg, null));
 
   const board = el('div', 'board');
