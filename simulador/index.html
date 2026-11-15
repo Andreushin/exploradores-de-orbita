@@ -7,14 +7,12 @@
   <title>Simulador de cohetes reales · Exploradores de Órbita</title>
   <meta name="theme-color" content="#070b1a">
   <link rel="icon" type="image/svg+xml" href="../assets/logo.svg">
-  <link rel="preconnect" href="https://fonts.googleapis.com">
-  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@500&family=Space+Grotesk:wght@400;600;700&display=swap">
+  <link rel="stylesheet" href="../assets/fonts/fonts.css">
   <link rel="stylesheet" href="simulador.css">
   <script type="importmap">
     { "imports": {
-      "three": "https://unpkg.com/three@0.160.0/build/three.module.js",
-      "three/addons/": "https://unpkg.com/three@0.160.0/examples/jsm/"
+      "three": "../js/vendor/three/three.module.js",
+      "three/addons/": "../js/vendor/three/addons/"
     } }
   </script>
 </head>
@@ -99,5 +97,6 @@
   </dialog>
 
   <script type="module" src="simulador.js"></script>
+  <script type="module" src="../js/sw-register.js"></script>
 </body>
 </html>

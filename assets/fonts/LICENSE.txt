@@ -1,0 +1,8 @@
+Fuentes incluidas para que el juego funcione sin internet.
+
+- Space Grotesk — Florian Karsten. SIL Open Font License 1.1. https://github.com/floriankarsten/space-grotesk
+- JetBrains Mono — JetBrains s.r.o. SIL Open Font License 1.1. https://github.com/JetBrains/JetBrainsMono
+
+Los archivos .woff2 son los que sirve Google Fonts (subconjuntos latin y latin-ext, fuentes variables).
+Para regenerarlos: pedir https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400..700&family=Space+Grotesk:wght@300..700
+con un User-Agent de navegador moderno, descargar los .woff2 de los subconjuntos latin y latin-ext y actualizar fonts.css.
