@@ -47,10 +47,11 @@ En la parte superior hay un bloque fijo con:
 
 En los pasos 2 a 5 se mantiene la **lista de la categoría**:
 - **Opciones disponibles** (izquierda): las 3 tarjetas del segmento. Cada una tiene un botón **`?`** con «Qué se tiene en cuenta» y «Qué NO se debe hacer».
-- **Misión configurada** (derecha):
+- **Misión configurada** (panel lateral derecho, plegable):
   - la ranura del segmento;
   - la retroalimentación inmediata (✔ justo / ✔ con margen / ▲ sobra / ✘ no alcanza);
   - un mini resumen de la misión, donde cada fila lleva a su paso.
+  - **Se recoge** con **Colapsar ›**, con `Esc` o con un clic fuera del panel. Queda una pestaña en el borde derecho con lo asignado (`$25M Asignado`); un clic en ella lo vuelve a sacar. Recuerda si estaba abierto o recogido al cambiar de paso, pero **cada vez que se entra al Nivel 1 (primera vez, Continuar o tras Reiniciar) empieza abierto**. Al arrastrar una tarjeta del banco se abre solo, porque es el destino del arrastre.
 - **Interacción:** arrastrar y soltar, o los botones **Añadir → / ← Quitar**, que funcionan en celular y con teclado. Soltar otra tarjeta reemplaza la anterior.
 
 **Navegación:** **← Anterior** / **Siguiente: {paso} →**. Si no se puede avanzar, un texto explica por qué. Los pasos 2 a 5 se abren al completar el Proyecto; la Revisión se abre cuando hay una tarjeta en cada segmento.
@@ -66,7 +67,7 @@ Cada paso tiene su escena (SVG + CSS) detrás del contenido. Las escenas cambian
 | Proyecto | Nebulosa con el planeta destino | El planeta toma el color del destino elegido |
 | Lanzamiento | Rampa al amanecer | El cohete aparece y crece según su tamaño; enciende motores y humo |
 | Espacio | El CubeSat orbitando la Tierra | Nivel 2 agrega paneles y antena; nivel 3, el RTG brillante |
-| Tierra | Red de antenas de noche | Se encienden 1, 2 o 3 antenas; la mayor emite ondas de señal |
+| Tierra | Antena de noche, a la derecha | Una sola antena que crece de pequeña a grande (nivel 1 → 3) y emite ondas de señal |
 | Usuario | Centro de datos | Panel de datos crudos → curva calibrada → barras de análisis |
 | Revisión | Trayectoria Tierra → destino | Una nave recorre la ruta |
 

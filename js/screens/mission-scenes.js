@@ -96,17 +96,20 @@ const SPACE = svg(`
     </g>
   </g>`);
 
-/** Antena parabólica: soporte + plato apuntando al cielo + ondas de señal. */
-function dish(x, scale, level) {
-  return `<g class="sc-dish" data-dish="${level}" transform="translate(${x} 760) scale(${scale})">
-    <path d="M-10 0 L-26 -60 H26 L10 0 Z" fill="#1b2550"/>
-    <path d="M-70 -120 Q -10 -40 70 -150 Z" fill="#cbd5e1" stroke="#64748b" stroke-width="4"/>
-    <path d="M0 -105 L 40 -170" stroke="#94a3b8" stroke-width="4"/>
-    <g class="sc-waves"><circle cx="40" cy="-175" r="30"/><circle cx="40" cy="-175" r="30"/><circle cx="40" cy="-175" r="30"/></g>
+/** Antena parabólica en (x, 760): soporte + plato apuntando al cielo + ondas de señal. Su tamaño lo da el CSS (nivel 1–3). */
+function dish(x) {
+  return `<g class="sc-dish" style="transform-origin:${x}px 760px">
+    <g transform="translate(${x} 760)">
+      <path d="M-10 0 L-26 -60 H26 L10 0 Z" fill="#1b2550"/>
+      <path d="M-70 -120 Q -10 -40 70 -150 Z" fill="#cbd5e1" stroke="#64748b" stroke-width="4"/>
+      <path d="M0 -105 L 40 -170" stroke="#94a3b8" stroke-width="4"/>
+      <g class="sc-waves"><circle cx="40" cy="-175" r="30"/><circle cx="40" cy="-175" r="30"/><circle cx="40" cy="-175" r="30"/></g>
+    </g>
   </g>`;
 }
 
-// 4 · Tierra: red de antenas de noche; se encienden según la red contratada.
+// 4 · Tierra: una sola antena, a la derecha del banco de tarjetas y a la izquierda del panel lateral, que crece
+// de pequeña a grande según la red contratada (nivel 1 → 3).
 const GROUND = svg(`
   <defs>
     <linearGradient id="lvl-night" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#040714"/><stop offset=".7" stop-color="#0f1d4a"/><stop offset="1" stop-color="#1b2f6b"/></linearGradient>
@@ -117,9 +120,7 @@ const GROUND = svg(`
   <circle class="sc-target" cx="1380" cy="150" r="6" fill="#a5f3fc"/>
   <path d="M0 720 Q 300 650 620 700 T 1200 690 T 1600 700 V900 H0Z" fill="#0b1433"/>
   <path d="M0 780 Q 380 740 820 770 T 1600 760 V900 H0Z" fill="#070c22"/>
-  ${dish(420, 0.55, 1)}
-  ${dish(760, 0.85, 2)}
-  ${dish(1170, 1.35, 3)}`);
+  ${dish(950)}`);
 
 // 5 · Usuario: centro de datos; más paneles de análisis según el enfoque.
 const USER = svg(`
