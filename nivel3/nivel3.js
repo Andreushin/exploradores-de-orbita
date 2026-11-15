@@ -1,4 +1,4 @@
-// OWNER: Andreushin — Nivel 3 · Travesía e inserción orbital (docs/nivel 3.md).
+// OWNER: Andreushin — Nivel 3 · Travesía e inserción orbital (docs/niveles/nivel-3.md).
 // Lee el satélite de `eo-mision` (docs/contrato-niveles.md), simula el viaje con combustible
 // finito en kg (depende de la masa, ecuación del cohete) y escribe `journey`.
 import { G0, deltaV, propellantFor, resolvePieces, dryMass, systemIsp, insertionOutcome } from '../js/physics.js';
@@ -18,7 +18,7 @@ const IONIC_ISP = 1500;      // para la sugerencia educativa
 // Diseño de referencia (docs/fuentes.md) para el modo demo
 const DEMO = {
   missionId: 'moon', rocketId: 'pico',
-  satellite: { formFactor: 'struct-6u', pieces: ['solar-body', 'battery', 'prop-green', 'comm-uhf', 'obc', 'inst-camera'], propellantKg: 2.5 },
+  satellite: { formFactor: 'struct-6u', pieces: ['battery', 'prop-green', 'comm-uhf', 'obc', 'inst-camera'], propellantKg: 2.5 },
 };
 
 // --- Idioma -------------------------------------------------------------------

@@ -3,6 +3,4 @@ Thumbs.db
 node_modules/
 .vscode/
 *.log
-test-results/
-playwright-report/
 *:Zone.Identifier

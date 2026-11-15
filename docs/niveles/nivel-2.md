@@ -1,10 +1,21 @@
 # Nivel 2 · Taller del CubeSat
 
-> Referencia para revisar y mantener el Nivel 2. **Owner:** Rol 3.
+> Referencia para revisar y mantener el Nivel 2. **Responsable:** @JU4NMAX · vive en `nivel2/`.
 > **Recurso NASA:** CubeSat 101 — *Basic Concepts and Processes for First-Time CubeSat Developers*.
 > **Inspiración UX:** *A Learning Game About Telescopes* (opciones incompatibles en gris con su explicación).
-> **Página aislada:** `nivel2/` (especificación en [`nivel 2.md`](nivel%202.md) y contrato en [`contrato-niveles.md`](contrato-niveles.md)).
-> **Relacionados:** [`levelOne.md`](levelOne.md) · [`context.md`](context.md) · [`fuentes.md`](fuentes.md)
+> **Página aislada:** `nivel2/` · contrato de datos en [`contrato-niveles.md`](../contrato-niveles.md).
+> **Relacionados:** [`nivel-1.md`](nivel-1.md) · [`fuentes.md`](../fuentes.md)
+
+
+## Especificación
+
+El jugador entra al taller de ensamblaje. Según [CubeSat 101](https://www3.nasa.gov/sites/default/files/atoms/files/nasa_csli_cubesat_101_508.pdf), elige el factor de forma y los instrumentos científicos bajo los límites de masa, energía y presupuesto que vienen del Nivel 1.
+
+- **Factores de forma:** 3U (equilibrio para misiones estándar), 6U y 12U (más capacidad, más masa y costo).
+- **Validación inteligente** (inspirada en [A Learning Game About Telescopes](https://science.nasa.gov/mission/webb/game-build-it-yourself/)): un instrumento incompatible con el objetivo científico del Nivel 1 se muestra en gris y explica la razón técnica.
+- **Medidores en vivo:** masa total (gramos) y consumo de energía (W).
+- Si la masa supera la carga útil del cohete del Nivel 1, se bloquea la salida y se avisa que el cohete no podrá despegar.
+- Estilos aislados en `nivel2.css`. Al validar guarda `satellite` en `eo-mision` y continúa a `nivel3/`.
 
 ## Índice
 1. [Resumen](#1-resumen)
@@ -39,13 +50,14 @@
   - **Estructuras:** su descripción y su masa máxima (`U × 1.33 kg`, CubeSat 101).
   - **Instrumentos:** ✔ por qué sirve, o ✘ por qué no sirve, en gris y deshabilitado.
 - **Slider de propelente**, si hay propulsión.
-- **4 medidores en vivo** (`role="meter"`). Se actualizan al agregar o quitar piezas y **mientras se arrastra** el propelente:
+- **5 medidores en vivo** (`role="meter"`). Se actualizan al agregar o quitar piezas y **mientras se arrastra** el propelente:
 
 | Medidor | Muestra | Verde | Amarillo | Rojo |
 |---|---|---|---|---|
 | Δv | Δv contra el requerido (con línea) | ≥ 110 % del requerido | 100–110 % ("margen justo") | < requerido |
 | Masa | g contra el límite que manda | < 85 % | 85–100 % | > 100 % |
-| Energía | consumo contra generación | < 85 % | 85–100 % | > 100 %, o generación menor al mínimo del destino |
+| Energía | **neto** = generación − consumo (puede ser negativo); la barra muestra el consumo contra la generación | consumo < 85 % de lo generado | 85–100 % | neto negativo, o generación menor al mínimo del destino |
+| Batería | Wh que cubren eclipses y quemados contra los Wh usables (50 % de la capacidad) | < 85 % | 85–100 % | > 100 % |
 | Costo | costo contra el segmento Espacio | < 85 % | 85–100 % | > 100 % |
 
 - **Aviso del cohete:** si la masa supera la carga útil del cohete del Nivel 1, y ese es el límite que manda, aparece "🚫 … solo lleva N g: así no podrá despegar".
@@ -63,8 +75,8 @@
 | Computadora | Hay OBC |
 | Masa | Masa húmeda ≤ `min(U × 1.33 kg, carga útil del cohete)` |
 | Volumen | Las piezas caben en las U |
-| Energía | Genera ≥ consumo y ≥ el mínimo del destino (solar ∝ 1/d²) |
-| Batería | Si hay quemados químicos, lleva batería |
+| Energía | Neto ≥ 0 (generación − consumo) y generación ≥ el mínimo del destino (solar ∝ 1/d²; la estructura trae paneles de serie) |
+| Batería | Los Wh usables cubren el eclipse y los quemados químicos (ver «Modelo de energía» en `docs/fuentes.md`) |
 | Radio | Alcance ≥ dificultad de comunicaciones del destino |
 | Propelente | Hay propulsión y el propelente no supera su máximo |
 | Δv | Δv (Tsiolkovsky) ≥ requerido para la inserción |
@@ -119,7 +131,7 @@ Usa el helper `js/mision-store.js` (clave `eo-mision`, ver `docs/contrato-nivele
 | `nivel2/nivel2.js` | UI, modo demo y lectura/escritura del contrato. Exporta `pickMission`, `satelliteSummary` y `DEMO` para las pruebas |
 | `nivel2/nivel2.css` | Estilos aislados; todas las clases llevan el prefijo `n2-` |
 | `nivel2/textos.js` | Textos ES/EN del nivel |
-| `js/taller-reglas.js` | Reglas puras, sin DOM: `limitLevel`, `dvLevel`, `meterData`, `rocketOverload`, `grams`, `instrumentStatus`, `incompatibleSelected`. También las usa `js/screens/workshop.js` |
+| `js/taller-reglas.js` | Reglas puras, sin DOM: `limitLevel`, `dvLevel`, `meterData`, `rocketOverload`, `grams`, `instrumentStatus`, `incompatibleSelected`. |
 | `data/workshop.json` | Compatibilidad instrumento ↔ objetivo y descripción de 3U / 6U / 12U |
 | `js/physics.js`, `data/pieces.json` | Piezas y reglas físicas (Rol 2), importadas sin copiar fórmulas |
 | `js/mision-store.js` | Contrato entre niveles (Rol 1) |
@@ -182,7 +194,7 @@ Recorrido manual sugerido (en ES y EN, escritorio y 360 px):
 ## 10. Pendientes
 
 - [x] **Carpeta publicada (contrato, #52):** `2` está en `FOLDER_LEVELS` (`js/mision-store.js`) y la entrada `workshop` de `js/levels.js` tiene `folder: 2` y `done: satellite.validated`. El «Siguiente» del Nivel 1, el menú y el «Volver al taller» del Nivel 3 llevan a `nivel2/`.
-- [ ] Decidir si se retira la pantalla `js/screens/workshop.js` de la app cuando `nivel2/` quede activo. Hoy las dos usan `js/taller-reglas.js`, así que no se contradicen.
+- [x] Se retiró la pantalla `js/screens/workshop.js` de la app: el Taller vive solo en `nivel2/`.
 - [ ] **E2E** (pausado en #46): cuando se reactive, los diseños de referencia deben elegir objetivo e instrumentos compatibles. Por ejemplo, Marte con cámara + magnetómetro no sirve para ningún objetivo de Marte: usar magnetómetro con «campo magnético» (sigue siendo válido: Δv 1382 m/s, 14.80 kg).
 - [ ] Prueba visual en navegador real (escritorio y celular, ES y EN).
 - [ ] #15: vista del CubeSat ensamblado con las U ocupadas.

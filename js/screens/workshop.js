@@ -1,6 +1,6 @@
 // OWNER: Rol 3 — Pantalla 2: Taller CubeSat (CubeSat 101).
 // Estado que escribe: satellite.{formFactor,pieces,propellantKg}, journey.dvAvailable
-import { grams, meterData, rocketOverload } from '../taller-reglas.js';
+import { grams, meterData, rocketOverload, powerText, signedW } from '../taller-reglas.js';
 
 // Reglas puras en js/taller-reglas.js (las comparte nivel2/). Se reexportan para no romper importaciones.
 export { WARN_AT, DV_MARGIN, limitLevel, dvLevel, meterData, rocketOverload } from '../taller-reglas.js';
@@ -35,7 +35,10 @@ function renderMeters(box, state) {
   const rocket = data.rockets.find((r) => r.id === state.rocketId);
   const M = meterData(m, mission, state.budget.space);
   const req = t('workshop.required', { n: fmt(M.dv.required, 0) });
-  const use = t('workshop.powerUse', { c: fmt(m.power.consumed), g: fmt(m.power.generated) });
+  const use = t('workshop.powerUse', { g: fmt(m.power.generated), c: fmt(m.power.consumed) });
+  const sun = m.power.solarFactor < 0.995 ? t('workshop.sunAtDest', { pct: fmt(m.power.solarFactor * 100, 0) }) : '';
+  const s = m.storage;
+  const storeUse = t('workshop.batteryUse', { n: fmt(s.neededWh, 0), e: fmt(s.eclipseWh, 0), b: fmt(s.burnWh, 0), u: fmt(s.usableWh, 0), c: fmt(s.capacityWh, 0) });
   box.innerHTML = [
     meterHTML({
       label: 'Δv', d: M.dv,
@@ -51,9 +54,15 @@ function renderMeters(box, state) {
     }),
     meterHTML({
       label: t('workshop.power'), d: M.power,
-      value: `+${fmt(m.power.generated)} / −${fmt(m.power.consumed)} W`,
-      aria: use,
-      note: M.power.powerLow ? t('workshop.minPower', { n: M.power.minW }) : use,
+      value: signedW(M.power.net),
+      aria: `${signedW(M.power.net)}: ${use}`,
+      note: [M.power.powerLow ? t('workshop.minPower', { n: M.power.minW }) : '', use, sun].filter(Boolean).join(' · '),
+    }),
+    meterHTML({
+      label: t('workshop.battery'), d: M.battery,
+      value: `${fmt(s.neededWh, 0)} / ${fmt(s.usableWh, 0)} Wh`,
+      aria: storeUse,
+      note: storeUse,
     }),
     meterHTML({
       label: t('workshop.cost'), d: M.cost,
@@ -103,7 +112,7 @@ function render() {
       b.type = 'button';
       b.title = tx(p.desc);
       b.innerHTML = `<strong>${tx(p.name)}</strong>
-        <small>${fmt(p.massKg)} kg · ${p.volumeU}U · ${p.powerW > 0 ? '−' : '+'}${Math.abs(p.powerW)} W · $${p.cost}M · TRL ${p.trl}${p.isp ? ` · Isp ${p.isp}s` : ''}</small>`;
+        <small>${fmt(p.massKg)} kg · ${p.volumeU}U · ${powerText(p, m.power.solarFactor, (w) => t('workshop.atDest', { w: fmt(w) }))} · $${p.cost}M · TRL ${p.trl}${p.isp ? ` · Isp ${p.isp}s` : ''}</small>`;
       b.addEventListener('click', () => togglePiece(p));
       list.append(b);
     }

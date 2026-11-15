@@ -10,6 +10,7 @@
     "travelDays": 5,
     "dvRequired": 850,
     "minPowerW": 5,
+    "eclipseHours": 0.6,
     "commsDifficulty": 1,
     "color": "#c9c9c9",
     "scienceTargets": [
@@ -39,6 +40,7 @@
     "travelDays": 210,
     "dvRequired": 1200,
     "minPowerW": 8,
+    "eclipseHours": 0.7,
     "commsDifficulty": 2,
     "color": "#d4643a",
     "scienceTargets": [
@@ -68,6 +70,7 @@
     "travelDays": 2200,
     "dvRequired": 1800,
     "minPowerW": 10,
+    "eclipseHours": 1.0,
     "commsDifficulty": 3,
     "color": "#b9a27a",
     "scienceTargets": [

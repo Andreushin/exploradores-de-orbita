@@ -37,13 +37,17 @@ location.href = levelUrl(4);           // ../nivel4/  (funciona desde la raíz o
   // ── Nivel 2 · Taller del CubeSat (nivel2/) ─────────────────────────
   "satellite": {
     "formFactor": "struct-6u",               // id de pieza "structure" en data/pieces.json
-    "pieces": ["solar-body", "battery", "prop-green", "comm-uhf", "obc", "inst-camera"],
+    "pieces": ["battery", "prop-green", "comm-uhf", "obc", "inst-camera"],
     "propellantKg": 2.5,
     // Resumen calculado por el Nivel 2 al validar (para que N3 y N4 no recalculen):
     "dryKg": 4.4,                            // masa sin propelente
     "wetKg": 6.9,                            // masa al despegar
     "isp": 220,                              // s, del sistema de propulsión
     "dvAvailable": 971,                      // m/s (Tsiolkovsky)
+    "powerGenW": 8,                          // W generados en el destino (los paneles escalan con 1/d²)
+    "powerUseW": 7,                          // W que consumen las piezas elegidas
+    "powerNetW": 1,                          // powerGenW − powerUseW; puede ser negativo
+    "batteryWh": 80,                         // capacidad de batería (guarda energía, no la genera)
     "maxPayloadKg": 15,                      // del cohete elegido
     "validated": true
   },

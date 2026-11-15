@@ -27,31 +27,65 @@ export function dryMass(pieceObjs) {
   return pieceObjs.reduce((sum, p) => sum + (p.massKg || 0), 0);
 }
 
-/** Masa total = seca + propelente. */
-export function totalMass(pieceObjs, propellantKg = 0) {
-  return dryMass(pieceObjs) + propellantKg;
-}
-
 /** Volumen ocupado en U (la estructura no ocupa volumen, lo provee). */
 export function usedVolume(pieceObjs) {
   return pieceObjs.filter((p) => p.category !== 'structure').reduce((s, p) => s + (p.volumeU || 0), 0);
 }
 
+const round6 = (x) => Math.round(x * 1e6) / 1e6; // evita que 0.1 + 0.2 deje un neto de −1e-17
+
 /**
- * Balance de energía en W. Generación solar escala con 1/d².
- * powerW > 0 = consumo; powerW < 0 = generación.
+ * Balance de energía en W: neto = generación − consumo (puede ser negativo).
+ * powerW > 0 = consume; powerW < 0 = genera (la estructura trae paneles de serie, igual que un CubeSat real).
+ * Cada pieza genera o consume, nunca las dos cosas. Los paneles (`solar`) escalan con 1/d²;
+ * `generatedNoSun` es lo que sigue generando en un eclipse (RTG).
+ * Las piezas `burnOnly` solo consumen al quemar y las cubre la batería (ver energyStorage).
  */
 export function powerBalance(pieceObjs, distanceAU = 1) {
   const solarFactor = SOLAR_AT_1AU / (distanceAU * distanceAU);
   let generated = 0;
+  let generatedNoSun = 0;
   let consumed = 0;
   for (const p of pieceObjs) {
     const w = p.powerW || 0;
-    if (p.burnOnly) continue; // solo consume durante quemados; lo cubre la batería
-    if (w < 0) generated += -w * (p.solar ? solarFactor : 1);
-    else consumed += w;
+    if (p.burnOnly) continue;
+    if (w < 0) {
+      generated += -w * (p.solar ? solarFactor : 1);
+      if (!p.solar) generatedNoSun += -w;
+    } else consumed += w;
   }
-  return { generated, consumed, net: generated - consumed };
+  return {
+    generated: round6(generated),
+    generatedNoSun: round6(generatedNoSun),
+    consumed: round6(consumed),
+    net: round6(generated - consumed),
+    solarFactor,
+  };
+}
+
+/** Profundidad de descarga: solo se usa la mitad de la batería para que dure más ciclos (CubeSat 101). */
+export const BATTERY_DOD = 0.5;
+/** Horas de quemado químico en toda la misión (ludificado: un empuje de ~1 N tarda horas en dar cientos de m/s). */
+export const BURN_HOURS = 2;
+
+/**
+ * La batería no genera energía: la guarda. Lo que debe cubrir es
+ *  - eclipse: sin Sol solo sigue generando lo que no depende de él (RTG); el resto del consumo sale de la batería;
+ *  - quemados: las piezas `burnOnly` consumen solo mientras queman.
+ * Devuelve { capacityWh, usableWh, neededWh, eclipseWh, burnWh }. Con neededWh ≤ usableWh la batería alcanza.
+ */
+export function energyStorage(pieceObjs, power, eclipseHours = 0) {
+  const capacityWh = pieceObjs.reduce((s, p) => s + (p.storageWh || 0), 0);
+  const eclipseLoadW = Math.max(0, power.consumed - power.generatedNoSun);
+  const eclipseWh = eclipseLoadW * eclipseHours;
+  const burnWh = pieceObjs.reduce((s, p) => s + (p.burnOnly ? (p.powerW || 0) * BURN_HOURS : 0), 0);
+  return {
+    capacityWh,
+    usableWh: capacityWh * BATTERY_DOD,
+    neededWh: round6(eclipseWh + burnWh),
+    eclipseWh: round6(eclipseWh),
+    burnWh,
+  };
 }
 
 /** Isp del sistema de propulsión instalado (0 si no hay). */
@@ -114,6 +148,7 @@ export function validateDesign(state, data) {
   const capU = structure?.volumeU || 0;
   const massCap = Math.min(capU * KG_PER_U, rocket?.maxPayloadKg ?? Infinity);
   const power = powerBalance(pieces, mission?.distanceAU || 1);
+  const storage = energyStorage(pieces, power, mission?.eclipseHours || 0);
   const dv = deltaV(prop?.isp || 0, wet, dry);
   const cost = pieces.reduce((s, p) => s + (p.cost || 0), 0);
 
@@ -123,7 +158,7 @@ export function validateDesign(state, data) {
     { id: 'mass', ok: wet <= massCap, value: wet, limit: massCap },
     { id: 'volume', ok: usedVolume(pieces) <= capU, value: usedVolume(pieces), limit: capU },
     { id: 'power', ok: power.net >= 0 && power.generated >= (mission?.minPowerW || 0), value: power.generated, limit: power.consumed },
-    { id: 'battery', ok: !pieces.some((p) => p.burnOnly) || pieces.some((p) => p.id === 'battery'), value: 0, limit: 0 },
+    { id: 'battery', ok: storage.neededWh <= storage.usableWh, value: storage.neededWh, limit: storage.usableWh },
     { id: 'comms', ok: !!comms && comms.range >= (mission?.commsDifficulty || 1), value: comms?.range || 0, limit: mission?.commsDifficulty || 1 },
     { id: 'propellant', ok: !!prop && propellant <= (prop.maxPropellantKg || 0), value: propellant, limit: prop?.maxPropellantKg || 0 },
     { id: 'deltaV', ok: dv >= (mission?.dvRequired || 0), value: dv, limit: mission?.dvRequired || 0 },
@@ -134,7 +169,7 @@ export function validateDesign(state, data) {
   return {
     valid: checks.every((c) => c.ok),
     checks,
-    metrics: { dry, wet, massCap, capU, power, dv, cost, isp: prop?.isp || 0 },
+    metrics: { dry, wet, massCap, capU, power, storage, dv, cost, isp: prop?.isp || 0 },
   };
 }
 

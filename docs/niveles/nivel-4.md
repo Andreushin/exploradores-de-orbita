@@ -1,8 +1,17 @@
 # Nivel 4 · Reporte de misión
 
-> Referencia para revisar y mantener el Nivel 4. **Owner:** Rol 2 (reasignado desde Rol 4).
+> Referencia para revisar y mantener el Nivel 4. **Responsable:** @tommycc2010-hub · vive en la app principal (`js/screens/report.js`).
 > **Recurso NASA:** Concept Maturity Levels (CML).
-> **Relacionados:** [`context.md`](context.md) · [`fuentes.md`](fuentes.md) · [`levelOne.md`](levelOne.md)
+> **Relacionados:** [`fuentes.md`](../fuentes.md) · [`nivel-1.md`](nivel-1.md)
+
+
+## Especificación
+
+Reporte final de éxito o fracaso, con datos científicos simulados (inspirados en misiones reales de la NASA) y evaluación del proyecto con los [Concept Maturity Levels (CML)](https://dataverse.jpl.nasa.gov/dataset.xhtml?persistentId=hdl:2014/44299).
+
+- **Barra de madurez CML** (1 a 4) según las decisiones de los niveles anteriores.
+- **Datos científicos simulados:** curvas o espectros por instrumento, comparados conceptualmente con misiones reales.
+- **Botones:** volver a jugar para optimizar el presupuesto y volver al menú principal.
 
 ## Índice
 1. [Resumen](#1-resumen)
@@ -65,7 +74,7 @@ Se calcula en `finalCml()` (`js/science-data.js`):
   | 3 · Espacio de compromisos | En órbita, pero excéntrica o con puntaje < 50 (`CML4_MIN_SCORE`) |
   | 4 · Diseño puntual | Órbita estable y puntaje ≥ 50 |
 
-- **Tope del Nivel 1** (`plan.cmlCap`): sale de la madurez del plan (100 − penalizaciones). ≥ 90 → 4 · ≥ 65 → 3 · ≥ 40 → 2 · si no, 1. Ver `levelOne.md` §4.3.
+- **Tope del Nivel 1** (`plan.cmlCap`): sale de la madurez del plan (100 − penalizaciones). ≥ 90 → 4 · ≥ 65 → 3 · ≥ 40 → 2 · si no, 1. Ver [`nivel-1.md`](nivel-1.md) §4.3.
 
 **Puntaje científico del reporte** = `scienceScore()` + la suma de `science` de los eventos elegidos, limitado a **0..100** (`reportScore()`). Acepta los dos formatos de evento: el del Nivel 3 (`{ id, choice: <índice>, hit, dv, science }`, ver `contrato-niveles.md`) y el de la travesía de la app principal (`{ id, choice: { science } }`). La fórmula de `scienceScore` está en `fuentes.md` → «Puntaje científico y CML».
 
@@ -166,7 +175,7 @@ El ruido es **reproducible**: la semilla sale de la misión, las piezas, el prop
 | `css/screens/report.css` | Estilos del nivel, todos bajo `#screen-report`. Solo se carga al abrir el nivel (`js/levels.js`) |
 | `tests/report.test.html` | 69 pruebas: CML final, sugerencias, puntaje, series y datos completos en ES/EN |
 
-`science.json` se carga con una ruta relativa al módulo (`new URL('../../data/science.json', import.meta.url)`). Así funciona igual en la raíz, en GitHub Pages (`/exploradores-de-orbita/`) o en Firebase Hosting, sin tocar `main.js`.
+`science.json` se carga con una ruta relativa al módulo (`new URL('../../data/science.json', import.meta.url)`). Así funciona igual en la raíz, y en GitHub Pages (`/exploradores-de-orbita/`), sin tocar `main.js`.
 
 ---
 
@@ -225,7 +234,7 @@ Recorrido manual sugerido (en ES y EN, escritorio y celular):
 
 ## 11. Pendientes
 
-- [ ] La prueba E2E (`e2e/checkpoint.spec.mjs`, de Rol 1) todavía entra directo a la pantalla de Misión. Desde el PR #45 el juego empieza en Inicio → Niveles, así que hay que actualizar el recorrido para que llegue al reporte.
+- [x] La prueba E2E se eliminó en la auditoría del repo; la cobertura queda en `tests/report.test.html` y `tests/science.test.html`.
 - [ ] Prueba visual en celular real (táctil), en ES y EN.
 - [ ] Opcional: mover el reporte a su carpeta `nivel4/` (forma de trabajo de `contrato-niveles.md`). Al hacerlo, agregar `4` a `FOLDER_LEVELS` en `js/mision-store.js` y `folder: 4` en `js/levels.js`: el Nivel 3 lo detecta solo. Hoy funciona dentro de la app principal (`../#report`).
 - [ ] Opcional: botón para descargar el reporte (imagen o PDF) y compartirlo.

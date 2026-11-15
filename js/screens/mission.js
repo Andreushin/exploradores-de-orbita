@@ -4,7 +4,7 @@
 // fondo (js/screens/mission-scenes.js) reacciona a su elección.
 // Estado que escribe: missionId, rocketId, budget.{total,launch,space,ground,user},
 //   plan.{step,projectName,scienceTargetIdx,cards,maturity,penalty,cmlCap,validated}
-// Reglas: js/budget.js · Documentación: docs/levelOne.md
+// Reglas: js/budget.js · Documentación: docs/niveles/nivel-1.md
 import { SEGMENTS, STEPS, cardCatalog, requiredLevels, evaluatePlan, stepStatus } from '../budget.js';
 import { createScenes } from './mission-scenes.js';
 
