@@ -48,6 +48,7 @@ js/physics.js              Tsiolkovsky, validación del diseño, puntaje y CML
 js/screens/                start, levels, mission (+ mission-scenes), report
 js/budget.js               reglas del Nivel 1 · js/science-data.js: reglas del Nivel 4
 js/taller-reglas.js        reglas del Nivel 2 · js/canvas/starry-bg.js: fondo del inicio
+js/typewriter.js           máquina de escribir compartida (bitácora del Nivel 3) · css/a11y.css: clase .sr-only
 nivel2/  nivel3/           niveles en página aislada (index.html, nivelN.css, nivelN.js, textos.js)
 data/                      misiones, cohetes, piezas, eventos, segmentos, taller, ciencia
 css/                       base.css + estilos de cada pantalla de la app principal

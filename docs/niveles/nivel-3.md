@@ -33,7 +33,7 @@ Simulación del viaje al destino y de la inserción orbital.
 | `nivel3/vuelo.js` | Fase 1: minijuego en primera persona de la nave nodriza en el campo de asteroides (lógica y dibujo) |
 | `nivel3/textos.js` | Textos ES/EN (`{ es, en }`, con interpolación `{nombre}`) |
 
-Reutiliza, importándolos: `js/physics.js` (`deltaV`, `propellantFor`, `insertionOutcome`, masas, Isp), `js/mision-store.js`, `simulador/embed.js` (mensajes con el simulador) y `data/{missions,pieces,events}.json`.
+Reutiliza, importándolos: `js/physics.js` (`deltaV`, `propellantFor`, `insertionOutcome`, masas, Isp), `js/mision-store.js`, `js/typewriter.js` (bitácora con máquina de escribir), `simulador/embed.js` (mensajes con el simulador) y `data/{missions,pieces,events}.json`. La página enlaza `css/a11y.css` para la clase `.sr-only`.
 
 ## 2. Entrada y salida (contrato)
 
@@ -85,6 +85,7 @@ Aparece si el tanque se vacía antes de lograr la órbita (en la TCM, en un even
 - En Marte y Europa la nave nodriza queda dibujada en el punto de despliegue, de donde sale el CubeSat.
 - **Fase 1 (asteroides):** cabina en primera persona con estelas de estrellas, rocas en perspectiva, radar y barras de escudo y avance. Con `prefers-reduced-motion` no hay sacudida, giro ni estelas.
 - Al terminar se dibuja la órbita lograda (verde o amarilla), el sobrevuelo o el choque.
+- **Bitácora:** cada línea se escribe en orden con `js/typewriter.js` (≤ 0,8 s por línea, cursor `▋` mientras escribe). El texto completo va en un `<span class="sr-only">` para lectores de pantalla y la copia animada lleva `aria-hidden="true"`. Con `prefers-reduced-motion` la línea sale completa. «Reintentar travesía» vacía la bitácora y la cola.
 - Respeta `prefers-reduced-motion`.
 
 ## 7. Constantes para balancear

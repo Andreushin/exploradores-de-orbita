@@ -25,6 +25,7 @@ Cada quien es dueño de su nivel y solo toca sus archivos. Lo compartido (`js/` 
 4. **Bilingüe ES/EN:** todo texto nuevo va en los dos idiomas. App principal: `data/i18n/{es,en}/<ns>.json`. Niveles en carpeta: su `textos.js`.
 5. **Modo demo:** cada nivel funciona solo, aunque no haya datos del nivel anterior.
 6. **Sin código muerto:** si algo deja de usarse, se borra en el mismo PR (archivos, claves de i18n, clases CSS).
+7. **Accesibilidad compartida:** el texto solo para lectores de pantalla usa la clase `.sr-only` de `css/a11y.css`, y las líneas que se escriben poco a poco usan `js/typewriter.js` (texto completo en `.sr-only`, copia visible con `aria-hidden="true"`, respeta `prefers-reduced-motion`). No crees otra copia. Hoy quedan copias propias en `css/screens/report.css`, `nivel2/nivel2.css` y `simulador/simulador.css`: se migran cuando sus dueños toquen esos archivos.
 
 ### Pantallas de la app principal (niveles 1 y 4, inicio y menú)
 - **Pantalla:** `export default { id, mount(container, ctx), unmount() }`. Cada pantalla crea su propio DOM dentro de `container`.
@@ -80,6 +81,8 @@ tipo(alcance): descripción en imperativo, minúsculas, sin punto final
 | Puntaje científico y CML | `tests/science.test.html` | al cambiar la fórmula de ciencia |
 | Reporte (CML final, sugerencias, series) | `tests/report.test.html` | al cambiar el Nivel 4 |
 | Presupuesto del Nivel 1 | `tests/budget.test.html` | al cambiar el Nivel 1 |
+
+Pruebas en Node (sin navegador): `node tests/typewriter.test.mjs` al cambiar `js/typewriter.js`. Al añadir o cambiar cualquier archivo del juego corre `node scripts/precache.mjs` (regenera `sw.js`) y `node tests/offline.test.mjs`: si `sw.js` queda viejo, la prueba falla.
 
 Antes de pedir revisión, **juega el flujo completo** (Inicio → Nivel 1 → `nivel2/` → `nivel3/` → Reporte) en ES y EN, sin errores en la consola, y revisa el ancho de 360 px.
 

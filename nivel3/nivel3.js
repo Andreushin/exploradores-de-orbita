@@ -6,6 +6,7 @@
 import { G0, deltaV, propellantFor, resolvePieces, dryMass, systemIsp, insertionOutcome } from '../js/physics.js';
 import { loadMission, saveMission, levelHref } from '../js/mision-store.js';
 import { SIM_DONE, SIM_LANG, PIL_DONE } from '../simulador/embed.js';
+import { createTypeQueue, accessibleLine } from '../js/typewriter.js';
 import { TEXTOS } from './textos.js';
 import { FLIGHT_HITS, createFlight, startFlight, updateFlight, drawFlight, pointerToInput } from './vuelo.js';
 
@@ -84,12 +85,15 @@ function burn(dv) {
   return { dv: got, kg, out: true };
 }
 
+// Bitácora tipo consola (js/typewriter.js): el texto completo va en un <span class="sr-only"> para lectores de
+// pantalla y la copia visible, con aria-hidden, se escribe en orden (≤ 0,8 s por línea). Con prefers-reduced-motion
+// sale completa.
+const logQueue = createTypeQueue({ cps: 70, maxMs: 800 });
 function log(msg, cls = '') {
   run.log.push({ msg, cls });
-  const li = document.createElement('li');
-  li.textContent = msg;
-  if (cls) li.className = cls;
-  $('n3-log').append(li);
+  const line = accessibleLine(msg, { tag: 'li', cls });
+  $('n3-log').append(line.root);
+  logQueue.push(line.visible, msg);
 }
 
 // --- Persistencia (contrato) ---------------------------------------------------
@@ -656,6 +660,7 @@ function renderNoFuel() {
 }
 
 function restart() {
+  logQueue.clear();
   $('n3-log').replaceChildren();
   run = newRun();
   renderBrief();

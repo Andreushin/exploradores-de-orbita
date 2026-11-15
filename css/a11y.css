@@ -1,0 +1,15 @@
+/* OWNER: Rol 1 — Utilidades de accesibilidad compartidas (app principal, nivel2/, nivel3/ y Colibrí). */
+
+/* Texto solo para lectores de pantalla: no se ve ni estorba, pero se lee. Úsala en vez de crear otra copia. */
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  margin: -1px;
+  padding: 0;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  clip-path: inset(50%);
+  white-space: nowrap;
+  border: 0;
+}

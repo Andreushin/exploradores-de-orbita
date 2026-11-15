@@ -6,7 +6,7 @@
 // Si agregas o quitas archivos: `node scripts/precache.mjs` actualiza el bloque de abajo.
 
 /* PRECACHE:INICIO — generado por scripts/precache.mjs, no editar a mano */
-const VERSION = "db46893512";
+const VERSION = "db847ee559";
 const NUCLEO = [
   "",
   "nivel2/",
@@ -21,6 +21,7 @@ const NUCLEO = [
   "assets/fonts/fonts.css",
   "assets/logo.svg",
   "assets/logo_blank.svg",
+  "css/a11y.css",
   "css/base.css",
   "css/screens/menu.css",
   "css/screens/mission.css",
@@ -61,6 +62,7 @@ const NUCLEO = [
   "js/state.js",
   "js/sw-register.js",
   "js/taller-reglas.js",
+  "js/typewriter.js",
   "js/vendor/three-r128/OrbitControls.js",
   "js/vendor/three-r128/three.min.js",
   "js/vendor/three/addons/controls/OrbitControls.js",
