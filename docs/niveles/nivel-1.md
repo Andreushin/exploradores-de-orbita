@@ -16,7 +16,7 @@
 9. [Decisiones de diseño](#9-decisiones-de-diseño)
 10. [Pendientes](#10-pendientes)
 
----
+--- 
 
 ## 1. Resumen
 
