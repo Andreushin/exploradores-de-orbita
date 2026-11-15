@@ -329,6 +329,23 @@ export function tradeHints(result, parts, catalog, mission, budgetSpace, { nameO
 }
 
 /**
+ * Medidores en los que el jugador se PASÓ de un límite (alimenta la viñeta roja). No cuentan los que solo están
+ * incompletos: Δv sin motor o sin propelente, energía por debajo del mínimo del destino o todavía sin batería.
+ * Esos siguen en rojo en su barra, pero avisar con la pantalla entera mientras se arma el satélite cansa y se ignora.
+ * @param {object} M meterData(...)
+ * @param {object} x physics.validateDesign(...).metrics
+ * @returns {string[]} ids entre 'mass' | 'cost' | 'power' | 'battery'
+ */
+export function alertingMeters(M, x) {
+  const out = [];
+  if (M.mass.level === 'danger') out.push('mass');
+  if (M.cost.level === 'danger') out.push('cost');
+  if (M.power.level !== 'pending' && M.power.net < 0) out.push('power');
+  if (x.storage.capacityWh > 0 && M.battery.level === 'danger') out.push('battery');
+  return out;
+}
+
+/**
  * Aplica la acción de un consejo y devuelve el satélite resultante (puro; no toca el original).
  * type: setStructure {id} · setPropellant {kg} · add {id, kg?} · swap {remove, add, kg?}.
  * Una propulsión nueva reemplaza a la anterior; quitar la propulsión deja el propelente en 0.

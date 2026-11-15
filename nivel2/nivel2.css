@@ -136,7 +136,7 @@ body.n2 {
 .n2-col-telem {
   overflow-y: auto; overflow-x: hidden;
   border-left: 1px solid var(--n2-border);
-  padding: 12px 12px 24px;
+  padding: 12px 12px 0;
   display: flex; flex-direction: column; gap: 12px;
   scrollbar-width: thin;
   scrollbar-color: var(--n2-border) transparent;
@@ -325,7 +325,12 @@ body.n2 {
 @keyframes n2-bob { to { transform: translateX(4px); } }
 .n2-btn.is-risky { background: var(--n2-surface-2); border-color: var(--n2-accent); color: var(--n2-text); }
 .n2-btn.is-risky:hover { background: var(--n2-accent); color: var(--n2-on-accent); }
-.n2-footer { display: flex; gap: 8px; }
+/* Lanzar fijo al pie de la columna: con 11 verificaciones y 3 consejos el botón quedaba fuera de pantalla a 900 px de alto */
+.n2-footer {
+  position: sticky; bottom: 0; z-index: 2; margin: auto -12px 0; padding: 10px 12px 14px;
+  display: flex; gap: 8px;
+  background: rgba(7, 11, 26, 0.96); border-top: 1px solid var(--n2-border);
+}
 .n2-footer a, .n2-footer button { flex: 1; text-align: center; }
 .n2-sr { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
 
@@ -519,7 +524,8 @@ body.n2 {
   .n2-workspace { display: flex; flex-direction: column; }
   .n2-col-viewer { height: 300px; border-bottom: 1px solid var(--n2-border); flex-shrink: 0; }
   .n2-col-catalog { border-right: none; border-bottom: 1px solid var(--n2-border); max-height: 420px; }
-  .n2-col-telem { border-left: none; }
+  .n2-col-telem { border-left: none; padding-bottom: 12px; }
+  .n2-footer { position: static; margin: 0; padding: 0; background: none; border-top: 0; }
   .n2-brand-txt { display: none; }
   .n2-topbar-obj { display: none; }
 }

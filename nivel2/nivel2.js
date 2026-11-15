@@ -3,7 +3,7 @@
 // los límites de masa, energía y presupuesto, y escribe solo la sección `satellite`.
 import { validateDesign, resolvePieces, KG_PER_U } from '../js/physics.js';
 import { loadMission, saveMission, levelHref } from '../js/mision-store.js';
-import { grams, meterData, rocketOverload, instrumentStatus, incompatibleSelected, powerText, signedW, checkState, tradeHints, checkDetail, nextSatellite, pieceFacts } from '../js/taller-reglas.js';
+import { grams, meterData, rocketOverload, instrumentStatus, incompatibleSelected, powerText, signedW, checkState, tradeHints, checkDetail, nextSatellite, pieceFacts, alertingMeters } from '../js/taller-reglas.js';
 import { TEXTOS } from './textos.js';
 
 const CATEGORIES = ['structure', 'power', 'propulsion', 'comms', 'adcs', 'obc', 'instrument'];
@@ -158,9 +158,37 @@ function setHover(id, scroll = false) {
   paintHover(scroll);
 }
 
-/** Viñeta roja (la del Nivel 1) mientras alguna barra de recurso esté en rojo. El CSS solo anima opacity. */
-function paintAlert(M) {
-  document.body.classList.toggle('has-danger', ['dv', 'mass', 'power', 'battery', 'cost'].some((k) => M[k].level === 'danger'));
+/** Viñeta roja (la del Nivel 1) cuando el jugador se pasa de un límite (ver alertingMeters). El CSS solo anima opacity. */
+function paintAlert(M, x) {
+  document.body.classList.toggle('has-danger', alertingMeters(M, x).length > 0);
+}
+
+// El catálogo y el panel se reconstruyen en cada cambio. Sin esto el foco del teclado caería al <body>
+// y quien navega con Tab tendría que empezar de nuevo desde arriba después de cada pieza.
+let pendingFocus = null; // clave de foco que deja un «Aplicar», porque su botón desaparece con la ventana
+function focusKey(el) {
+  if (!el || el === document.body) return null;
+  const wrap = el.closest?.('.n2-piece-wrap');
+  if (wrap) return `${el.classList.contains('n2-info') ? 'info' : 'piece'}:${wrap.querySelector('.n2-piece')?.dataset.id}`;
+  if (el.matches?.('.n2-row')) return `row:${el.dataset.check}`;
+  if (el.matches?.('.n2-tip')) return `tip:${el.dataset.hint}`;
+  if (el.matches?.('.n2-prop input')) return 'slider';
+  if (el.matches?.('.n2-footer .n2-btn-primary')) return 'launch';
+  return null;
+}
+function restoreFocus(key) {
+  if (!key) return;
+  const [kind, id] = key.split(':');
+  const sel = {
+    piece: `.n2-piece[data-id="${id}"]`,
+    info: `.n2-piece-wrap:has(.n2-piece[data-id="${id}"]) .n2-info`,
+    row: `.n2-row[data-check="${id}"]`,
+    tip: `.n2-tip[data-hint="${id}"]`,
+    slider: '.n2-prop input',
+    launch: '.n2-footer .n2-btn-primary',
+  }[kind];
+  // Un consejo que ya no existe (se resolvió) deja el foco en el siguiente
+  (document.querySelector(sel) ?? (kind === 'tip' ? document.querySelector('.n2-tip') : null))?.focus({ preventScroll: true });
 }
 
 /** Barra vertical de la batería: Wh que piden eclipses y quemados contra los Wh usables (50 % de la capacidad). */
@@ -404,7 +432,7 @@ function initInfo() {
     if (!b) return;
     if (b.dataset.act === 'close') return closeInfo();
     if (b.dataset.act === 'launch') { closeInfo(); return doLaunch(); }
-    if (b.dataset.act === 'apply') { const act = popActions[Number(b.dataset.i)]; closeInfo(); applyAction(act); }
+    if (b.dataset.act === 'apply') { const act = popActions[Number(b.dataset.i)]; pendingFocus = focusKey(lastOpener); closeInfo(); applyAction(act); }
   });
 }
 
@@ -663,7 +691,7 @@ function renderTelem() {
       const pm = pr.metrics;
       view.sat.style.setProperty('--fuel', String(Number(e.target.value) / prop.maxPropellantKg));
       paintBattery(pm);
-      paintAlert(meterData(pm, last.dest, m.budget.space));
+      paintAlert(meterData(pm, last.dest, m.budget.space), pm);
       renderMini(pr);
     });
     input.addEventListener('change', (e) => setSatellite({ propellantKg: Number(e.target.value) }));
@@ -728,6 +756,8 @@ function renderMini(result) {
 // ═════════════════════════════════════════════════════════
 
 function render() {
+  const focusBefore = pendingFocus ?? focusKey(document.activeElement);
+  pendingFocus = null;
   const dest = data.missions.find((d) => d.id === m.missionId);
   const target = dest?.scienceTargets?.[m.plan?.scienceTargetIdx];
   const brand = lang === 'en' ? 'Orbit Explorers' : 'Exploradores de Órbita';
@@ -775,9 +805,10 @@ function render() {
   renderCatalog(result.metrics.power.solarFactor);
   render3D(result);
   renderTelem();
-  paintAlert(last.M);
+  paintAlert(last.M, result.metrics);
   paintHover();
   armNudge();
+  restoreFocus(focusBefore);
 }
 
 // ═════════════════════════════════════════════════════════
