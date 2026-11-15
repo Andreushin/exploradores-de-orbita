@@ -30,6 +30,7 @@
   <div class="n2-toasts" aria-live="polite">
     <p class="n2-toast n2-toast-demo"  id="n2-demo"   hidden></p>
     <p class="n2-toast n2-toast-warn"  id="n2-notice" role="status" hidden></p>
+    <p class="n2-toast n2-toast-undo"  id="n2-undo"   hidden></p>
   </div>
 
   <!-- ── Workspace: 3 columnas ──────────────────────────────── -->
@@ -40,6 +41,15 @@
 
     <!-- Col central: visor 3D — NUNCA scroll -->
     <div class="n2-col-viewer" id="n2-viewer" role="img" aria-label="Vista 3D del CubeSat ensamblado">
+      <!-- Ventanal de la estación: fondo decorativo (CSS puro). Capas: estrellas 0 · planeta y piso 1 · brazos 2-5 · modelo 10 -->
+      <div class="n2-bay" aria-hidden="true">
+        <i class="n2-bay-planet"></i>
+        <i class="n2-bay-rays"></i>
+        <i class="n2-bay-floor"></i>
+        <div class="n2-bay-arm n2-bay-arm-l"><i><b></b></i></div>
+        <div class="n2-bay-arm n2-bay-arm-r"><i><b></b></i></div>
+        <i class="n2-bay-dust"></i><i class="n2-bay-dust"></i><i class="n2-bay-dust"></i>
+      </div>
       <div class="n2-scene" id="n2-scene">
         <div class="n2-fit" id="n2-fit"><div class="n2-tilt"><div class="n2-sat" id="n2-sat"></div></div></div>
       </div>

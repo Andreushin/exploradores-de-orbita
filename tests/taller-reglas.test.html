@@ -5,7 +5,7 @@
 <body><h1>taller-reglas.js: estados pendientes y consejos</h1><ul id="out"></ul>
 <script type="module">
 import { validateDesign, resolvePieces } from '../js/physics.js';
-import { checkState, meterData, tradeHints, HINT_ORDER, hintRank, nextSatellite, checkDetail, pieceFacts } from '../js/taller-reglas.js';
+import { checkState, meterData, tradeHints, HINT_ORDER, hintRank, nextSatellite, checkDetail, pieceFacts, alertingMeters } from '../js/taller-reglas.js';
 const out = document.getElementById('out');
 const check = (name, cond) => { const li = document.createElement('li'); li.className = cond ? 'ok' : 'fail'; li.textContent = (cond ? 'PASS ' : 'FAIL ') + name; out.append(li); };
 const load = (f) => fetch(`../data/${f}.json`).then((r) => r.json());
@@ -170,5 +170,35 @@ check('pieceFacts(paneles) en Europa rinde ~1.3 W (1/d²)', (() => {
 })());
 check('pieceFacts(RTG): 35 W fijos que siguen en el eclipse (no escala con 1/d²)', ['powerFixed', 'powerNoSun'].every((k) => factKeys('rtg-mini').includes(k)) && !factKeys('rtg-mini').includes('powerGen'));
 check('pieceFacts es determinista y no muta sus entradas', (() => { const a = JSON.stringify(pieceFacts(byId('inst-radar'), ctx)); const m0 = JSON.stringify(ctx.metrics); pieceFacts(byId('inst-radar'), ctx); return a === JSON.stringify(pieceFacts(byId('inst-radar'), ctx)) && m0 === JSON.stringify(ctx.metrics); })());
+
+// --- Viñeta roja: solo cuando el jugador se PASA de un límite ---
+const mars = missions.find((mm) => mm.id === 'mars');
+const alerts = (id, s) => { const r = sim(id, s).result; const M = meterData(r.metrics, missions.find((mm) => mm.id === id), SPACE[id]); return { M, a: alertingMeters(M, r.metrics) }; };
+const marsEmpty = alerts('mars', sat('struct-6u', []));
+check('Marte con solo la 6U: Δv y energía están en rojo en su barra…', marsEmpty.M.dv.level === 'danger' && marsEmpty.M.power.level === 'danger');
+check('…pero no hay viñeta: todavía no se pasó de nada, solo falta armar', marsEmpty.a.length === 0);
+check('estructura sola con propulsor sin propelente: sin viñeta', alerts('moon', sat('struct-6u', ['prop-green', 'obc'], 0)).a.length === 0);
+check('referencia de la Luna: sin viñeta', alerts('moon', sat('struct-6u', ['battery', 'prop-green', 'comm-uhf', 'obc', 'inst-camera'], 2.5)).a.length === 0);
+check('sin estructura: sin viñeta', alerts('moon', sat(null, [])).a.length === 0);
+check('3U con todo: se pasó de masa → viñeta', alerts('moon', sat('struct-3u', ['battery', 'prop-green', 'comm-uhf', 'obc', 'inst-camera'], 2.2)).a.includes('mass'));
+check('iónico a $33M con $25M: se pasó de costo → viñeta', alerts('moon', sat('struct-6u', ['solar-deploy', 'battery', 'prop-ion', 'comm-uhf', 'obc', 'inst-camera'], 1)).a.includes('cost'));
+check('iónico (20 W) sin paneles en Marte: gasta más de lo que genera → viñeta', alerts('mars', sat('struct-6u', ['prop-ion', 'obc'], 1)).a.includes('power'));
+check('con batería instalada pero corta: viñeta de batería', alerts('moon', sat('struct-6u', ['battery', 'prop-green', 'obc', 'inst-spectro', 'inst-radar', 'comm-uhf'], 2.5)).a.includes('battery'));
+check('sin batería todavía (solo falta agregarla): sin viñeta de batería', !alerts('moon', sat('struct-6u', ['obc', 'prop-green'], 2.5)).a.includes('battery'));
+
+// --- Estructura inicial por destino y causa de la falta de energía ---
+check('sin piezas: Luna → 6U, Marte → 12U, Europa → 12U (sin vaivén de estructura)', ['moon', 'mars', 'europa'].map((id) => sim(id, sat(null, [])).hints[0].action.id).join() === 'struct-6u,struct-12u,struct-12u');
+check('con piezas ya elegidas se mantiene «la más chica donde caben» (no se fuerza la del destino)', sim('mars', { formFactor: null, pieces: ['obc'], propellantKg: 0 }).hints[0].action.id === 'struct-3u');
+const ionSat = sat('struct-6u', ['prop-ion', 'comm-uhf', 'obc', 'inst-camera', 'battery'], 1);
+const ionMoon = sim('moon', ionSat);
+const swapHint = ionMoon.hints.find((h) => h.key === 'powerSwapProp');
+check('Luna con iónico: la energía falla y el consejo es cambiarlo por monopropelente, diciendo que gasta 20 W continuos',
+  !ok(ionMoon, 'power') && swapHint?.action.type === 'swap' && swapHint.action.remove === 'prop-ion' && swapHint.action.add === 'prop-green' && swapHint.vars.w === 20);
+check('…en lugar de agregar un generador', !ionMoon.hints.some((h) => h.key === 'powerAdd' || h.key === 'powerPartial'));
+check('aplicar ese cambio hace pasar la verificación de energía', ok(sim('moon', nextSatellite(ionSat, swapHint.action, pieces)), 'power'));
+check('Marte 6U con iónico (quitarlo no alcanza el mínimo de 8 W): sigue sugiriendo un generador', (() => {
+  const h = sim('mars', sat('struct-6u', ['prop-ion', 'obc'], 1)).hints;
+  return !h.some((x) => x.key === 'powerSwapProp') && h.some((x) => x.check === 'power' && x.action?.type === 'add');
+})());
 </script>
 </body></html>
