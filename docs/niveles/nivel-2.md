@@ -28,6 +28,7 @@ El jugador entra al taller de ensamblaje. Según [CubeSat 101](https://www3.nasa
 8. [Cómo ajustarlo](#8-cómo-ajustarlo)
 9. [Decisiones de diseño](#9-decisiones-de-diseño)
 10. [Pendientes](#10-pendientes)
+11. [Capa de juego](#11-capa-de-juego)
 
 ---
 
@@ -37,7 +38,7 @@ El jugador entra al taller de ensamblaje. Según [CubeSat 101](https://www3.nasa
 |---|---|
 | **Qué enseña** | La ciencia elegida dicta qué instrumentos sirven, y la masa, la energía y el presupuesto limitan lo que se puede llevar. |
 | **Qué hace el jugador** | Elige estructura (3U / 6U / 12U), energía, propulsión, radio, control de actitud, computadora e instrumentos, y carga el propelente. |
-| **Cómo gana** | Pasa las 11 verificaciones de `physics.validateDesign` → **🚀 Lanzar**. |
+| **Cómo gana** | Pasa las 11 verificaciones de `physics.validateDesign` y la **🧪 prueba en tierra** → **🚀 Lanzar**. Gana hasta 3★ por eficiencia (ver [§11](#11-capa-de-juego)). |
 | **Cómo entra** | `nivel2/`: desde el «Siguiente» del Nivel 1, desde **☰ Niveles → Nivel 2** o desde el Nivel 3 (`levelHref(2)`). Sin misión guardada abre en **modo demo**. |
 | **Cómo sale** | **🚀 Validar y lanzar** guarda `satellite` con su resumen y abre `nivel3/`. **← Nivel 1** vuelve a la app principal (`levelHref(1)`). |
 
@@ -157,7 +158,7 @@ Recorrido manual sugerido (en ES y EN, escritorio y 360 px):
 3. Vuelve al Nivel 1, cambia a **campo magnético** y regresa: si tenías el espectrómetro, se quita y aparece el aviso.
 4. Arrastra el propelente sin soltar: Δv y Masa cambian en vivo.
 5. Con el **Colibrí** y una estructura **12U** cargada, aparece el aviso del cohete y Lanzar queda deshabilitado.
-6. **🚀 Validar y lanzar** → `satellite.validated: true` con su resumen, y se abre `nivel3/`.
+6. **🧪 Prueba en tierra** (8 fases) y luego **🚀 Lanzar** → `satellite.validated: true` con su resumen y la capa de juego (`stars`, `risk`, `dilemma`). La pantalla de resultado muestra las estrellas y lleva a `nivel3/`.
 
 ---
 
@@ -170,6 +171,9 @@ Recorrido manual sugerido (en ES y EN, escritorio y 360 px):
 | Agregar un instrumento | `pieces.json` (Rol 2) **y** su entrada en cada objetivo de `instrumentFit` |
 | Cambiar los cortes de color | `WARN_AT` y `DV_MARGIN` en `js/taller-reglas.js` |
 | Cambiar la descripción de las estructuras | `data/workshop.json → formFactors` |
+| Cambiar el riesgo de falla por TRL | `data/workshop.json → trlRisk` (probabilidad por TRL) |
+| Cambiar los umbrales de las estrellas | `data/workshop.json → stars` (`dvMarginMin`, `dvMarginMax`, `costMaxRatio`, `riskMax`) |
+| Agregar o cambiar un dilema | `data/workshop.json → dilemmas` (reto `goal` con `metric` = `wetKg`, `batteryMargin` o `eclipse`; o riesgo `risk` con `category` y `add`) |
 
 ---
 
@@ -183,7 +187,7 @@ Recorrido manual sugerido (en ES y EN, escritorio y 360 px):
 - **La compatibilidad la decide el objetivo científico.** Es la decisión del Nivel 1 que mejor muestra que "la ciencia dicta la ingeniería".
 - **Las incompatibilidades se basan en misiones reales**, para que la razón en gris enseñe algo concreto (por ejemplo, Galileo detectó el océano de Europa con un magnetómetro).
 - **Masa en gramos:** las piezas de un CubeSat pesan cientos de gramos, y en kg se leían casi iguales.
-- **Medidores con `role="meter"`, nunca `slider`:** el E2E busca el único slider del taller (el propelente).
+- **Medidores con `role="meter"`, nunca `slider`:** así el único slider del taller es el del propelente.
 - **Accesibilidad:**
   - cada estado se muestra con color **y** con ícono o texto (✔ / ✘, "margen justo");
   - la razón del gris va asociada con `aria-describedby`;
@@ -197,5 +201,25 @@ Recorrido manual sugerido (en ES y EN, escritorio y 360 px):
 - [x] Se retiró la pantalla `js/screens/workshop.js` de la app: el Taller vive solo en `nivel2/`.
 - [ ] **E2E** (pausado en #46): cuando se reactive, los diseños de referencia deben elegir objetivo e instrumentos compatibles. Por ejemplo, Marte con cámara + magnetómetro no sirve para ningún objetivo de Marte: usar magnetómetro con «campo magnético» (sigue siendo válido: Δv 1382 m/s, 14.80 kg).
 - [ ] Prueba visual en navegador real (escritorio y celular, ES y EN).
-- [ ] #15: vista del CubeSat ensamblado con las U ocupadas.
+- [x] #15: vista del CubeSat ensamblado con las U ocupadas (banco de ensamblaje, `nivel2/ensamble.js`).
 - [ ] #16: tooltips de CubeSat 101 por subsistema. Este nivel ya cubre instrumentos y estructuras.
+
+---
+
+## 11. Capa de juego
+
+El taller dejó de ser un configurador: el jugador **arma** el CubeSat, lo **prueba** y recibe **estrellas**. Ninguna fórmula cambió: todo sale de `physics.validateDesign`.
+
+| Mecánica | Qué hace | Archivo |
+|---|---|---|
+| **Banco de ensamblaje** | SVG del CubeSat: chasis con la cuadrícula de U (4 celdas de 0.25U por U). Al hacer clic en una pieza, cae en el primer hueco libre (las grandes primero). Se dibujan los paneles desplegables, antenas, tobera, RTG e instrumentos. Lo que no cabe queda en rojo fuera del marco. | `nivel2/ensamble.js` (`packCells` es pura) |
+| **Tarjetas con iconos** | ⚖️ masa · 🧊 U · ⚡ W / 🔋 Wh · 💰 $M · 🔥 Isp, y una insignia de TRL con su % de falla. | `nivel2/nivel2.js` |
+| **Riesgo por TRL** | TRL 9 = 0 %; TRL 4 = 25 %. Riesgo total = 1 − Π(1 − p). El Nivel 3 sortea cada pieza a mitad del viaje (`FAIL_AT`): un instrumento pierde 10 de ciencia, energía o computadora 5, y la propulsión pierde 120 m/s. | `nivel2/juego.js`, `nivel3/nivel3.js` |
+| **Dilemas** | Uno al azar, la primera vez que el diseño pasa todo: patrocinador (−5 % de masa), máximo solar (30 % de margen de batería o +10 % de riesgo en la computadora), retraso del lanzamiento (eclipses 1.5× o +10 % de riesgo en la energía). Se guarda en `satellite.dilemma` y no se repite. | `data/workshop.json → dilemmas` |
+| **Prueba en tierra** | 8 fases animadas ligadas a las verificaciones: encendido, vibración, despliegue, eclipse (la batería se vacía), encendido del propulsor (barra de Δv), enlace, calibración y costos. Se detiene en la primera que falla y marca la categoría culpable. Cambiar el diseño obliga a repetirla. | `nivel2/prueba.js` |
+| **Estrellas** | ★ válido · ★ Δv con margen de 3 % a 25 % · ★ eficiente (≤ 90 % del presupuesto, riesgo ≤ 10 % y reto cumplido). La mejor marca se guarda en `eo-taller-mejor` (por destino) y **no bloquea nada**. | `nivel2/juego.js` |
+| **Sonido** | WebAudio sintetizado: clic metálico al instalar, alerta al romper un límite, motor en la prueba, estrellas. Botón 🔊/🔇 (`eo-sonido`); empieza apagado en táctil y con «reducir movimiento». | `nivel2/sonido.js` |
+
+Con «reducir movimiento» no hay animaciones: la prueba muestra sus fases casi al instante.
+
+Pruebas: `tests/taller.test.html` (cuadrícula, riesgo, dilemas, estrellas y contrato).

@@ -58,6 +58,16 @@ Masa, potencia y TRL tienen orden de magnitud real. El **costo** está ludificad
 | `inst-mag` | 0.3 kg | 1 W | 9 | Magnetómetros fluxgate para CubeSat (0.1–0.3 kg, menos de 1 W) |
 | `inst-radar` | 2.5 kg | 25 W | 5 | RainCube (radar Ka en 6U, ~20+ W). Un radar penetrante para CubeSat sigue en concepto |
 
+## Riesgo por TRL (Nivel 2 → Nivel 3)
+
+El **TRL** (*Technology Readiness Level*, escala de la NASA del 1 al 9) mide qué tan probada está una tecnología: TRL 9 ya voló en una misión. En el juego, una pieza de TRL bajo puede fallar durante el viaje:
+
+| TRL | 9 | 8 | 7 | 6 | 5 | 4 |
+|---|---|---|---|---|---|---|
+| Probabilidad de falla | 0 % | 2 % | 5 % | 10 % | 15 % | 25 % |
+
+Los porcentajes están ludificados: crecen al bajar el TRL, como el riesgo real de tecnologías sin historial de vuelo. Están en `data/workshop.json → trlRisk`. Referencia: NASA, *Technology Readiness Levels* (NPR 7123.1, apéndice E).
+
 ## Modelo de energía
 Generación y consumo van **separados** y se restan: `neto = generación − consumo` (`powerBalance` en `js/physics.js`). El neto **puede ser negativo**, y entonces la misión se queda sin energía (el medidor se pone rojo y la verificación «Energía» falla).
 

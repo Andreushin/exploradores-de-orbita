@@ -14,6 +14,8 @@ const BURN_RATE = 0.35;      // fracción del Δv requerido por segundo al mante
 const CRUISE_SECONDS = 9;    // duración visual del crucero
 const TCM_AT = 0.25;         // fracción del viaje donde aparece la corrección
 const EVENT_AT = 0.6;        // fracción del viaje donde aparece el evento
+const FAIL_AT = 0.8;         // fracción del viaje donde se sortean las fallas por TRL (satellite.risk, Nivel 2)
+const FAIL_SCIENCE = { instrument: -10, power: -5, obc: -5 }; // ciencia que se pierde si falla una pieza de esa categoría
 const IONIC_ISP = 1500;      // para la sugerencia educativa
 // Diseño de referencia (docs/fuentes.md) para el modo demo
 const DEMO = {
@@ -50,7 +52,7 @@ function newRun() {
   return {
     phase: 'brief', progress: 0, prop: sat.prop0, dvUsed: 0, log: [], events: [],
     tcm: null, insertionNeed: mission.dvRequired, burnApplied: 0, burning: false,
-    outcome: null, science: 0, eventDone: false, lastFrame: 0, maneuvers: 0,
+    outcome: null, science: 0, eventDone: false, failDone: false, currentFailure: null, lastFrame: 0, maneuvers: 0,
   };
 }
 const mass = () => sat.dry + run.prop;
@@ -229,6 +231,7 @@ function renderBrief() {
     </table>
     <p class="${margin >= 0 ? 'n3-ok' : 'n3-bad'}">${t('margin')}: ${margin >= 0 ? t('marginOk', { kg: fmt(margin, 2) }) : t('marginBad', { kg: fmt(-margin, 2) })}</p>`;
   if (!sat.hasEngine) { p.insertAdjacentHTML('beforeend', `<p class="n3-bad">${t('noEngine')}</p>`); }
+  if (sat.riskTotal > 0) p.insertAdjacentHTML('beforeend', `<p class="n3-warn">${t('briefRisk', { pct: fmt(sat.riskTotal * 100, 0) })}</p>`);
   p.append(btn(t('start'), 'n3-btn-primary', startCruise));
 }
 
@@ -301,6 +304,54 @@ function chooseEvent(ev, c, i) {
 }
 
 function resume() { panel().innerHTML = ''; run.currentEvent = null; run.phase = 'cruise'; run.lastFrame = performance.now(); }
+
+// --- Fallas por TRL (riesgo que el jugador aceptó en el Nivel 2) ---------------------
+/** Sortea cada pieza de satellite.risk: [{ id, trl, p }] → las que fallan, con su pieza. */
+function rollFailures() {
+  return sat.risk
+    .filter((r) => Math.random() < r.p)
+    .map((r) => ({ ...r, piece: data.pieces.find((x) => x.id === r.id) }))
+    .filter((r) => r.piece);
+}
+
+function failureEffect(f) {
+  if (f.piece.category === 'propulsion') return { dv: RISK_DV, science: 0 };
+  return { dv: 0, science: FAIL_SCIENCE[f.piece.category] ?? -5 };
+}
+
+function renderFailure(fails) {
+  run.currentFailure = fails;
+  const p = panel();
+  const items = fails.map((f) => {
+    const e = failureEffect(f);
+    const what = e.dv ? t('failDv', { dv: e.dv }) : t('failScience', { n: -e.science });
+    return `<li><b>${esc(tx(f.piece.name))}</b> (TRL ${f.trl}, ${fmt(f.p * 100, 0)} %): ${what}</li>`;
+  }).join('');
+  p.innerHTML = `<span class="n3-tag n3-tag-bad">${t('failTag')}</span><h2 class="n3-bad">${t('failTitle')}</h2>
+    <p>${t('failText')}</p><ul class="n3-tips">${items}</ul>`;
+  const row = document.createElement('div'); row.className = 'n3-choices';
+  row.append(btn(t('failContinue'), 'n3-btn-primary', () => applyFailures(fails)));
+  p.append(row);
+}
+
+function applyFailures(fails) {
+  run.currentFailure = null;
+  for (const f of fails) {
+    const e = failureEffect(f);
+    const name = tx(f.piece.name);
+    const rec = { id: `trl-${f.id}`, choice: 0, hit: true, dv: 0, science: e.science };
+    if (e.dv) {
+      const r = burn(e.dv); rec.dv = r.dv; run.maneuvers += 1;
+      log(t('logFailDv', { name, dv: fmt(r.dv, 0), kg: fmt(r.kg, 2) }), 'n3-warn');
+      if (r.out) { run.events.push(rec); return noFuel(); }
+    } else {
+      run.science += e.science;
+      log(t('logFailScience', { name, n: -e.science }), 'n3-warn');
+    }
+    run.events.push(rec);
+  }
+  resume();
+}
 
 function renderMoi() {
   run.phase = 'moi';
@@ -425,6 +476,11 @@ function frame(now) {
     run.progress = Math.min(1, run.progress + (reduceMotion ? dt * 3 : dt) / CRUISE_SECONDS);
     if (prev < TCM_AT && run.progress >= TCM_AT && !run.tcm) { run.progress = TCM_AT; run.phase = 'decision'; renderTcm(); }
     else if (prev < EVENT_AT && run.progress >= EVENT_AT && !run.eventDone) { run.progress = EVENT_AT; run.eventDone = true; run.phase = 'decision'; renderEvent(); }
+    else if (prev < FAIL_AT && run.progress >= FAIL_AT && !run.failDone) {
+      run.failDone = true;
+      const fails = rollFailures();
+      if (fails.length) { run.progress = FAIL_AT; run.phase = 'decision'; renderFailure(fails); }
+    }
     else if (run.progress >= 1) renderMoi();
   } else if (run.phase === 'moi' && run.burning) {
     const before = run.prop;
@@ -478,6 +534,9 @@ async function boot() {
     maxProp: engine?.maxPropellantKg || 0,
     hasEngine: Boolean(engine),
     demo,
+    // Riesgo por TRL que viene del Nivel 2 (opcional en el contrato): [{ id, trl, p }]
+    risk: !demo && Array.isArray(src.satellite.risk) ? src.satellite.risk.filter((r) => r && r.p > 0) : [],
+    riskTotal: !demo ? Number(src.satellite.riskTotal) || 0 : 0,
   };
   $('n3-demo').hidden = !demo;
   if (!saved) saveMission(DEMO); // solo si no hay nada guardado: nunca pisa datos reales
@@ -499,6 +558,7 @@ async function boot() {
     else if (run.phase === 'result') renderResult();
     else if (run.phase === 'moi') renderMoi();
     else if (run.phase === 'decision' && !run.tcm) renderTcm();
+    else if (run.phase === 'decision' && run.currentFailure) renderFailure(run.currentFailure);
     else if (run.phase === 'decision' && run.currentEvent) renderEvent(run.currentEvent);
   });
   requestAnimationFrame(frame);

@@ -200,5 +200,125 @@
       "es": "Gran capacidad, pero pesa más: necesita un cohete con más carga útil.",
       "en": "High capacity, but heavier: it needs a launcher with more payload."
     }
-  }
+  },
+  "trlRisk": {
+    "4": 0.25,
+    "5": 0.15,
+    "6": 0.1,
+    "7": 0.05,
+    "8": 0.02,
+    "9": 0
+  },
+  "stars": {
+    "dvMarginMin": 1.03,
+    "dvMarginMax": 1.25,
+    "costMaxRatio": 0.9,
+    "riskMax": 0.1
+  },
+  "dilemmas": [
+    {
+      "id": "sponsor",
+      "icon": "🤝",
+      "title": {
+        "es": "Un patrocinador toca la puerta",
+        "en": "A sponsor comes knocking"
+      },
+      "text": {
+        "es": "Una empresa quiere poner su logo en tu CubeSat si demuestras que puedes hacerlo más ligero: baja la masa al despegar un 5 % (pista: ¿llevas propelente de más?).",
+        "en": "A company wants its logo on your CubeSat if you prove you can make it lighter: cut the launch mass by 5% (hint: are you carrying extra propellant?)."
+      },
+      "choices": [
+        {
+          "kind": "goal",
+          "goal": {
+            "metric": "wetKg",
+            "ratio": 0.95
+          },
+          "label": {
+            "es": "Acepto el reto (−5 % de masa)",
+            "en": "I accept the challenge (−5% mass)"
+          }
+        },
+        {
+          "kind": "none",
+          "label": {
+            "es": "No, gracias",
+            "en": "No, thanks"
+          }
+        }
+      ]
+    },
+    {
+      "id": "solar-max",
+      "icon": "☀️",
+      "title": {
+        "es": "Se acerca un máximo solar",
+        "en": "Solar maximum ahead"
+      },
+      "text": {
+        "es": "Los pronósticos anuncian más tormentas solares durante tu misión. La electrónica sufre si la batería trabaja al límite.",
+        "en": "Forecasts call for more solar storms during your mission. Electronics suffer when the battery runs at its limit."
+      },
+      "choices": [
+        {
+          "kind": "goal",
+          "goal": {
+            "metric": "batteryMargin",
+            "ratio": 1.3
+          },
+          "label": {
+            "es": "Dejar 30 % de margen en la batería",
+            "en": "Keep a 30% battery margin"
+          }
+        },
+        {
+          "kind": "risk",
+          "risk": {
+            "category": "obc",
+            "add": 0.1
+          },
+          "label": {
+            "es": "Arriesgarse (+10 % de falla en la computadora)",
+            "en": "Risk it (+10% flight-computer failure)"
+          }
+        }
+      ]
+    },
+    {
+      "id": "launch-slip",
+      "icon": "⏳",
+      "title": {
+        "es": "El lanzamiento se retrasa",
+        "en": "The launch slips"
+      },
+      "text": {
+        "es": "La nueva ventana de lanzamiento llega con eclipses 50 % más largos en el destino. ¿Tu batería aguanta?",
+        "en": "The new launch window brings 50% longer eclipses at the destination. Will your battery hold?"
+      },
+      "choices": [
+        {
+          "kind": "goal",
+          "goal": {
+            "metric": "eclipse",
+            "ratio": 1.5
+          },
+          "label": {
+            "es": "Preparar la batería para eclipses 1.5× más largos",
+            "en": "Size the battery for 1.5× longer eclipses"
+          }
+        },
+        {
+          "kind": "risk",
+          "risk": {
+            "category": "power",
+            "add": 0.1
+          },
+          "label": {
+            "es": "Arriesgarse (+10 % de falla en la energía)",
+            "en": "Risk it (+10% power failure)"
+          }
+        }
+      ]
+    }
+  ]
 }

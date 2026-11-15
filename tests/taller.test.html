@@ -1,0 +1,75 @@
+<!doctype html>
+<!-- OWNER: Rol 3 — abrir en http://localhost:8000/tests/taller.test.html -->
+<html lang="es"><head><meta charset="utf-8"><title>Taller (Nivel 2) tests</title>
+<style>body{font:14px monospace;background:#111;color:#ddd;padding:16px}.ok{color:#4ade80}.fail{color:#f87171}</style></head>
+<body><h1>nivel2: ensamble.js · juego.js</h1><ul id="out"></ul>
+<script type="module">
+import { packCells, formaU, CELLS_PER_U } from '../nivel2/ensamble.js';
+import { riesgoTRL, riesgoMision, elegirDilema, evaluarDilema, estrellasTaller, piezasDe } from '../nivel2/juego.js';
+import { validateDesign } from '../js/physics.js';
+import { satelliteSummary } from '../nivel2/nivel2.js';
+const out = document.getElementById('out');
+const check = (name, cond) => { const li = document.createElement('li'); li.className = cond ? 'ok' : 'fail'; li.textContent = (cond ? 'PASS ' : 'FAIL ') + name; out.append(li); };
+const load = (f) => fetch(`../data/${f}.json`).then((r) => r.json());
+const [missions, rockets, pieces, workshop] = await Promise.all(['missions', 'rockets', 'pieces', 'workshop'].map(load));
+const data = { missions, rockets, pieces };
+const moon = missions.find((m) => m.id === 'moon');
+const ref = { missionId: 'moon', rocketId: 'pico', budget: { space: 25 }, satellite: { formFactor: 'struct-6u', pieces: ['battery', 'prop-green', 'comm-uhf', 'obc', 'inst-camera'], propellantKg: 2.5 } };
+const withSat = (patch) => ({ ...ref, satellite: { ...ref.satellite, ...patch } });
+
+// --- Cuadrícula de U ---
+const refPieces = piezasDe(ref.satellite, pieces);
+const p6 = packCells(refPieces, 6);
+check('6U = 24 celdas de 0.25U', p6.totalCells === 6 * CELLS_PER_U);
+check('referencia Luna cabe en 6U (sin sobrantes)', p6.overflow.length === 0 && p6.placed.length === 5);
+check('referencia Luna ocupa 5U (20 celdas)', p6.usedCells === 20);
+check('la más grande (propulsión 3U) va primero, alineada a su U', p6.placed[0].id === 'prop-green' && p6.placed[0].start === 0);
+check('sin solapes: cada pieza empieza donde termina la anterior', p6.placed.every((it, i) => i === 0 || it.start === p6.placed[i - 1].start + p6.placed[i - 1].size));
+const p3 = packCells(refPieces, 3);
+check('en 3U sobran piezas', p3.overflow.length > 0 && p3.usedCells <= 12);
+check('la estructura no ocupa celdas', packCells(piezasDe({ formFactor: 'struct-6u', pieces: [] }, pieces), 6).usedCells === 0);
+check('formaU: 3U es 1×3, 6U 2×3, 12U 4×3', JSON.stringify([formaU(3), formaU(6), formaU(12)]) === JSON.stringify([{ cols: 1, rows: 3 }, { cols: 2, rows: 3 }, { cols: 4, rows: 3 }]));
+
+// --- Riesgo por TRL ---
+check('TRL 9 no tiene riesgo', riesgoTRL(9, workshop.trlRisk) === 0);
+check('TRL 4 es el más riesgoso de la tabla', riesgoTRL(4, workshop.trlRisk) === Math.max(...Object.values(workshop.trlRisk)));
+check('el riesgo baja al subir el TRL', [4, 5, 6, 7, 8, 9].every((trl, i, a) => i === 0 || riesgoTRL(trl, workshop.trlRisk) <= riesgoTRL(a[i - 1], workshop.trlRisk)));
+const rRef = riesgoMision(refPieces, workshop.trlRisk);
+check('referencia Luna: riesgo ≈ 7 % (verde 5 % + cámara 2 %)', Math.abs(rRef.total - 0.069) < 0.002 && rRef.items.length === 2);
+check('riesgo total = 1 − Π(1 − p)', Math.abs(rRef.total - (1 - rRef.items.reduce((a, it) => a * (1 - it.p), 1))) < 0.001);
+const solar = workshop.dilemmas.find((d) => d.id === 'solar-max');
+const rDil = riesgoMision(refPieces, workshop.trlRisk, { choice: solar.choices[1] });
+check('dilema con riesgo suma +10 % a la computadora', rDil.items.find((it) => it.id === 'obc')?.p === 0.1 && rDil.total > rRef.total);
+
+// --- Dilemas ---
+check('elegirDilema respeta el guardado', elegirDilema(workshop.dilemmas, { id: 'launch-slip' }).id === 'launch-slip');
+check('elegirDilema con rand=0 elige el primero', elegirDilema(workshop.dilemmas, null, () => 0).id === workshop.dilemmas[0].id);
+check('cada dilema trae 2 opciones con textos ES/EN', workshop.dilemmas.every((d) => d.choices.length === 2 && d.title.es && d.title.en && d.choices.every((c) => c.label.es && c.label.en)));
+const resRef = validateDesign(ref, data);
+const ctx = (r, sat = ref.satellite) => ({ metrics: r.metrics, mission: moon, piezas: piezasDe(sat, pieces), ref: { wetKg: 6.6 } });
+const sponsor = workshop.dilemmas.find((d) => d.id === 'sponsor').choices[0];
+check('patrocinador: la referencia (6.6 kg) aún no cumple −5 %', evaluarDilema(sponsor, ctx(resRef)).met === false);
+const light = withSat({ propellantKg: 2.15 });
+const resLight = validateDesign(light, data);
+check('patrocinador: recortar propelente a 2.15 kg cumple el reto y sigue válido', evaluarDilema(sponsor, ctx(resLight, light.satellite)).met && resLight.valid);
+check('máximo solar: la referencia tiene 30 % de margen de batería', evaluarDilema(solar.choices[0], ctx(resRef)).met === true);
+const slip = workshop.dilemmas.find((d) => d.id === 'launch-slip').choices[0];
+check('retraso: con eclipses 1.5× la batería de la referencia aguanta', evaluarDilema(slip, ctx(resRef)).met === true);
+check('una opción de riesgo no tiene reto', evaluarDilema(solar.choices[1], ctx(resRef)) === null);
+
+// --- Estrellas ---
+const est = (r, extra = {}) => estrellasTaller({ valid: r.valid, metrics: r.metrics, mission: moon, budgetSpace: 25, riesgo: rRef, reto: null, ...extra }, workshop.stars);
+check('referencia Luna: 3★ (válida, margen 21 %, $20M de $25M, riesgo 7 %)', est(resRef).stars === 3);
+const over = withSat({ propellantKg: 4 });
+check('propelente de más (+50 % Δv): pierde la estrella de dimensionado', est(validateDesign(over, data)).criteria.find((c) => c.id === 'sized').ok === false);
+check('reto incumplido: pierde la estrella de eficiencia', est(resRef, { reto: { met: false } }).stars === 2);
+check('riesgo alto (25 %): pierde la estrella de eficiencia', est(resRef, { riesgo: { total: 0.25 } }).criteria.find((c) => c.id === 'efficient').ok === false);
+const invalid = withSat({ pieces: ['prop-green', 'comm-uhf', 'obc', 'inst-camera'] });
+check('diseño inválido = 0★', est(validateDesign(invalid, data)).stars === 0);
+
+// --- Contrato ---
+const sum = satelliteSummary(ref.satellite, resRef, rockets[0], { stars: 3, risk: rRef.items, riskTotal: rRef.total, groundTest: true });
+check('satelliteSummary conserva el resumen y agrega la capa de juego', sum.dvAvailable === 1027 && sum.validated && sum.stars === 3 && sum.riskTotal === rRef.total && sum.groundTest);
+check('satelliteSummary sin extra sigue igual que antes', !('stars' in satelliteSummary(ref.satellite, resRef, rockets[0])));
+</script>
+</body></html>

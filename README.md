@@ -21,7 +21,7 @@ python3 -m http.server 8000
 | Nivel | Qué hace el jugador | Recurso NASA | Dónde vive |
 |---|---|---|---|
 | **1 · Diseña tu misión** | Nombre del proyecto, destino (Luna, Marte, Europa), objetivo científico y una tarjeta por segmento (Lanzamiento, Espacio, Tierra, Usuario). Lo insuficiente bloquea; lo sobredimensionado baja la madurez. | Design and Develop Science Missions | app principal |
-| **2 · Taller del CubeSat** | Factor de forma, energía, propulsión, radio, ADCS, computadora e instrumentos. Los incompatibles con el objetivo aparecen en gris; medidores en vivo de masa, energía, costo y Δv. | CubeSat 101 | `nivel2/` |
+| **2 · Taller del CubeSat** | Armas el CubeSat pieza por pieza en una cuadrícula de U: estructura, energía, propulsión, radio, ADCS, computadora e instrumentos. Los incompatibles con el objetivo aparecen en gris; medidores en vivo de masa, energía, costo y Δv; riesgo por TRL, un dilema sorpresa, prueba en tierra animada y hasta 3★. | CubeSat 101 | `nivel2/` |
 | **3 · Travesía e inserción** | Presupuesto de Δv, combustible en kg que depende de la masa, corrección de trayectoria, un evento en ruta y el frenado orbital. Sin combustible hay un reintento educativo. | GMAT / NASA Mission Viz | `nivel3/` |
 | **4 · Reporte** | Resultado, CML final (con el tope del plan), datos científicos por instrumento comparados con misiones reales y qué mejorar. | Concept Maturity Levels | app principal |
 
@@ -51,7 +51,7 @@ js/taller-reglas.js        reglas del Nivel 2 · js/canvas/starry-bg.js: fondo d
 nivel2/  nivel3/           niveles en página aislada (index.html, nivelN.css, nivelN.js, textos.js)
 data/                      misiones, cohetes, piezas, eventos, segmentos, taller, ciencia
 css/                       base.css + estilos de cada pantalla de la app principal
-tests/                     pruebas en el navegador (physics, science, report, budget)
+tests/                     pruebas en el navegador (physics, science, report, budget, taller)
 docs/                      contrato-niveles.md, fuentes.md y niveles/nivel-1…4.md
 ```
 

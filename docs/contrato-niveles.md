@@ -49,7 +49,13 @@ location.href = levelUrl(4);           // ../nivel4/  (funciona desde la raíz o
     "powerNetW": 1,                          // powerGenW − powerUseW; puede ser negativo
     "batteryWh": 80,                         // capacidad de batería (guarda energía, no la genera)
     "maxPayloadKg": 15,                      // del cohete elegido
-    "validated": true
+    "validated": true,
+    // Capa de juego del Nivel 2 (opcional: quien no la use la ignora)
+    "stars": 2,                              // 0–3 estrellas del taller
+    "risk": [{ "id": "prop-green", "trl": 7, "p": 0.05 }], // piezas que pueden fallar en ruta
+    "riskTotal": 0.069,                      // 1 − Π(1 − p)
+    "dilemma": { "id": "sponsor", "choice": 0, "kind": "goal", "met": false, "ref": { "wetKg": 6.6 } },
+    "groundTest": true                       // pasó la prueba en tierra
   },
 
   // ── Nivel 3 · Travesía e inserción orbital (nivel3/) ───────────────
@@ -60,6 +66,7 @@ location.href = levelUrl(4);           // ../nivel4/  (funciona desde la raíz o
     "propellantUsedKg": 2.31,
     "tcm": "early",                          // corrección de trayectoria: 'early' | 'late' | 'skip'
     "events": [{ "id": "valve-leak", "choice": 0, "hit": false, "dv": 50, "science": 0 }],
+                                             // fallas por TRL: { "id": "trl-<pieza>", "hit": true, "dv": 0, "science": -10 }
     "insertionRatio": 1.02,                  // Δv aplicado / Δv requerido en el frenado
     "outcome": "orbit",                      // 'orbit' | 'eccentric' | 'flyby' | 'crash' | 'no-fuel'
     "attempts": 1
