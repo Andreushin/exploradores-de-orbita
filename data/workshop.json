@@ -200,5 +200,187 @@
       "es": "Gran capacidad, pero pesa más: necesita un cohete con más carga útil.",
       "en": "High capacity, but heavier: it needs a launcher with more payload."
     }
+  },
+  "pieceInfo": {
+    "struct-3u": {
+      "real": {
+        "es": "El formato clásico: 10×10×34 cm. Las estructuras comerciales 3U pesan 0.3–0.5 kg y llevan paneles fijos de 3–5 W en las caras.",
+        "en": "The classic format: 10×10×34 cm. Commercial 3U structures weigh 0.3–0.5 kg and carry fixed 3–5 W body panels."
+      },
+      "tradeoff": {
+        "es": "La más barata y ligera, pero cabe poco: con un propulsor grande no entra el propelente que pide la Luna.",
+        "en": "The cheapest and lightest, but it fits little: with a big thruster the propellant the Moon needs will not fit."
+      }
+    },
+    "struct-6u": {
+      "real": {
+        "es": "MarCO (2018) viajó a Marte en 6U (~13.5 kg cada uno). Las estructuras 6U comerciales pesan ~1 kg.",
+        "en": "MarCO (2018) flew to Mars in 6U (~13.5 kg each). Commercial 6U structures weigh ~1 kg."
+      },
+      "tradeoff": {
+        "es": "El punto medio: espacio para propulsión, energía y uno o dos instrumentos sin la masa de una 12U.",
+        "en": "The middle ground: room for propulsion, power and one or two instruments without the mass of a 12U."
+      }
+    },
+    "struct-12u": {
+      "real": {
+        "es": "Cabe una nave pequeña completa: CAPSTONE (12U, ~25 kg) llegó a la Luna en 2022. Las estructuras 12U pesan ~2 kg.",
+        "en": "It fits a whole small spacecraft: CAPSTONE (12U, ~25 kg) reached the Moon in 2022. 12U structures weigh ~2 kg."
+      },
+      "tradeoff": {
+        "es": "Cabe casi todo, pero es la más cara y pesada, y exige un cohete con más carga útil.",
+        "en": "It fits almost anything, but it is the priciest and heaviest, and it needs a launcher with more payload."
+      }
+    },
+    "solar-deploy": {
+      "real": {
+        "es": "Las alas desplegables de MarCO daban ~35 W y volaron a Marte en 2018.",
+        "en": "MarCO’s deployable wings gave ~35 W and flew to Mars in 2018."
+      },
+      "tradeoff": {
+        "es": "Mucha energía por poco costo, pero lejos del Sol rinde 1/d²: en Europa casi no genera.",
+        "en": "Lots of power for little cost, but far from the Sun it yields 1/d²: at Europa it hardly generates."
+      }
+    },
+    "battery": {
+      "real": {
+        "es": "Ion-litio a ~150 Wh/kg: 80 Wh pesan ≈ 0.5 kg. Se usa solo la mitad de la capacidad para que aguante más ciclos.",
+        "en": "Lithium-ion at ~150 Wh/kg: 80 Wh weigh ≈ 0.5 kg. Only half the capacity is used so it lasts more cycles."
+      },
+      "tradeoff": {
+        "es": "Barata y ligera, pero solo guarda energía: no la genera. Cubre eclipses y quemados.",
+        "en": "Cheap and light, but it only stores energy; it does not make it. It covers eclipses and burns."
+      }
+    },
+    "battery-large": {
+      "real": {
+        "es": "El mismo ion-litio: 160 Wh ≈ 1 kg y 1U.",
+        "en": "The same lithium-ion: 160 Wh ≈ 1 kg and 1U."
+      },
+      "tradeoff": {
+        "es": "El doble de reserva que la de 80 Wh, a cambio de más costo, masa y volumen.",
+        "en": "Twice the reserve of the 80 Wh one, in exchange for more cost, mass and volume."
+      }
+    },
+    "rtg-mini": {
+      "real": {
+        "es": "No existe un RTG para CubeSat. El MMRTG de Curiosity da ~2 W por kg: 35 W reales pesarían más de 10 kg. Aquí es un concepto ludificado.",
+        "en": "There is no CubeSat RTG. Curiosity’s MMRTG gives ~2 W per kg: 35 real watts would weigh over 10 kg. Here it is a gamified concept."
+      },
+      "tradeoff": {
+        "es": "La única fuente que sigue dando energía sin Sol (clave en Europa), pero es carísima, pesada y de bajo TRL.",
+        "en": "The only source that keeps producing without sunlight (key at Europa), but it is very expensive, heavy and low-TRL."
+      }
+    },
+    "prop-cold": {
+      "real": {
+        "es": "El gas frío de MarCO (Isp 40–70 s) corrigió su trayectoria hacia Marte.",
+        "en": "MarCO’s cold gas (Isp 40–70 s) corrected its trajectory toward Mars."
+      },
+      "tradeoff": {
+        "es": "La más barata y probada, pero su Isp es tan baja que no alcanza el Δv de ningún destino.",
+        "en": "The cheapest and best proven, but its Isp is so low that it cannot reach the Δv of any destination."
+      }
+    },
+    "prop-green": {
+      "real": {
+        "es": "El propelente verde AF-M315E (misiones GPIM y Lunar Flashlight) da Isp ~220 s. En la realidad 7 kg no cabrían en 3U: aquí está ludificado.",
+        "en": "AF-M315E green propellant (GPIM and Lunar Flashlight) gives Isp ~220 s. In reality 7 kg would not fit in 3U: here it is gamified."
+      },
+      "tradeoff": {
+        "es": "Buen equilibrio entre costo y empuje, pero su tanque grande ocupa mucho volumen y masa.",
+        "en": "A good balance of cost and thrust, but its big tank takes a lot of volume and mass."
+      }
+    },
+    "prop-ion": {
+      "real": {
+        "es": "Los propulsores iónicos y electrospray para CubeSat (Accion TILE, Enpulsion IFM) tienen Isp de 1000–2000 s con 10–30 W.",
+        "en": "Ion and electrospray thrusters for CubeSats (Accion TILE, Enpulsion IFM) have Isp of 1000–2000 s at 10–30 W."
+      },
+      "tradeoff": {
+        "es": "Llega lejos con muy poco propelente, pero es caro, de TRL bajo y gasta energía todo el tiempo que empuja.",
+        "en": "It goes far on very little propellant, but it is expensive, low-TRL and draws power the whole time it thrusts."
+      }
+    },
+    "comm-uhf": {
+      "real": {
+        "es": "Los transceptores UHF comerciales pesan ~0.1–0.2 kg y consumen ~4 W al transmitir.",
+        "en": "Commercial UHF transceivers weigh ~0.1–0.2 kg and draw ~4 W while transmitting."
+      },
+      "tradeoff": {
+        "es": "Baratísima y ligera, pero su alcance solo sirve cerca de la Tierra (la Luna).",
+        "en": "Very cheap and light, but its range only serves near Earth (the Moon)."
+      }
+    },
+    "comm-x": {
+      "real": {
+        "es": "El Iris v2 de JPL (1.2 kg, 0.5U) fue la primera radio de espacio profundo en un CubeSat: MarCO retransmitió el aterrizaje de InSight en 2018.",
+        "en": "JPL’s Iris v2 (1.2 kg, 0.5U) was the first deep-space CubeSat radio: MarCO relayed the InSight landing in 2018."
+      },
+      "tradeoff": {
+        "es": "Llega a Marte y a Europa, pero pesa más, cuesta más y gasta más energía que la UHF.",
+        "en": "It reaches Mars and Europa, but weighs more, costs more and draws more power than the UHF."
+      }
+    },
+    "adcs": {
+      "real": {
+        "es": "El BCT XACT (~0.9 kg, 0.5U, ~3 W) voló en MarCO. Apunta antenas, paneles e instrumentos.",
+        "en": "The BCT XACT (~0.9 kg, 0.5U, ~3 W) flew on MarCO. It points antennas, panels and instruments."
+      },
+      "tradeoff": {
+        "es": "No es obligatoria para validar, pero sin apuntado preciso los instrumentos pierden calidad; a cambio suma costo y consumo.",
+        "en": "It is not required to validate, but without precise pointing instruments lose quality; in exchange it adds cost and power use."
+      }
+    },
+    "obc": {
+      "real": {
+        "es": "Las computadoras de vuelo comerciales para CubeSat pesan 0.1–0.2 kg y consumen menos de 1 W.",
+        "en": "Commercial CubeSat flight computers weigh 0.1–0.2 kg and draw under 1 W."
+      },
+      "tradeoff": {
+        "es": "Obligatoria: sin computadora no hay misión. Es de lo más barato y liviano.",
+        "en": "Mandatory: without a computer there is no mission. It is among the cheapest and lightest parts."
+      }
+    },
+    "inst-camera": {
+      "real": {
+        "es": "Las cámaras multiespectrales para CubeSat pesan 0.5–1 kg y gastan 3–5 W. ShadowCam (NASA) mira dentro de cráteres en sombra permanente.",
+        "en": "Multispectral cameras for CubeSats weigh 0.5–1 kg and draw 3–5 W. NASA’s ShadowCam looks inside permanently shadowed craters."
+      },
+      "tradeoff": {
+        "es": "Barata y madura, pero solo ve imágenes: no mide la química de lo que mira.",
+        "en": "Cheap and mature, but it only takes images: it does not measure the chemistry of what it sees."
+      }
+    },
+    "inst-spectro": {
+      "real": {
+        "es": "BIRCHES (Lunar IceCube) es un espectrómetro infrarrojo de ~1.5U con criorrefrigerador; detecta la firma del agua y del hielo.",
+        "en": "BIRCHES (Lunar IceCube) is a ~1.5U infrared spectrometer with a cryocooler; it detects the signature of water and ice."
+      },
+      "tradeoff": {
+        "es": "Mide la composición, pero es pesado, gasta mucha energía y su TRL es bajo.",
+        "en": "It measures composition, but it is heavy, power-hungry and low-TRL."
+      }
+    },
+    "inst-mag": {
+      "real": {
+        "es": "Los magnetómetros fluxgate para CubeSat pesan 0.1–0.3 kg y gastan menos de 1 W. Galileo detectó el océano de Europa con uno.",
+        "en": "Fluxgate magnetometers for CubeSats weigh 0.1–0.3 kg and draw under 1 W. Galileo detected Europa’s ocean with one."
+      },
+      "tradeoff": {
+        "es": "Barato y maduro, pero solo aporta donde hay un campo magnético que medir.",
+        "en": "Cheap and mature, but it only helps where there is a magnetic field to measure."
+      }
+    },
+    "inst-radar": {
+      "real": {
+        "es": "RainCube (radar Ka en 6U, ~20 W) probó un radar en CubeSat. Uno que penetre el suelo sigue siendo un concepto.",
+        "en": "RainCube (Ka-band radar in 6U, ~20 W) tested a radar on a CubeSat. One that penetrates the ground is still a concept."
+      },
+      "tradeoff": {
+        "es": "El de mayor valor científico, pero el más pesado y hambriento de energía, con TRL bajo.",
+        "en": "The highest science value, but the heaviest and most power-hungry, with low TRL."
+      }
+    }
   }
 }
