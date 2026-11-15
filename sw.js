@@ -6,19 +6,21 @@
 // Si agregas o quitas archivos: `node scripts/precache.mjs` actualiza el bloque de abajo.
 
 /* PRECACHE:INICIO — generado por scripts/precache.mjs, no editar a mano */
-const VERSION = "9e8cccbe42";
+const VERSION = "49dc9989c4";
 const NUCLEO = [
   "",
   "nivel2/",
   "nivel3/",
   "simulador/",
   "simulador/pilotaje/",
+  "assets/favicon.svg",
   "assets/fonts/JetBrainsMono-latin-ext.woff2",
   "assets/fonts/JetBrainsMono-latin.woff2",
   "assets/fonts/SpaceGrotesk-latin-ext.woff2",
   "assets/fonts/SpaceGrotesk-latin.woff2",
   "assets/fonts/fonts.css",
   "assets/logo.svg",
+  "assets/logo_blank.svg",
   "css/base.css",
   "css/screens/menu.css",
   "css/screens/mission.css",
