@@ -1,0 +1,638 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>SpaceX Falcon Heavy - Cohete Completo Ensamblado 3D</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    html, body {
+      width: 100%; height: 100%;
+      overflow: hidden;
+      background-color: #030712;
+      color: #fff;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", sans-serif;
+      user-select: none;
+      -webkit-user-select: none;
+    }
+    canvas { display: block; width: 100vw; height: 100vh; }
+
+    /* HUD Superior */
+    #hud {
+      position: fixed; top: 24px; left: 28px;
+      z-index: 10; pointer-events: none;
+    }
+    .hud-badge {
+      display: inline-flex; align-items: center; gap: 8px;
+      padding: 4px 10px; border-radius: 9999px;
+      background: rgba(15, 23, 42, 0.75);
+      backdrop-filter: blur(12px);
+      border: 1px solid rgba(56, 189, 248, 0.35);
+      font-family: 'SF Mono', Consolas, monospace;
+      font-size: 9px; letter-spacing: 0.18em;
+      color: #bae6fd; text-transform: uppercase;
+      margin-bottom: 6px;
+    }
+    .hud-dot {
+      width: 6px; height: 6px; border-radius: 50%;
+      background: #38bdf8; box-shadow: 0 0 10px #38bdf8;
+      animation: pulse 2s infinite;
+    }
+    @keyframes pulse {
+      0%, 100% { opacity: 1; transform: scale(1); }
+      50% { opacity: 0.4; transform: scale(0.85); }
+    }
+    .hud-title {
+      font-size: 24px; font-weight: 800;
+      color: #f8fafc; letter-spacing: -0.02em;
+    }
+    .hud-sub {
+      font-family: 'SF Mono', Consolas, monospace;
+      font-size: 10px; color: rgba(255,255,255,0.5);
+      letter-spacing: 0.15em; margin-top: 2px;
+    }
+
+    /* Telemetría Histórica */
+    #telemetry-box {
+      position: fixed; top: 24px; right: 28px;
+      z-index: 10; pointer-events: none;
+      background: rgba(15, 23, 42, 0.75);
+      backdrop-filter: blur(12px);
+      border: 1px solid rgba(255, 255, 255, 0.12);
+      border-radius: 10px; padding: 12px 18px;
+      display: flex; gap: 20px;
+    }
+    .telem-item { text-align: right; }
+    .telem-label {
+      font-family: 'SF Mono', Consolas, monospace;
+      font-size: 8px; color: rgba(255,255,255,0.45);
+      letter-spacing: 0.1em; text-transform: uppercase;
+    }
+    .telem-val {
+      font-family: 'SF Mono', Consolas, monospace;
+      font-size: 13px; font-weight: 700; color: #38bdf8; margin-top: 2px;
+    }
+
+    /* Barra de Control Inferior */
+    #controls-bar {
+      position: fixed; bottom: 24px; left: 50%;
+      transform: translateX(-50%);
+      display: flex; align-items: center; gap: 12px;
+      background: rgba(15, 23, 42, 0.85);
+      backdrop-filter: blur(16px);
+      border: 1px solid rgba(255, 255, 255, 0.15);
+      padding: 10px 20px;
+      border-radius: 40px;
+      z-index: 15;
+      box-shadow: 0 10px 30px rgba(0,0,0,0.5);
+    }
+    .btn {
+      background: rgba(255,255,255,0.08); border: 1px solid rgba(255,255,255,0.2);
+      color: #fff; padding: 7px 15px; border-radius: 20px;
+      font-family: 'SF Mono', Consolas, monospace; font-size: 10px;
+      letter-spacing: 0.1em; text-transform: uppercase;
+      cursor: pointer; transition: all 0.2s ease;
+      display: flex; align-items: center; gap: 6px;
+      white-space: nowrap;
+    }
+    .btn:hover { background: rgba(56,189,248,0.3); border-color: #38bdf8; }
+    .btn.active { background: #0284c7; border-color: #38bdf8; color: #fff; font-weight: 700; box-shadow: 0 0 15px rgba(2,132,199,0.6); }
+
+    .cam-nav { display: flex; gap: 6px; border-left: 1px solid rgba(255,255,255,0.15); padding-left: 12px; }
+  </style>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js"></script>
+</head>
+<body>
+
+  <div id="hud">
+    <div class="hud-badge"><span class="hud-dot"></span> SPACEX · SUPER HEAVY-LIFT CLASS</div>
+    <div class="hud-title">Falcon Heavy</div>
+    <div class="hud-sub">3 CORES (27 MOTORES MERLIN 1D) · COFIA 5.2M · 22.8 MN EMPUJE</div>
+  </div>
+
+  <div id="telemetry-box">
+    <div class="telem-item">
+      <div class="telem-label">ALTURA</div>
+      <div class="telem-val">70.0 m</div>
+    </div>
+    <div class="telem-item">
+      <div class="telem-label">MASA AL DESPEGUE</div>
+      <div class="telem-val">1,420 t</div>
+    </div>
+    <div class="telem-item">
+      <div class="telem-label">EMPUJE (27 MOTORES)</div>
+      <div class="telem-val">22,819 kN</div>
+    </div>
+    <div class="telem-item">
+      <div class="telem-label">RENDIMIENTO</div>
+      <div class="telem-val" id="fps-val">60 FPS</div>
+    </div>
+  </div>
+
+  <div id="controls-bar">
+    <button id="btn-ignite" class="btn">🔥 Encender 27 Motores Merlin 1D</button>
+    <button id="btn-legs" class="btn">🦵 Trenes de Aterrizaje</button>
+    <button id="btn-rotate" class="btn">🔄 Rotación Órbita</button>
+    <div class="cam-nav">
+      <button class="btn cam-btn active" data-cam="global">Global</button>
+      <button class="btn cam-btn" data-cam="fairing">Cofia & 2da Etapa</button>
+      <button class="btn cam-btn" data-cam="gridfins">Grid Fins</button>
+      <button class="btn cam-btn" data-cam="engines">Base Octaweb (27)</button>
+    </div>
+  </div>
+
+  <script>
+    // ── 1. Configuración de Escena WebGL ────────────────────────────────────
+    const scene = new THREE.Scene();
+    scene.background = new THREE.Color(0x020617);
+    scene.fog = new THREE.FogExp2(0x020617, 0.007);
+
+    const camera = new THREE.PerspectiveCamera(40, window.innerWidth / window.innerHeight, 0.1, 1000);
+    camera.position.set(24, 4, 32);
+
+    const renderer = new THREE.WebGLRenderer({ antialias: true, powerPreference: "high-performance" });
+    renderer.setSize(window.innerWidth, window.innerHeight);
+    renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+    renderer.toneMapping = THREE.ACESFilmicToneMapping;
+    renderer.toneMappingExposure = 1.25;
+    document.body.appendChild(renderer.domElement);
+
+    const controls = new THREE.OrbitControls(camera, renderer.domElement);
+    controls.enableDamping = true;
+    controls.dampingFactor = 0.05;
+    controls.target.set(0, 1.0, 0);
+    controls.maxDistance = 90;
+    controls.minDistance = 4;
+
+    // ── 2. Iluminación Espacial Cinematográfica ─────────────────────────────
+    const sunLight = new THREE.DirectionalLight(0xfffbeb, 2.5);
+    sunLight.position.set(30, 25, 25);
+    scene.add(sunLight);
+
+    const fillLight = new THREE.DirectionalLight(0x38bdf8, 0.9);
+    fillLight.position.set(-25, -10, -20);
+    scene.add(fillLight);
+
+    const ambLight = new THREE.AmbientLight(0x0f172a, 0.6);
+    scene.add(ambLight);
+
+    const engineLight = new THREE.PointLight(0xf97316, 0, 35);
+    engineLight.position.set(0, -10.5, 0);
+    scene.add(engineLight);
+
+    // Fondo estelar
+    const starsGeo = new THREE.BufferGeometry();
+    const starCount = 1400;
+    const starPos = new Float32Array(starCount * 3);
+    for (let i = 0; i < starCount * 3; i += 3) {
+      starPos[i] = (Math.random() - 0.5) * 500;
+      starPos[i+1] = (Math.random() - 0.5) * 500;
+      starPos[i+2] = (Math.random() - 0.5) * 500;
+    }
+    starsGeo.setAttribute('position', new THREE.BufferAttribute(starPos, 3));
+    const starsMat = new THREE.PointsMaterial({ color: 0xffffff, size: 0.8, transparent: true, opacity: 0.85 });
+    scene.add(new THREE.Points(starsGeo, starsMat));
+
+    // ── 3. Generación Procedural de Texturas HD ─────────────────────────────
+    function createTexture(width, height, drawFn) {
+      const cv = document.createElement('canvas');
+      cv.width = width; cv.height = height;
+      const ctx = cv.getContext('2d');
+      drawFn(ctx, width, height);
+      const tex = new THREE.CanvasTexture(cv);
+      tex.wrapS = THREE.RepeatWrapping;
+      tex.wrapT = THREE.ClampToEdgeWrapping;
+      return tex;
+    }
+
+    function drawFlag(ctx, x, y, w, h) {
+      ctx.fillStyle = '#b91c1c';
+      ctx.fillRect(x, y, w, h);
+      const stripeH = h / 13;
+      ctx.fillStyle = '#ffffff';
+      for(let i = 1; i < 13; i += 2) {
+        ctx.fillRect(x, y + i * stripeH, w, stripeH);
+      }
+      ctx.fillStyle = '#1d4ed8';
+      ctx.fillRect(x, y, w * 0.42, stripeH * 7);
+      ctx.fillStyle = '#ffffff';
+      for(let r = 0; r < 3; r++) {
+        for(let c = 0; c < 4; c++) ctx.fillRect(x + 3 + c * 7, y + 2 + r * 5, 2, 2);
+      }
+    }
+
+    // 1. Textura del Núcleo Falcon 9 / Falcon Heavy (Blanco aeroespacial con logo)
+    const coreTex = createTexture(1024, 2048, (ctx, w, h) => {
+      ctx.fillStyle = '#f8fafc';
+      ctx.fillRect(0, 0, w, h);
+
+      // Costuras y paneles cilíndricos
+      ctx.strokeStyle = 'rgba(148, 163, 184, 0.3)';
+      ctx.lineWidth = 2;
+      for(let y = 100; y < h; y += 140) {
+        ctx.beginPath(); ctx.moveTo(0, y); ctx.lineTo(w, y); ctx.stroke();
+      }
+
+      // Línea de raceway frontal
+      ctx.fillStyle = '#1e293b';
+      ctx.fillRect(w * 0.49, 0, w * 0.02, h);
+
+      // Logo SpaceX vertical
+      ctx.fillStyle = '#0f172a';
+      ctx.font = 'bold 56px Arial, Helvetica, sans-serif';
+      ctx.letterSpacing = '12px';
+      ctx.save();
+      ctx.translate(220, 1000);
+      ctx.rotate(-Math.PI / 2);
+      ctx.fillText('SPACEX', 0, 0);
+      ctx.restore();
+
+      ctx.save();
+      ctx.translate(780, 1000);
+      ctx.rotate(-Math.PI / 2);
+      ctx.fillText('SPACEX', 0, 0);
+      ctx.restore();
+
+      // Logo "FH" (Falcon Heavy) y Bandera de EE.UU.
+      ctx.fillStyle = '#0f172a';
+      ctx.font = 'bold 36px monospace';
+      ctx.fillText('FH', 485, 300);
+      drawFlag(ctx, 475, 330, 75, 45);
+
+      // Indicadores de advertencia y escotillas LOX
+      ctx.fillStyle = '#cbd5e1';
+      ctx.fillRect(480, 1500, 64, 40);
+      ctx.strokeStyle = '#64748b';
+      ctx.strokeRect(480, 1500, 64, 40);
+    });
+
+    // 2. Textura de Interetapa de Fibra de Carbono (Matte Carbon Fiber)
+    const carbonTex = createTexture(512, 512, (ctx, w, h) => {
+      ctx.fillStyle = '#090d16';
+      ctx.fillRect(0, 0, w, h);
+
+      // Trama entrelazada de fibra de carbono
+      ctx.fillStyle = '#1e293b';
+      for(let y = 0; y < h; y += 8) {
+        for(let x = 0; x < w; x += 8) {
+          if((x + y) % 16 === 0) ctx.fillRect(x, y, 8, 8);
+        }
+      }
+
+      // Marcadores blancos de separación
+      ctx.fillStyle = '#f8fafc';
+      for(let x = 32; x < w; x += 128) {
+        ctx.fillRect(x, 240, 24, 32);
+      }
+    });
+
+    // 3. Textura de la Cofia Aerodinámica (5.2m Clamshell Fairing)
+    const fairingTex = createTexture(1024, 1024, (ctx, w, h) => {
+      ctx.fillStyle = '#f8fafc';
+      ctx.fillRect(0, 0, w, h);
+
+      // Línea de separación bipartita (Clamshell split line)
+      ctx.strokeStyle = '#94a3b8';
+      ctx.lineWidth = 3;
+      ctx.beginPath(); ctx.moveTo(w * 0.5, 0); ctx.lineTo(w * 0.5, h); ctx.stroke();
+      ctx.beginPath(); ctx.moveTo(0, 0); ctx.lineTo(0, h); ctx.stroke();
+
+      // Emblema de misión (Space Force / USSF)
+      ctx.fillStyle = '#0284c7';
+      ctx.beginPath();
+      ctx.arc(w * 0.25, 450, 60, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.strokeStyle = '#f8fafc';
+      ctx.lineWidth = 4;
+      ctx.stroke();
+
+      ctx.fillStyle = '#ffffff';
+      ctx.font = 'bold 20px monospace';
+      ctx.fillText('USSF', w * 0.25 - 24, 455);
+
+      // Logo SpaceX
+      ctx.fillStyle = '#0f172a';
+      ctx.font = 'bold 28px Arial, sans-serif';
+      ctx.fillText('SPACE', w * 0.25 - 60, 560);
+      ctx.fillStyle = '#0284c7';
+      ctx.fillText('X', w * 0.25 + 36, 560);
+    });
+
+    // ── 4. Materiales PBR ───────────────────────────────────────────────────
+    const matCore    = new THREE.MeshStandardMaterial({ map: coreTex, roughness: 0.28, metalness: 0.20 });
+    const matCarbon  = new THREE.MeshStandardMaterial({ map: carbonTex, roughness: 0.45, metalness: 0.35 });
+    const matFairing = new THREE.MeshStandardMaterial({ map: fairingTex, roughness: 0.25, metalness: 0.15 });
+    const matTitanium= new THREE.MeshStandardMaterial({ color: 0x334155, roughness: 0.35, metalness: 0.85 }); // Grid Fins
+    const matLegs    = new THREE.MeshStandardMaterial({ color: 0x0f172a, roughness: 0.40, metalness: 0.70 }); // Carbon fiber legs
+    const matEngine  = new THREE.MeshStandardMaterial({ color: 0x1e293b, roughness: 0.25, metalness: 0.90 }); // Merlin 1D
+    const matMetal   = new THREE.MeshStandardMaterial({ color: 0x64748b, roughness: 0.20, metalness: 0.85 });
+    const matWhite   = new THREE.MeshStandardMaterial({ color: 0xf8fafc, roughness: 0.25, metalness: 0.15 });
+
+    // ── 5. Construcción del Falcon Heavy Completo ───────────────────────────
+    const rocket = new THREE.Group();
+    scene.add(rocket);
+
+    // [1] COFIA AERODINÁMICA SUPERIOR (5.2m de diámetro)
+    {
+      const fairingCyl = new THREE.Mesh(new THREE.CylinderGeometry(1.30, 1.30, 2.6, 32), matFairing);
+      fairingCyl.position.y = 12.8;
+      rocket.add(fairingCyl);
+
+      const fairingCone = new THREE.Mesh(new THREE.CylinderGeometry(0.12, 1.30, 4.2, 32), matFairing);
+      fairingCone.position.y = 16.2;
+      rocket.add(fairingCone);
+
+      const noseTip = new THREE.Mesh(new THREE.SphereGeometry(0.12, 16, 8, 0, Math.PI*2, 0, Math.PI/2), matWhite);
+      noseTip.position.y = 18.3;
+      rocket.add(noseTip);
+    }
+
+    // [2] SEGUNDA ETAPA (Second Stage con motor Merlin Vacuum)
+    {
+      const stage2 = new THREE.Mesh(new THREE.CylinderGeometry(0.92, 0.92, 4.6, 32), matCore);
+      stage2.position.y = 9.2;
+      rocket.add(stage2);
+
+      // Cono de transición a la cofia
+      const adapter = new THREE.Mesh(new THREE.CylinderGeometry(1.30, 0.92, 0.8, 32), matWhite);
+      adapter.position.y = 11.5;
+      rocket.add(adapter);
+    }
+
+    // [3] INTERETAPA DE FIBRA DE CARBONO (Carbon Composite Interstage)
+    {
+      const interstage = new THREE.Mesh(new THREE.CylinderGeometry(0.92, 0.92, 2.2, 32), matCarbon);
+      interstage.position.y = 5.8;
+      rocket.add(interstage);
+    }
+
+    // Función auxiliar para construir Grid Fins (Aletas de Rejilla de Titanio)
+    function createGridFin() {
+      const finGroup = new THREE.Group();
+      const frame = new THREE.Mesh(new THREE.BoxGeometry(0.35, 0.45, 0.05), matTitanium);
+      finGroup.add(frame);
+      // Rejilla interna
+      for(let i = -0.12; i <= 0.12; i += 0.08) {
+        const hBar = new THREE.Mesh(new THREE.BoxGeometry(0.32, 0.015, 0.04), matTitanium);
+        hBar.position.y = i;
+        finGroup.add(hBar);
+      }
+      for(let j = -0.10; j <= 0.10; j += 0.07) {
+        const vBar = new THREE.Mesh(new THREE.BoxGeometry(0.015, 0.40, 0.04), matTitanium);
+        vBar.position.x = j;
+        finGroup.add(vBar);
+      }
+      return finGroup;
+    }
+
+    // Función auxiliar para construir Patas de Aterrizaje de Fibra de Carbono (Landing Legs)
+    const allLegs = [];
+    function createLandingLeg(ang, r, baseY) {
+      const legPivot = new THREE.Group();
+      legPivot.position.set(Math.cos(ang) * r, baseY, Math.sin(ang) * r);
+      legPivot.rotation.y = -ang + Math.PI/2;
+
+      // Pata principal plegada verticalmente
+      const legA = new THREE.Mesh(new THREE.BoxGeometry(0.10, 3.6, 0.08), matLegs);
+      legA.position.set(0, 1.8, 0.04);
+      legPivot.add(legA);
+
+      // Cilindro actuador neumático telescópico
+      const piston = new THREE.Mesh(new THREE.CylinderGeometry(0.025, 0.025, 2.2), matMetal);
+      piston.position.set(0, 1.2, -0.05);
+      legPivot.add(piston);
+
+      allLegs.push({ pivot: legPivot, targetRot: 0, currentRot: 0 });
+      return legPivot;
+    }
+
+    // Función auxiliar para Octaweb (9 motores Merlin 1D: 8 en círculo + 1 central)
+    const merlinBells = [];
+    function createOctaweb(parent, centerX, baseY, centerZ) {
+      const octaGroup = new THREE.Group();
+      octaGroup.position.set(centerX, baseY, centerZ);
+
+      // Escudo térmico de base Octaweb
+      const basePlate = new THREE.Mesh(new THREE.CylinderGeometry(0.92, 0.90, 0.4, 32), matCarbon);
+      octaGroup.add(basePlate);
+
+      // Motor central #9
+      const bellCenter = new THREE.Mesh(new THREE.ConeGeometry(0.18, 0.65, 16, 1, true), matEngine);
+      bellCenter.position.set(0, -0.45, 0);
+      octaGroup.add(bellCenter);
+      merlinBells.push({ mesh: bellCenter, worldX: centerX, worldZ: centerZ });
+
+      // 8 Motores periféricos en anillo
+      for(let i=0; i<8; i++) {
+        const ang = (i * Math.PI) / 4;
+        const ox = Math.cos(ang) * 0.55;
+        const oz = Math.sin(ang) * 0.55;
+        const bell = new THREE.Mesh(new THREE.ConeGeometry(0.18, 0.65, 16, 1, true), matEngine);
+        bell.position.set(ox, -0.45, oz);
+        octaGroup.add(bell);
+        merlinBells.push({ mesh: bell, worldX: centerX + ox, worldZ: centerZ + oz });
+      }
+
+      parent.add(octaGroup);
+    }
+
+    // [4] NÚCLEO CENTRAL (CENTER CORE)
+    {
+      const centerBody = new THREE.Mesh(new THREE.CylinderGeometry(0.92, 0.92, 14.0, 32), matCore);
+      centerBody.position.y = -2.3;
+      rocket.add(centerBody);
+
+      // 4 Grid Fins en la parte superior del núcleo central
+      for(let i=0; i<4; i++) {
+        const ang = (i * Math.PI) / 2;
+        const gf = createGridFin();
+        gf.position.set(Math.cos(ang) * 1.05, 4.4, Math.sin(ang) * 1.05);
+        gf.rotation.y = -ang + Math.PI/2;
+        rocket.add(gf);
+      }
+
+      // 4 Landing legs en la base del núcleo central
+      for(let i=0; i<4; i++) {
+        const ang = (i * Math.PI) / 2 + Math.PI/4;
+        rocket.add(createLandingLeg(ang, 0.92, -9.1));
+      }
+
+      // Octaweb con 9 motores Merlin 1D
+      createOctaweb(rocket, 0, -9.3, 0);
+    }
+
+    // [5] PROPULSORES LATERALES (SIDE BOOSTERS - 2 CORES CON CONOS AERODINÁMICOS)
+    const boosterOffsets = [-1.95, 1.95];
+    boosterOffsets.forEach(bx => {
+      const bGroup = new THREE.Group();
+      bGroup.position.set(bx, 0, 0);
+
+      // Cono aerodinámico superior del booster lateral
+      const noseCone = new THREE.Mesh(new THREE.CylinderGeometry(0.15, 0.92, 2.6, 32), matWhite);
+      noseCone.position.y = 5.8;
+      bGroup.add(noseCone);
+
+      const noseCap = new THREE.Mesh(new THREE.SphereGeometry(0.15, 16, 8, 0, Math.PI*2, 0, Math.PI/2), matWhite);
+      noseCap.position.y = 7.1;
+      bGroup.add(noseCap);
+
+      // Cuerpo cilíndrico del booster (14.0m escala)
+      const bBody = new THREE.Mesh(new THREE.CylinderGeometry(0.92, 0.92, 14.0, 32), matCore);
+      bBody.position.y = -2.3;
+      bGroup.add(bBody);
+
+      // Soportes de conexión estructural con el núcleo central
+      [-2.0, 2.0].forEach(sy => {
+        const strut = new THREE.Mesh(new THREE.CylinderGeometry(0.06, 0.06, 0.45), matMetal);
+        strut.position.set(bx > 0 ? -0.8 : 0.8, sy, 0);
+        strut.rotation.z = Math.PI / 2;
+        bGroup.add(strut);
+      });
+
+      // 4 Grid Fins en la parte superior del booster lateral
+      for(let i=0; i<4; i++) {
+        const ang = (i * Math.PI) / 2;
+        const gf = createGridFin();
+        gf.position.set(Math.cos(ang) * 1.05, 4.4, Math.sin(ang) * 1.05);
+        gf.rotation.y = -ang + Math.PI/2;
+        bGroup.add(gf);
+      }
+
+      // 4 Landing legs en la base del booster lateral
+      for(let i=0; i<4; i++) {
+        const ang = (i * Math.PI) / 2 + Math.PI/4;
+        bGroup.add(createLandingLeg(ang, 0.92, -9.1));
+      }
+
+      // Octaweb con 9 motores Merlin 1D
+      createOctaweb(bGroup, 0, -9.3, 0);
+
+      rocket.add(bGroup);
+    });
+
+    // ── 6. Llamas Volumétricas de los 27 Motores Merlin 1D ─────────────────
+    const flameGroup = new THREE.Group();
+    rocket.add(flameGroup);
+    flameGroup.visible = false;
+
+    const flameMatInner = new THREE.MeshBasicMaterial({ color: 0xffedd5, transparent: true, opacity: 0.90, blending: THREE.AdditiveBlending });
+    const flameMatOuter = new THREE.MeshBasicMaterial({ color: 0xf97316, transparent: true, opacity: 0.75, blending: THREE.AdditiveBlending });
+
+    const merlinFlames = [];
+    merlinBells.forEach(mb => {
+      const coneInner = new THREE.Mesh(new THREE.ConeGeometry(0.16, 2.8, 12), flameMatInner);
+      coneInner.position.set(mb.worldX, -11.2, mb.worldZ);
+      coneInner.rotation.x = Math.PI;
+      flameGroup.add(coneInner);
+
+      const coneOuter = new THREE.Mesh(new THREE.ConeGeometry(0.30, 4.4, 12), flameMatOuter);
+      coneOuter.position.set(mb.worldX, -12.0, mb.worldZ);
+      coneOuter.rotation.x = Math.PI;
+      flameGroup.add(coneOuter);
+
+      merlinFlames.push({ inner: coneInner, outer: coneOuter });
+    });
+
+    // ── 7. Manejo de Interacción y Cámaras ──────────────────────────────────
+    let isIgnited = false;
+    let areLegsDeployed = false;
+    let isRotating = true;
+
+    const btnIgnite = document.getElementById('btn-ignite');
+    btnIgnite.addEventListener('click', () => {
+      isIgnited = !isIgnited;
+      flameGroup.visible = isIgnited;
+      btnIgnite.classList.toggle('active', isIgnited);
+      btnIgnite.innerHTML = isIgnited ? '🔥 27 Motores Encendidos' : '🔥 Encender 27 Motores Merlin 1D';
+      engineLight.intensity = isIgnited ? 5.5 : 0;
+    });
+
+    const btnLegs = document.getElementById('btn-legs');
+    btnLegs.addEventListener('click', () => {
+      areLegsDeployed = !areLegsDeployed;
+      btnLegs.classList.toggle('active', areLegsDeployed);
+      btnLegs.innerHTML = areLegsDeployed ? '🦵 Trenes Desplegados' : '🦵 Trenes de Aterrizaje';
+      allLegs.forEach(leg => {
+        leg.targetRot = areLegsDeployed ? 0.75 : 0;
+      });
+    });
+
+    const btnRotate = document.getElementById('btn-rotate');
+    btnRotate.classList.add('active');
+    btnRotate.addEventListener('click', () => {
+      isRotating = !isRotating;
+      btnRotate.classList.toggle('active', isRotating);
+    });
+
+    const camViews = {
+      global:   { pos: [24, 4, 32],   target: [0, 1.0, 0] },
+      fairing:  { pos: [6, 14, 8],    target: [0, 13.5, 0] },
+      gridfins: { pos: [6, 5, 8],     target: [0, 4.5, 0] },
+      engines:  { pos: [8, -9, 11],   target: [0, -9.5, 0] }
+    };
+
+    let targetCamPos = camera.position.clone();
+    let targetLookAt = controls.target.clone();
+    let isTransitioning = false;
+
+    document.querySelectorAll('.cam-btn').forEach(btn => {
+      btn.addEventListener('click', () => {
+        document.querySelectorAll('.cam-btn').forEach(b => b.classList.remove('active'));
+        btn.classList.add('active');
+        const v = camViews[btn.getAttribute('data-cam')];
+        if (v) {
+          targetCamPos.set(...v.pos);
+          targetLookAt.set(...v.target);
+          isTransitioning = true;
+        }
+      });
+    });
+
+    // ── 8. Bucle de Animación y Renderizado ─────────────────────────────────
+    const clock = new THREE.Clock();
+    function animate() {
+      requestAnimationFrame(animate);
+      const dt = clock.getDelta();
+      const time = clock.getElapsedTime();
+
+      if (isRotating) {
+        rocket.rotation.y += 0.08 * dt;
+      }
+
+      if (isIgnited) {
+        engineLight.intensity = 4.5 + Math.sin(time * 30.0) * 1.2;
+        merlinFlames.forEach((f, idx) => {
+          const jitter = Math.sin(time * 26.0 + idx * 0.4) * 0.15;
+          f.inner.scale.set(1.0 + jitter * 0.2, 1.0 + jitter, 1.0 + jitter * 0.2);
+          f.outer.scale.set(1.0 + jitter * 0.3, 1.0 + jitter * 1.2, 1.0 + jitter * 0.3);
+        });
+      }
+
+      // Animación suave de patas de aterrizaje
+      allLegs.forEach(leg => {
+        leg.currentRot = THREE.MathUtils.lerp(leg.currentRot, leg.targetRot, 0.08);
+        leg.pivot.rotation.x = leg.currentRot;
+      });
+
+      if (isTransitioning) {
+        camera.position.lerp(targetCamPos, 0.06);
+        controls.target.lerp(targetLookAt, 0.06);
+        if (camera.position.distanceTo(targetCamPos) < 0.1) {
+          isTransitioning = false;
+        }
+      }
+
+      controls.update();
+      renderer.render(scene, camera);
+    }
+    animate();
+
+    window.addEventListener('resize', () => {
+      camera.aspect = window.innerWidth / window.innerHeight;
+      camera.updateProjectionMatrix();
+      renderer.setSize(window.innerWidth, window.innerHeight);
+    });
+  </script>
+</body>
+</html>
