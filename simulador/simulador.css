@@ -23,7 +23,7 @@ body.sim { min-height: 100vh; background: var(--sim-bg); color: var(--sim-text);
 .sim-header { display: flex; align-items: center; gap: 12px; padding: 10px 16px; border-bottom: 1px solid var(--sim-border); }
 .sim-brand { display: inline-flex; align-items: center; gap: 10px; color: var(--sim-text); font-weight: 700; text-decoration: none; }
 .sim-brand img { border-radius: 7px; }
-.sim-tag { margin-left: auto; font: 500 0.8rem var(--sim-mono); color: var(--sim-muted); border: 1px solid var(--sim-border); border-radius: 999px; padding: 3px 10px; }
+.sim-tag { margin: 0 0 0 auto; font: 500 0.8rem var(--sim-mono); color: var(--sim-muted); border: 1px solid var(--sim-border); border-radius: 999px; padding: 3px 10px; }
 
 .sim-main { max-width: 1280px; margin: 0 auto; padding: 16px 16px 48px; display: grid; gap: 14px; }
 .sim-main h2 { font-size: 1.05rem; margin: 0 0 6px; }
@@ -124,4 +124,14 @@ body.sim { min-height: 100vh; background: var(--sim-bg); color: var(--sim-text);
   .sim-panels { grid-template-columns: 1fr; }
   .sim-canvas { height: 56vh; }
   .sim-etapa-card { top: auto; bottom: 10px; right: 10px; left: 10px; width: auto; }
+}
+
+/* ---- Idioma, salto al contenido y movimiento reducido ---- */
+.sim-header { flex-wrap: wrap; }
+.sim-lang { min-width: 44px; min-height: 36px; font-weight: 700; letter-spacing: 0.04em; }
+.sim-skip { position: absolute; left: 8px; top: -64px; z-index: 100; padding: 10px 16px; border-radius: 10px; font-weight: 700; text-decoration: none; color: #0a0f22; background: #ff6b35; border: 2px solid #eef2ff; }
+.sim-skip:focus { top: 8px; }
+.sim-main:focus { outline: none; }
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after { animation: none !important; transition: none !important; scroll-behavior: auto !important; }
 }

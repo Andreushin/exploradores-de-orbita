@@ -1,6 +1,7 @@
 // OWNER: Rol 1 — Pantalla de inicio.
 import { mountStarryBackground } from '../canvas/starry-bg.js';
 import { hasProgress, resumeLevel } from '../levels.js';
+import { explorarLinks } from './explorar.js';
 
 const RESOURCES = ['Design and Develop Science Missions', 'CubeSat 101', 'GMAT / NASA Mission Viz', 'Concept Maturity Levels'];
 
@@ -61,6 +62,7 @@ export default {
       <ul class="start-resources">${RESOURCES.map((r) => `<li>${r}</li>`).join('')}</ul>`;
     const { box, primary } = actions(ctx);
     wrap.querySelector('.start-tagline').after(box);
+    box.after(explorarLinks(t)); // simuladores 3D: visibles desde el primer momento
     container.append(wrap);
     primary.focus();
   },
