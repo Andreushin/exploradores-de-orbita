@@ -1,0 +1,147 @@
+/* OWNER: Rol 1 — Colibrí, holograma guía (js/colibri.js, docs/colibri.md). Todas las clases con prefijo eo-col.
+   Solo SVG + CSS, sin Canvas. El cian es el de la identidad (--n3-info en nivel3, --accent-2 en la app principal). */
+
+.eo-colibri {
+  --col-holo: var(--n3-info, var(--accent-2, #4fc3f7));
+  --col-ink: #eef2ff;
+  --col-bg: rgba(7, 11, 26, 0.9);
+  --col-line: rgba(79, 195, 247, 0.5);
+  --col-size: 88px;
+  position: fixed;
+  left: var(--col-x, 12px);
+  bottom: var(--col-y, 12px);
+  z-index: var(--col-z, 35);
+  display: flex;
+  align-items: flex-end;
+  gap: 6px;
+  width: max-content;
+  max-width: min(380px, calc(100vw - 24px));
+  color: var(--col-holo);
+  font: 400 0.9rem/1.4 "Space Grotesk", system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  pointer-events: none; /* nunca tapa los controles de la página: solo sus botones reciben puntero */
+  contain: layout style;
+}
+.eo-colibri[hidden] { display: none; }
+.eo-colibri[data-tam="mini"] { --col-size: 56px; }
+.eo-colibri[data-tam="grande"] { --col-size: 120px; }
+.eo-colibri[data-modo="acoplado"] { position: static; width: 100%; max-width: none; align-items: center; }
+
+/* ── Holograma: solo trazos, nada de relleno ─────────────────────────────────── */
+.eo-col-avatar { flex: none; width: var(--col-size); aspect-ratio: 120 / 124; }
+.eo-col-svg {
+  display: block;
+  width: 100%;
+  height: 100%;
+  overflow: visible;
+  filter: drop-shadow(0 0 3px currentColor);
+  animation: eo-col-parpadeo 6s linear infinite; /* una sola caída de brillo cada 6 s: muy lejos de un destello */
+}
+.eo-col-svg * {
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 1.7px;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  vector-effect: non-scaling-stroke; /* el grosor no depende del tamaño */
+}
+.eo-colibri[data-tam="grande"] .eo-col-svg * { stroke-width: 2px; }
+@keyframes eo-col-parpadeo { 0%, 88%, 92%, 100% { opacity: 1; } 90% { opacity: 0.8; } }
+
+/* Aleteo: dos alas que giran sobre el hombro, a contrafase y muy rápido. Solo transform. */
+.col-ala { transform-box: fill-box; transform-origin: 100% 100%; animation: eo-col-ala-a 0.09s ease-in-out infinite alternate; }
+.col-ala-b { opacity: 0.6; animation-name: eo-col-ala-b; }
+@keyframes eo-col-ala-a { from { transform: rotate(-16deg); } to { transform: rotate(14deg); } }
+@keyframes eo-col-ala-b { from { transform: rotate(12deg); } to { transform: rotate(-18deg); } }
+
+/* Ondas de audio debajo: siete barras que suben y bajan solo mientras habla */
+.col-ondas line { transform-box: fill-box; transform-origin: 50% 100%; transform: scaleY(0.2); }
+.eo-colibri[data-estado="hablando"] .col-ondas line { animation: eo-col-onda 0.46s ease-in-out infinite alternate; }
+.eo-colibri[data-estado="hablando"] .col-ondas line:nth-child(2) { animation-duration: 0.38s; animation-delay: -0.18s; }
+.eo-colibri[data-estado="hablando"] .col-ondas line:nth-child(3) { animation-duration: 0.52s; animation-delay: -0.34s; }
+.eo-colibri[data-estado="hablando"] .col-ondas line:nth-child(4) { animation-duration: 0.42s; animation-delay: -0.08s; }
+.eo-colibri[data-estado="hablando"] .col-ondas line:nth-child(5) { animation-duration: 0.36s; animation-delay: -0.26s; }
+.eo-colibri[data-estado="hablando"] .col-ondas line:nth-child(6) { animation-duration: 0.5s; animation-delay: -0.42s; }
+.eo-colibri[data-estado="hablando"] .col-ondas line:nth-child(7) { animation-duration: 0.44s; animation-delay: -0.12s; }
+@keyframes eo-col-onda { from { transform: scaleY(0.25); } to { transform: scaleY(1); } }
+
+/* Ánimo: un ojo por estado */
+.col-ojo > * { display: none; }
+.eo-colibri[data-mood="neutral"] .ojo-neutral,
+.eo-colibri[data-mood="feliz"] .ojo-feliz,
+.eo-colibri[data-mood="asombro"] .ojo-asombro,
+.eo-colibri[data-mood="alerta"] .ojo-alerta { display: inline; }
+
+/* ── Burbuja de diálogo ───────────────────────────────────────────────────────── */
+.eo-col-caja { display: flex; flex: 0 1 auto; flex-direction: column; align-items: flex-start; gap: 6px; min-width: 0; }
+.eo-colibri[data-modo="acoplado"] .eo-col-caja { flex: 1 1 auto; }
+.eo-col-burbuja {
+  position: relative;
+  display: block;
+  max-width: 100%;
+  padding: 6px 10px 8px;
+  color: var(--col-ink);
+  background: var(--col-bg);
+  border: 1px solid var(--col-line);
+  border-radius: 12px;
+  box-shadow: 0 6px 24px rgba(0, 0, 0, 0.45), 0 0 14px rgba(79, 195, 247, 0.18);
+  animation: eo-col-entra 0.18s ease-out;
+}
+.eo-col-burbuja[hidden] { display: none; }
+.eo-col-burbuja::before { /* colita hacia el avatar */
+  content: "";
+  position: absolute;
+  left: -6px;
+  bottom: 14px;
+  width: 10px;
+  height: 10px;
+  background: var(--col-bg);
+  border-bottom: 1px solid var(--col-line);
+  border-left: 1px solid var(--col-line);
+  transform: rotate(45deg);
+}
+@keyframes eo-col-entra { from { opacity: 0; transform: translateY(4px); } }
+.eo-col-nombre { display: block; margin-bottom: 2px; font: 600 0.75rem "JetBrains Mono", ui-monospace, Menlo, Consolas, monospace; letter-spacing: 0.08em; text-transform: uppercase; color: var(--col-holo); }
+.eo-col-linea { position: relative; display: block; }
+.eo-col-fantasma { display: block; visibility: hidden; } /* el texto completo, invisible: reserva la altura y el ancho */
+.eo-col-texto { position: absolute; inset: 0; }
+.eo-col-texto.is-typing::after { content: "▋"; margin-left: 1px; color: var(--col-holo); animation: eo-col-cursor 0.6s steps(2, start) infinite; }
+@keyframes eo-col-cursor { to { visibility: hidden; } }
+
+/* ── AHORA / LUEGO: fijo, responde «¿qué hago?» y «¿qué sigue?» ─────────────────────── */
+.eo-col-objetivo { max-width: 100%; margin: 0; padding: 4px 8px; color: var(--col-ink); font-size: 0.8rem; line-height: 1.3; background: var(--col-bg); border: 1px dashed var(--col-line); border-radius: 10px; }
+.eo-col-objetivo[hidden], .eo-col-luego[hidden] { display: none; }
+.eo-col-objetivo > span { display: block; }
+.eo-col-objetivo b { margin-right: 4px; font: 600 0.75rem "JetBrains Mono", ui-monospace, Menlo, Consolas, monospace; letter-spacing: 0.06em; color: var(--col-holo); }
+
+/* ── Controles ─────────────────────────────────────────────────────────────────── */
+.eo-col-botones { display: flex; flex-wrap: wrap; gap: 6px; }
+.eo-col-btn { display: inline-grid; place-items: center; width: 28px; height: 28px; padding: 0; color: var(--col-ink); background: var(--col-bg); border: 1px solid var(--col-line); border-radius: 8px; cursor: pointer; pointer-events: auto; }
+.eo-col-btn[hidden] { display: none; }
+.eo-col-ico { width: 14px; height: 14px; fill: none; stroke: currentColor; stroke-width: 1.6; stroke-linecap: round; stroke-linejoin: round; }
+.eo-col-btn[aria-pressed="false"] .ico-x, .eo-col-btn[aria-pressed="true"] .ico-ondas { display: none; }
+.eo-col-btn:hover { background: rgba(22, 32, 74, 0.95); }
+.eo-col-btn:focus-visible { outline: 2px solid var(--col-holo); outline-offset: 2px; }
+.eo-col-btn[aria-pressed="true"] { color: var(--col-holo); border-color: var(--col-holo); }
+@media (pointer: coarse) { .eo-col-btn { width: 40px; height: 40px; } }
+
+/* Minimizado: solo el avatar chico y un botón para volver a mostrarlo */
+.eo-colibri[data-min="1"] { --col-size: 52px; }
+.eo-colibri[data-min="1"] .eo-col-burbuja,
+.eo-colibri[data-min="1"] .eo-col-objetivo,
+.eo-colibri[data-min="1"] [data-act="skip"],
+.eo-colibri[data-min="1"] [data-act="mute"],
+.eo-colibri[data-min="1"] [data-act="min"] { display: none; }
+
+.eo-colibri.is-pausado * { animation-play-state: paused !important; } /* pestaña oculta */
+
+@media (max-width: 640px) {
+  .eo-colibri { --col-size: 56px; max-width: calc(100vw - 16px); }
+  .eo-colibri[data-tam="grande"] { --col-size: 72px; }
+  .eo-colibri[data-tam="mini"] { --col-size: 48px; }
+  .eo-colibri[data-min="1"] { --col-size: 48px; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .eo-colibri *, .eo-col-burbuja { animation: none !important; } /* alas quietas, ondas fijas, sin cursor ni parpadeo */
+  .eo-colibri[data-estado="hablando"] .col-ondas line { transform: scaleY(0.7); }
+}

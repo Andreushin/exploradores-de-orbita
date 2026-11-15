@@ -115,3 +115,11 @@ Los 4 segmentos vienen de *Design and Develop Science Missions*. Cada segmento o
 | Usuario | 5 / 8 / 12 | 12 M$ (`USER_FULL`) es donde `scienceScore` llega al factor Usuario completo |
 
 Reglas (ludificadas): nivel menor al exigido → bloquea. Por encima del exigido se tolera un margen (Lanzamiento 0, Espacio 1, Tierra 1, Usuario 2); más allá resta 15 pts por nivel. Pasarse del presupuesto bloquea y resta 1 pt por M$ (máx. 40). Madurez = 100 − penalización → tope de CML: ≥90 → 4, ≥65 → 3, ≥40 → 2, si no 1. Detalle en `docs/niveles/nivel-1.md`; escenarios en `tests/budget.test.html`.
+
+## Colibrí (guion de `js/colibri-guion.js`)
+Cada dato real que Colibrí menciona se cita aquí. Lo demás sale de las secciones de arriba (reglas del juego, CML, presupuesto).
+
+| Línea | Dato | Fuente |
+|---|---|---|
+| `inicio.hola` | Un colibrí (el garganta de rubí) **puede** cruzar el golfo de México sin parar: unos 800 km (500 millas) en 18–20 h según estas fuentes; otras estiman hasta 30 h. Sigue abierta la discusión de si cruza o rodea el golfo, por eso el guion dice «puede». | Journey North, [*How Long to Cross the Gulf of Mexico?*](https://journeynorth.org/jnorth/tm/humm/sl/3/journal.html) · Tennessee Wildlife Resources Agency, [*Ruby-throated Hummingbird*](https://tn.gov/twra/wildlife/birds/forest-birds/ruby-throated-hummingbird.html) |
+| `n4.cml.1` – `n4.cml.4` | Nombres de los niveles de madurez: idea en servilleta, factibilidad inicial, espacio de compromisos y diseño puntual. | NASA Concept Maturity Levels (tabla «Niveles CML 1–4», arriba) |

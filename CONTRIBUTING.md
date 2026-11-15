@@ -82,7 +82,7 @@ tipo(alcance): descripción en imperativo, minúsculas, sin punto final
 | Reporte (CML final, sugerencias, series) | `tests/report.test.html` | al cambiar el Nivel 4 |
 | Presupuesto del Nivel 1 | `tests/budget.test.html` | al cambiar el Nivel 1 |
 
-Pruebas en Node (sin navegador): `node tests/typewriter.test.mjs` al cambiar `js/typewriter.js`. Al añadir o cambiar cualquier archivo del juego corre `node scripts/precache.mjs` (regenera `sw.js`) y `node tests/offline.test.mjs`: si `sw.js` queda viejo, la prueba falla.
+Pruebas en Node (sin navegador): `node tests/typewriter.test.mjs` al cambiar `js/typewriter.js`; `node tests/colibri.test.mjs` al cambiar el guion o `js/colibri*.js`. Al añadir o cambiar cualquier archivo del juego corre `node scripts/precache.mjs` (regenera `sw.js`) y `node tests/offline.test.mjs`: si `sw.js` queda viejo, la prueba falla.
 
 Antes de pedir revisión, **juega el flujo completo** (Inicio → Nivel 1 → `nivel2/` → `nivel3/` → Reporte) en ES y EN, sin errores en la consola, y revisa el ancho de 360 px.
 
