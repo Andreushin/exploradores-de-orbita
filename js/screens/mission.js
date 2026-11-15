@@ -15,6 +15,7 @@ let catalog = null;  // tarjetas por segmento
 let scenes = null;   // fondo animado
 let dragging = null; // { seg, id, placed } durante un arrastre
 let onResize = null;
+let onScroll = null;
 
 function el(tag, cls, html) {
   const e = document.createElement(tag);
@@ -159,9 +160,12 @@ function nameField() {
   return field;
 }
 
+/** Slider de destinos: una tarjeta por vista, con flechas que solo aparecen si hay hacia dónde moverse. */
 function destinationGrid() {
   const { state, data, t, tx } = ctx;
-  const grid = el('div', 'card-grid lvl-dest');
+  const grid = el('div', 'lvl-dest');
+  grid.setAttribute('role', 'group');
+  grid.setAttribute('aria-label', t('mission.slider.label'));
   for (const m of data.missions) {
     const on = m.id === state.missionId;
     const card = el('button', 'card mission-card' + (on ? ' is-selected' : ''));
@@ -178,7 +182,57 @@ function destinationGrid() {
     card.addEventListener('click', () => selectMission(m));
     grid.append(card);
   }
-  return grid;
+  return destinationSlider(grid);
+}
+
+function destinationSlider(track) {
+  const { t } = ctx;
+  const arrow = (dir, glyph) => {
+    const b = el('button', `lvl-arrow lvl-arrow-${dir}`, glyph);
+    b.type = 'button';
+    b.setAttribute('aria-label', t(`mission.slider.${dir}`));
+    return b;
+  };
+  const prev = arrow('prev', '‹');
+  const next = arrow('next', '›');
+  const slider = el('div', 'lvl-slider');
+  slider.append(track, prev, next);
+
+  const cards = [...track.children];
+  const step = () => (cards[1] ? cards[1].offsetLeft - cards[0].offsetLeft : track.clientWidth);
+  const reduced = () => window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+  const go = (dir) => track.scrollBy({ left: dir * step(), behavior: reduced() ? 'auto' : 'smooth' });
+
+  /** Oculta cada flecha en su extremo; si tenía el foco, lo pasa a la otra para no perderlo. */
+  const sync = () => {
+    const atStart = track.scrollLeft <= 1;
+    const atEnd = track.scrollLeft + track.clientWidth >= track.scrollWidth - 1;
+    for (const [btn, hide, other] of [[prev, atStart, next], [next, atEnd, prev]]) {
+      const focused = document.activeElement === btn;
+      btn.hidden = hide;
+      if (hide && focused && !other.hidden) other.focus({ preventScroll: true });
+    }
+  };
+  prev.addEventListener('click', () => go(-1));
+  next.addEventListener('click', () => go(1));
+  track.addEventListener('scroll', sync, { passive: true });
+
+  // Al construirse (o reconstruirse tras elegir) se muestra la tarjeta elegida, sin animar.
+  if (typeof ResizeObserver === 'function') {
+    let placed = false;
+    const ro = new ResizeObserver(() => {
+      if (!track.isConnected) { ro.disconnect(); return; }
+      if (!placed) {
+        placed = true;
+        const on = track.querySelector('.is-selected');
+        if (on) track.scrollTo({ left: on.offsetLeft, behavior: 'instant' });
+      }
+      sync();
+    });
+    ro.observe(track);
+  }
+  sync();
+  return slider;
 }
 
 function scienceTargets(mission) {
@@ -582,11 +636,33 @@ function build() {
   live.stepper.setAttribute('aria-label', t('mission.stepsLabel'));
   const hud = el('div', 'lvl-hud');
   hud.append(live.stepper, live.bar);
+  live.hud = hud;
   const pops = el('div', 'opt-pops');
   for (const k of SEGMENTS) catalog[k].forEach((c) => pops.append(infoPopover(c)));
   root.replaceChildren(el('h1', null, t('mission.title')), el('p', 'lead', t('mission.intro')), hud, live.stage, live.nav, pops);
   renderStage();
   renderLive();
+  syncCompact();
+}
+
+// Al bajar, el bloque fijo se adelgaza para dejar ver la escena de fondo. Histéresis (80/20 px) y margen
+// compensado: así el alto de la página no cambia y no entra en bucle justo en el umbral.
+const COMPACT_ON = 80;
+const COMPACT_OFF = 20;
+
+function setCompact(on) {
+  const hud = live.hud;
+  if (hud.classList.contains('is-compact') === on) return;
+  const full = hud.offsetHeight;
+  hud.classList.toggle('is-compact', on);
+  hud.style.marginBottom = on ? `${Math.max(0, full - hud.offsetHeight)}px` : '';
+}
+
+function syncCompact() {
+  if (!live?.hud) return;
+  const compact = live.hud.classList.contains('is-compact');
+  if (!compact && window.scrollY > COMPACT_ON) setCompact(true);
+  else if (compact && window.scrollY < COMPACT_OFF) setCompact(false);
 }
 
 /** El bloque fijo (pasos + presupuesto) se pega justo debajo del encabezado, cuya altura cambia en móvil. */
@@ -602,12 +678,19 @@ export default {
     root = container;
     scenes = createScenes();
     syncHeaderHeight();
-    onResize = syncHeaderHeight;
+    onResize = () => {
+      syncHeaderHeight();
+      setCompact(false); // el alto compensado depende del ancho: se vuelve a medir
+      syncCompact();
+    };
+    onScroll = syncCompact;
     window.addEventListener('resize', onResize);
+    window.addEventListener('scroll', onScroll, { passive: true });
     build();
   },
   unmount() {
     window.removeEventListener('resize', onResize);
+    window.removeEventListener('scroll', onScroll);
     document.querySelectorAll('.opt-pop:popover-open').forEach((p) => p.hidePopover());
     scenes?.destroy();
     scenes = null;

@@ -57,6 +57,20 @@
 .bb-track { position: relative; display: flex; height: 10px; border-radius: 6px; overflow: hidden; background: var(--surface-2); }
 .bb-track span { height: 100%; transition: width 0.3s; }
 .bb-limit { position: absolute; top: 0; bottom: 0; width: 3px; margin-left: -1px; background: var(--danger); }
+/* Compacto (al bajar, js/screens/mission.js → syncCompact): una sola fila delgada y más translúcida para no tapar la escena. */
+.lvl-hud.is-compact { display: flex; flex-wrap: wrap; align-items: center; gap: 4px 20px; padding: 5px 16px; background: rgba(5, 8, 22, 0.72); }
+.is-compact .stepper { flex: none; grid-template-columns: repeat(6, auto); gap: 4px; }
+.is-compact .stp button { gap: 6px; padding: 2px; border-bottom-width: 2px; }
+.is-compact .stp-dot { width: 24px; height: 24px; font-size: 0.8rem; }
+.is-compact .stp-label { display: none; }
+.is-compact .stp.is-current .stp-label { display: grid; font-size: 0.8rem; }
+.is-compact .stp.is-current .stp-label small { display: none; }
+.is-compact .budget-bar { flex: 1 1 360px; min-width: 0; gap: 3px; }
+.is-compact .bb-nums { display: flex; flex-wrap: wrap; justify-content: space-between; gap: 0 14px; }
+.is-compact .bb-nums > div { display: flex; align-items: baseline; gap: 6px; }
+.is-compact .bb-nums dt { font-size: 0.68rem; }
+.is-compact .bb-nums dd { font-size: 0.82rem; }
+.is-compact .bb-track { height: 4px; }
 .sw-launch { background: var(--seg-launch); }
 .sw-space { background: var(--seg-space); }
 .sw-ground { background: var(--seg-ground); }
@@ -74,6 +88,30 @@
 .lvl-hint { margin: 16px 0 0; }
 
 /* Paso 1: proyecto */
+/* El panel ocupa ~40 % de la columna (mínimo 360 px): el resto deja ver la escena de fondo (luna, órbitas). */
+.step-project .step-card { width: 40%; min-width: 360px; }
+/* Destinos: slider de una tarjeta alargada por vista; flechas a los lados (solo la que tiene hacia dónde ir). */
+.lvl-slider { position: relative; }
+.lvl-dest {
+  position: relative; display: flex; gap: 12px; overflow-x: auto;
+  scroll-snap-type: x mandatory; overscroll-behavior-x: contain; scrollbar-width: none;
+}
+.lvl-dest::-webkit-scrollbar { display: none; }
+.lvl-dest > .card { flex: 0 0 100%; scroll-snap-align: start; }
+.lvl-dest > .card:focus-visible { outline-offset: -4px; } /* el contenedor recorta lo que sobresale */
+.lvl-arrow {
+  position: absolute; top: 50%; z-index: 1; translate: 0 -50%;
+  width: 34px; height: 34px; display: grid; place-items: center; padding: 0;
+  font: inherit; font-size: 1.1rem; line-height: 1; color: #f1f5f9; cursor: pointer;
+  background: rgba(15, 23, 51, 0.85); border: 1px solid rgba(241, 245, 249, 0.4); border-radius: 50%;
+  -webkit-backdrop-filter: blur(6px); backdrop-filter: blur(6px);
+  transition: background 0.2s, border-color 0.2s;
+}
+.lvl-arrow:hover { background: rgba(91, 140, 255, 0.6); border-color: rgba(255, 255, 255, 0.7); }
+.lvl-arrow:focus-visible { outline: 2px solid var(--accent-2); outline-offset: 2px; }
+.lvl-arrow[hidden] { display: none; }
+.lvl-arrow-prev { left: -17px; }
+.lvl-arrow-next { right: -17px; }
 .lvl-field { display: grid; gap: 6px; max-width: 420px; margin: 0 0 16px; font-weight: 600; }
 .lvl-field input {
   font: inherit; font-weight: 400; color: var(--text);
@@ -194,8 +232,10 @@
 @keyframes ready-pulse { 50% { box-shadow: 0 0 0 6px rgba(91, 140, 255, 0.25); } }
 
 @media (max-width: 860px) {
+  .step-project .step-card { width: 100%; min-width: 0; }
+  .lvl-dest > .card { flex-basis: min(100%, 360px); }
   .board { grid-template-columns: 1fr; }
-  .stp-label { display: none; }
+  .stp-label, .is-compact .stp.is-current .stp-label { display: none; }
   .stp button { justify-content: center; }
 }
 @media (max-width: 640px) {
