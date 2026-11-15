@@ -25,6 +25,9 @@ python3 -m http.server 8000
 | **3 · Travesía e inserción** | Presupuesto de Δv, combustible en kg que depende de la masa, corrección de trayectoria, un evento en ruta y el frenado orbital. Sin combustible hay un reintento educativo. | GMAT / NASA Mission Viz | `nivel3/` |
 | **4 · Reporte** | Resultado, CML final (con el tope del plan), datos científicos por instrumento comparados con misiones reales y qué mejorar. | Concept Maturity Levels | app principal |
 
+## Colibrí, tu guía
+Un holograma de colibrí (SVG de trazo cian, sin Canvas) acompaña la misión: te da la bienvenida, explica el porqué de cada paso y mantiene siempre visible un **AHORA / LUEGO**. Se puede silenciar o minimizar. Detalle en [`docs/colibri.md`](docs/colibri.md).
+
 Inspiración de UX: *A Learning Game About Telescopes* (NASA/Webb), con opciones incompatibles explicadas y retroalimentación inmediata.
 
 ## Recursos de la NASA utilizados
@@ -49,6 +52,7 @@ js/screens/                start, levels, mission (+ mission-scenes), report
 js/budget.js               reglas del Nivel 1 · js/science-data.js: reglas del Nivel 4
 js/taller-reglas.js        reglas del Nivel 2 · js/canvas/starry-bg.js: fondo del inicio
 js/typewriter.js           máquina de escribir compartida (bitácora del Nivel 3) · css/a11y.css: clase .sr-only
+js/colibri*.js · css/colibri.css  Colibrí, el holograma que cuenta la historia (docs/colibri.md)
 nivel2/  nivel3/           niveles en página aislada (index.html, nivelN.css, nivelN.js, textos.js)
 data/                      misiones, cohetes, piezas, eventos, segmentos, taller, ciencia
 css/                       base.css + estilos de cada pantalla de la app principal

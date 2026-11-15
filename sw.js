@@ -6,7 +6,7 @@
 // Si agregas o quitas archivos: `node scripts/precache.mjs` actualiza el bloque de abajo.
 
 /* PRECACHE:INICIO — generado por scripts/precache.mjs, no editar a mano */
-const VERSION = "db847ee559";
+const VERSION = "780063f349";
 const NUCLEO = [
   "",
   "nivel2/",
@@ -23,6 +23,7 @@ const NUCLEO = [
   "assets/logo_blank.svg",
   "css/a11y.css",
   "css/base.css",
+  "css/colibri.css",
   "css/screens/menu.css",
   "css/screens/mission.css",
   "css/screens/report.css",
@@ -46,6 +47,9 @@ const NUCLEO = [
   "index.html",
   "js/budget.js",
   "js/canvas/starry-bg.js",
+  "js/colibri-app.js",
+  "js/colibri-guion.js",
+  "js/colibri.js",
   "js/i18n.js",
   "js/levels.js",
   "js/main.js",

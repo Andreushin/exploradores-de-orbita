@@ -16,6 +16,7 @@ location.href = levelUrl(4);           // ../nivel4/  (funciona desde la raíz o
 
 - Clave: **`eo-mision`**, con `version: 1`. Si la versión no coincide, `loadMission()` devuelve `null`.
 - Idioma: **no va aquí**. Se guarda aparte en `srl-lang` (`'es'` | `'en'`), igual que en la app principal.
+- Colibrí: lo que ya dijo y su silencio **tampoco van aquí**. Se guardan aparte en `eo-colibri` (no es una sección de `eo-mision`, así que no cambia el contrato); «Nueva misión» lo reinicia con `forgetColibri()` (`js/colibri.js`). Ver [`colibri.md`](colibri.md).
 - La forma es la misma que en `js/state.js`, así que todos hablamos el mismo idioma.
 
 ```jsonc

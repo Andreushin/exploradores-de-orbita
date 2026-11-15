@@ -16,6 +16,7 @@ const data = {};
 const loaded = new Map(); // id de nivel → módulo de pantalla ya descargado
 let active = null;
 let navToken = 0;
+let colibriApp = null; // Colibrí (js/colibri-app.js): un extra que se carga aparte; si falla, el juego sigue igual
 
 async function loadData() {
   await Promise.all(DATA_FILES.map(async (name) => {
@@ -60,7 +61,7 @@ function makeCtx() {
     subscribe,
     // Reiniciar también borra lo guardado: saveMission() mezcla por sección, así que sin esto quedarían claves
     // viejas (p. ej. satellite.validated) que al recargar dan por hechos niveles de una partida anterior.
-    reset: () => { clearMission(); reset(); },
+    reset: () => { clearMission(); reset(); colibriApp?.forget(); },
     data,
     physics,
     t,
@@ -108,6 +109,7 @@ async function goTo(screenId, { fromHistory = false } = {}) {
     next.mount(container, makeCtx());
     document.getElementById('app-error').hidden = true;
     renderChrome();
+    colibriApp?.onScreen(screenId);
     window.scrollTo(0, 0);
     // El botón «Atrás» del navegador vuelve a la pantalla anterior en vez de salir del juego
     if (changed) {
@@ -199,6 +201,18 @@ async function boot() {
   history.replaceState({ screen: first }, '', location.pathname);
   window.addEventListener('popstate', (e) => { if (e.state?.screen) void goTo(e.state.screen, { fromHistory: true }); });
   void goTo(first, { fromHistory: true });
+  void startColibri();
+}
+
+/** Colibrí se carga aparte (import dinámico): un fallo suyo nunca debe impedir jugar. */
+async function startColibri() {
+  try {
+    const { startColibriApp } = await import('./colibri-app.js');
+    colibriApp = startColibriApp({ getState, subscribe, data, t, tx });
+    if (active) colibriApp.onScreen(active.id); // la primera pantalla ya se montó mientras cargaba
+  } catch (err) {
+    console.warn('Colibrí no disponible:', err);
+  }
 }
 
 boot();
