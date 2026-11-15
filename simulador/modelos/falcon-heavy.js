@@ -175,21 +175,7 @@ export function construir(THREE) {
 
     // Función auxiliar para construir Grid Fins (Aletas de Rejilla de Titanio)
     function createGridFin() {
-      const finGroup = new THREE.Group();
-      const frame = new THREE.Mesh(new THREE.BoxGeometry(0.35, 0.45, 0.05), matTitanium);
-      finGroup.add(frame);
-      // Rejilla interna
-      for(let i = -0.12; i <= 0.12; i += 0.08) {
-        const hBar = new THREE.Mesh(new THREE.BoxGeometry(0.32, 0.015, 0.04), matTitanium);
-        hBar.position.y = i;
-        finGroup.add(hBar);
-      }
-      for(let j = -0.10; j <= 0.10; j += 0.07) {
-        const vBar = new THREE.Mesh(new THREE.BoxGeometry(0.015, 0.40, 0.04), matTitanium);
-        vBar.position.x = j;
-        finGroup.add(vBar);
-      }
-      return finGroup;
+      return new THREE.Mesh(new THREE.BoxGeometry(0.35, 0.45, 0.04), matTitanium);
     }
 
     // Función auxiliar para construir Patas de Aterrizaje de Fibra de Carbono (Landing Legs)
