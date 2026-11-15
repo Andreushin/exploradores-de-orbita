@@ -1,9 +1,9 @@
 // OWNER: Rol 3 (@JU4NMAX) — Nivel 2 · Taller del CubeSat (docs/niveles/nivel-2.md).
 // Lee la misión del Nivel 1 de `eo-mision` (docs/contrato-niveles.md), deja armar el CubeSat bajo
 // los límites de masa, energía y presupuesto, y escribe solo la sección `satellite`.
-import { validateDesign, KG_PER_U } from '../js/physics.js';
+import { validateDesign, resolvePieces, KG_PER_U } from '../js/physics.js';
 import { loadMission, saveMission, levelHref } from '../js/mision-store.js';
-import { grams, meterData, rocketOverload, instrumentStatus, incompatibleSelected, powerText, signedW } from '../js/taller-reglas.js';
+import { grams, meterData, rocketOverload, instrumentStatus, incompatibleSelected, powerText, signedW, checkState, tradeHints } from '../js/taller-reglas.js';
 import { TEXTOS } from './textos.js';
 
 const CATEGORIES = ['structure', 'power', 'propulsion', 'comms', 'adcs', 'obc', 'instrument'];
@@ -90,12 +90,32 @@ function togglePiece(p) {
 }
 
 // --- Catálogo -----------------------------------------------------------------
+const popId = (p) => `n2-trl-${p.id}`;
+
+/** Ventana del ⓘ: qué es el TRL, qué significa el de esta pieza y por qué lo tiene (popover nativo). */
+function trlPopover(p) {
+  const pop = document.createElement('div');
+  pop.className = 'n2-pop';
+  pop.id = popId(p);
+  pop.setAttribute('popover', '');
+  pop.innerHTML = `
+    <h3>${tx(p.name)} · TRL ${p.trl}</h3>
+    <p class="n2-pop-level">${t(`trlLevels.${p.trl}`)}</p>
+    <h4>${t('trlWhatTitle')}</h4>
+    <p>${t('trlWhat')}</p>
+    <h4>${t('trlWhyTitle')}</h4>
+    <p>${tx(p.desc)}</p>
+    <button type="button" class="n2-btn n2-btn-primary" popovertarget="${pop.id}" popovertargetaction="hide">${t('gotIt')}</button>`;
+  return pop;
+}
+
 function pieceButton(p, solarFactor) {
   const sat = m.satellite;
   const fit = instrumentStatus(p, m, data.workshop.instrumentFit);
   const selected = p.id === sat.formFactor || sat.pieces.includes(p.id);
   const b = document.createElement('button');
   b.type = 'button';
+  b.dataset.id = p.id;
   b.className = `n2-piece${selected ? ' is-selected' : ''}${fit.compatible ? '' : ' is-off'}`;
   b.disabled = !fit.compatible;
   b.title = tx(p.desc);
@@ -103,16 +123,29 @@ function pieceButton(p, solarFactor) {
   let extra = '';
   if (p.category === 'structure') {
     const form = data.workshop.formFactors?.[p.id];
-    extra = `<small class="n2-hint">${form ? `${tx(form)} · ` : ''}${t('maxMass', { n: grams(p.volumeU * KG_PER_U) })}</small>`;
+    // La masa máxima va en la fuente de los números: en Space Grotesk «15 960» se leía como «45 960».
+    extra = `<small class="n2-hint">${form ? `${tx(form)} · ` : ''}${t('maxMass', { n: `<span class="n2-num">${grams(p.volumeU * KG_PER_U)}</span>` })}</small>`;
   } else if (fit.why) {
     extra = `<small class="n2-why" id="n2-why-${p.id}">${fit.compatible ? '✔' : '✘'} ${tx(fit.why)}</small>`;
     b.setAttribute('aria-describedby', `n2-why-${p.id}`);
   }
   // El nombre va primero: es el inicio del nombre accesible del botón.
   b.innerHTML = `<strong>${tx(p.name)}</strong>
-    <small class="n2-specs">${grams(p.massKg)} g · ${p.volumeU}U · ${powerText(p, solarFactor, (w) => t('atDest', { w: fmt(w) }))} · $${p.cost}M · TRL ${p.trl}${p.isp ? ` · Isp ${p.isp}s` : ''}</small>${extra}`;
+    <small class="n2-specs">${grams(p.massKg)} g · ${p.volumeU}U · ${powerText(p, solarFactor, (w) => t('atDest', { w: fmt(w) }))} · $${p.cost}M${p.isp ? ` · Isp ${p.isp}s` : ''}</small>
+    <small class="n2-trl">TRL ${p.trl} · ${t(`trlShort.${p.trl}`)}</small>${extra}`;
   b.addEventListener('click', () => togglePiece(p));
-  return b;
+
+  // El ⓘ no puede ir dentro del botón de la pieza: van juntos en un contenedor
+  const wrap = document.createElement('div');
+  wrap.className = 'n2-piece-wrap';
+  const info = document.createElement('button');
+  info.type = 'button';
+  info.className = 'n2-info';
+  info.textContent = 'i';
+  info.setAttribute('popovertarget', popId(p));
+  info.setAttribute('aria-label', t('trlInfo', { name: tx(p.name), n: p.trl }));
+  wrap.append(b, info);
+  return wrap;
 }
 
 function renderCatalog() {
@@ -127,11 +160,23 @@ function renderCatalog() {
     for (const p of data.pieces.filter((x) => x.category === cat)) list.append(pieceButton(p, solarFactor));
     box.append(h, list);
   }
+  const pops = document.createElement('div');
+  pops.className = 'n2-pops';
+  for (const p of data.pieces) pops.append(trlPopover(p));
+  box.append(pops);
 }
 
 // --- Panel: propelente, medidores, verificaciones -------------------------------
 function meterHTML({ label, value, d, aria, note, marker }) {
   const tight = d.level === 'warn' ? ` · ${t('tight')}` : '';
+  if (d.level === 'pending') {
+    return `
+    <div class="n2-meter lvl-pending" role="meter" aria-label="${label}" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0" aria-valuetext="${aria}">
+      <div class="n2-meter-head"><span>${label}</span><b>${value}</b></div>
+      <div class="n2-track"><div class="n2-fill" style="width:0%"></div></div>
+      ${note ? `<small class="n2-note">${note}</small>` : ''}
+    </div>`;
+  }
   return `
     <div class="n2-meter lvl-${d.level}" role="meter" aria-label="${label}" aria-valuemin="0" aria-valuemax="100"
          aria-valuenow="${Math.round(d.pct)}" aria-valuetext="${aria}${tight}">
@@ -154,18 +199,20 @@ function metersHTML(mission) {
   const storeUse = t('batteryUse', { n: fmt(s.neededWh, 0), e: fmt(s.eclipseWh, 0), b: fmt(s.burnWh, 0), u: fmt(s.usableWh, 0), c: fmt(s.capacityWh, 0) });
   return [
     meterHTML({
-      label: 'Δv', d: M.dv, value: `${fmt(x.dv, 0)} / ${fmt(M.dv.required, 0)} m/s`, aria: `${fmt(x.dv, 0)} m/s, ${req}`,
+      label: 'Δv', d: M.dv, value: M.dv.level === 'pending' ? `— / ${fmt(M.dv.required, 0)} m/s` : `${fmt(x.dv, 0)} / ${fmt(M.dv.required, 0)} m/s`, aria: `${fmt(x.dv, 0)} m/s, ${req}`,
       marker: M.dv.markerPct == null ? '' : `<i class="n2-marker" style="left:${M.dv.markerPct}%"></i>`,
       note: M.dv.markerPct == null ? '' : `│ ${req}`,
     }),
-    meterHTML({ label: t('mass'), d: M.mass, value: `${grams(x.wet)} / ${grams(M.mass.cap)} g`, aria: `${grams(x.wet)} g / ${grams(M.mass.cap)} g` }),
+    M.mass.level === 'pending'
+      ? meterHTML({ label: t('mass'), d: M.mass, value: '— / — g', aria: t('pickStructure'), note: t('pickStructure') })
+      : meterHTML({ label: t('mass'), d: M.mass, value: `${grams(x.wet)} / ${grams(M.mass.cap)} g`, aria: `${grams(x.wet)} g / ${grams(M.mass.cap)} g` }),
     meterHTML({
-      label: t('power'), d: M.power, value: signedW(M.power.net), aria: `${signedW(M.power.net)}: ${use}`,
+      label: t('power'), d: M.power, value: M.power.level === 'pending' ? '—' : signedW(M.power.net), aria: `${signedW(M.power.net)}: ${use}`,
       note: [M.power.powerLow ? t('minPower', { n: M.power.minW }) : '', use, sun].filter(Boolean).join(' · '),
     }),
-    meterHTML({
-      label: t('battery'), d: M.battery, value: `${fmt(s.neededWh, 0)} / ${fmt(s.usableWh, 0)} Wh`, aria: storeUse, note: storeUse,
-    }),
+    M.battery.level === 'pending'
+      ? meterHTML({ label: t('battery'), d: M.battery, value: '—', aria: t('noBattery'), note: t('noBattery') })
+      : meterHTML({ label: t('battery'), d: M.battery, value: `${fmt(s.neededWh, 0)} / ${fmt(s.usableWh, 0)} Wh`, aria: storeUse, note: storeUse }),
     meterHTML({ label: t('cost'), d: M.cost, value: `$${x.cost}M / $${mission.budget.space}M`, aria: `$${x.cost}M / $${mission.budget.space}M` }),
     rocketOverload(x, rocket)
       ? `<p class="n2-alert" role="alert">🚫 ${t('rocketLimit', { name: tx(rocket.name), n: grams(rocket.maxPayloadKg) })}</p>`
@@ -192,7 +239,9 @@ function renderPanel() {
     input.addEventListener('input', (e) => {
       row.querySelector('output').textContent = `${fmt(e.target.value)} kg`;
       // En vivo: masa y Δv cambian antes de soltar el slider
-      meters.innerHTML = metersHTML({ ...m, satellite: { ...sat, propellantKg: Number(e.target.value) } });
+      const preview = { ...m, satellite: { ...sat, propellantKg: Number(e.target.value) } };
+      meters.innerHTML = metersHTML(preview);
+      renderMini(validateDesign(preview, data));
     });
     input.addEventListener('change', (e) => setSatellite({ propellantKg: Number(e.target.value) }));
     panel.append(row);
@@ -204,11 +253,33 @@ function renderPanel() {
   h.textContent = t('checksTitle');
   const list = document.createElement('ul');
   list.className = 'n2-checks';
+  const MARK = { ok: '✔', bad: '✘', pending: '○' };
   for (const c of result.checks) {
+    const state = checkState(c, result.metrics);
     const li = document.createElement('li');
-    li.className = c.ok ? 'n2-ok' : 'n2-bad';
-    li.textContent = `${c.ok ? '✔' : '✘'} ${t(`checks.${c.id}`)}`;
+    li.className = `n2-${state}`;
+    li.textContent = `${MARK[state]} ${t(`checks.${c.id}`)}`;
     list.append(li);
+  }
+  const pendingNote = document.createElement('p');
+  pendingNote.className = 'n2-pending-note';
+  pendingNote.hidden = !result.checks.some((c) => checkState(c, result.metrics) === 'pending');
+  pendingNote.textContent = sat.formFactor ? t('pendingBattery') : t('pendingHint');
+
+  // Por qué falla, con números: orienta hacia el trade study en vez de solo marcar ✘
+  const dest = data.missions.find((d) => d.id === m.missionId);
+  const parts = resolvePieces([sat.formFactor, ...sat.pieces].filter(Boolean), data.pieces);
+  const tips = tradeHints(result, parts, data.pieces, dest, m.budget.space, {
+    nameOf: (p) => tx(p.name),
+    allowed: (p) => instrumentStatus(p, m, data.workshop.instrumentFit).compatible,
+  });
+  const tipsBox = document.createElement('ul');
+  tipsBox.className = 'n2-tips';
+  tipsBox.hidden = !tips.length;
+  for (const tip of tips) {
+    const li = document.createElement('li');
+    li.textContent = `💡 ${t(`tips.${tip.key}`, { dest: tx(dest?.name), ...tip.vars })}`;
+    tipsBox.append(li);
   }
 
   const footer = document.createElement('div');
@@ -232,7 +303,30 @@ function renderPanel() {
     goLevel(3);
   });
   footer.append(back, launch);
-  panel.append(h, list, footer);
+  panel.append(h, list, pendingNote, tipsBox, footer);
+  renderMini(result);
+}
+
+// --- Celular: resumen fijo abajo con los 4 medidores clave ---------------------------
+const MINI_MARK = { ok: '✔', warn: '▲', danger: '✘', pending: '○' };
+function renderMini(result) {
+  const box = $('n2-mini');
+  if (!box) return;
+  const x = result.metrics;
+  const dest = data.missions.find((d) => d.id === m.missionId);
+  const M = meterData(x, dest, m.budget.space);
+  const items = [
+    { label: 'Δv', d: M.dv, value: M.dv.level === 'pending' ? '—' : `${fmt(x.dv, 0)}/${fmt(M.dv.required, 0)}` },
+    { label: t('mass'), d: M.mass, value: M.mass.level === 'pending' ? '—' : `${fmt(x.wet, 1)} kg` },
+    { label: t('powerShort'), d: M.power, value: M.power.level === 'pending' ? '—' : signedW(M.power.net) },
+    { label: t('cost'), d: M.cost, value: `$${x.cost}/${m.budget.space}M` },
+  ];
+  const okN = result.checks.filter((c) => checkState(c, x) === 'ok').length;
+  box.innerHTML = `
+    <ul class="n2-mini-list">${items.map((it) => `<li class="lvl-${it.d.level}"><span>${it.label}</span><b><span aria-hidden="true">${MINI_MARK[it.d.level]}</span> ${it.value}</b></li>`).join('')}</ul>
+    <button type="button" class="n2-btn n2-btn-ghost n2-mini-more">${t('mini.more')}</button>
+    <span class="n2-sr">${t('mini.status', { n: okN, t: result.checks.length })}</span>`;
+  box.querySelector('.n2-mini-more').addEventListener('click', () => $('n2-panel').scrollIntoView({ behavior: 'smooth', block: 'start' }));
 }
 
 /** Navega a otro nivel: su carpeta si ya está publicada, o su pantalla en la app (contrato, #52). */

@@ -115,9 +115,63 @@ body.n2 {
 .n2-checks { list-style: none; margin: 0; padding: 0; font-size: 0.85rem; }
 .n2-footer { display: flex; justify-content: space-between; gap: 8px; flex-wrap: wrap; margin-top: 4px; }
 
+/* --- Estado pendiente (sin estructura todavía): gris, nunca verde --- */
+.n2-meter.lvl-pending { --level: var(--n2-muted); }
+.n2-meter.lvl-pending .n2-meter-head b { color: var(--n2-muted); }
+.n2-pending { color: var(--n2-muted); }
+.n2-pending-note { margin: 0; color: var(--n2-muted); font-size: 0.8rem; }
+.n2-num { font-family: var(--n2-mono); }
+
+/* --- Consejos con números (por qué falla) --- */
+.n2-tips { list-style: none; margin: 0; padding: 10px 12px; display: grid; gap: 6px; font-size: 0.85rem; border: 1px solid var(--n2-warn); border-radius: 10px; color: var(--n2-text); }
+
+/* --- TRL: chip y botón ⓘ (mismo patrón que el «?» del Nivel 1) --- */
+.n2-trl { color: var(--n2-muted); font: 500 0.75rem var(--n2-mono); }
+.n2-piece-wrap { position: relative; display: grid; min-width: 0; }
+.n2-piece-wrap .n2-piece { padding-right: 44px; }
+.n2-info {
+  position: absolute; top: 8px; right: 8px;
+  width: 26px; height: 26px; border-radius: 50%; cursor: pointer;
+  font: italic 700 0.85rem Georgia, serif; color: var(--n2-info);
+  background: transparent; border: 1px solid var(--n2-info);
+}
+.n2-info:hover { background: var(--n2-info); color: var(--n2-bg); }
+.n2-info:focus-visible { outline: 2px solid var(--n2-info); outline-offset: 2px; }
+.n2-pop {
+  width: min(440px, calc(100vw - 32px)); padding: 18px; margin: auto;
+  color: var(--n2-text); background: var(--n2-surface); border: 1px solid var(--n2-border); border-radius: var(--n2-radius);
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.6);
+}
+.n2-pop::backdrop { background: rgba(2, 4, 12, 0.6); }
+.n2-pop h3 { margin: 0 0 4px; font-size: 1.1rem; }
+.n2-pop h4 { margin: 14px 0 4px; font-size: 0.95rem; color: var(--n2-info); }
+.n2-pop p { margin: 0; font-size: 0.92rem; }
+.n2-pop-level { color: var(--n2-muted); }
+.n2-pop .n2-btn { margin-top: 16px; width: 100%; }
+
+/* --- Celular: resumen fijo abajo (en escritorio el panel ya es sticky) --- */
+.n2-mini { display: none; }
+.n2-sr { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
+
 @media (max-width: 860px) {
   .n2-layout { grid-template-columns: 1fr; }
   .n2-panel { position: static; }
+  .n2-main { padding-bottom: 120px; }
+  .n2-mini {
+    position: fixed; left: 0; right: 0; bottom: 0; z-index: 6;
+    display: grid; grid-template-columns: 1fr auto; gap: 8px; align-items: center;
+    padding: 8px 12px calc(8px + env(safe-area-inset-bottom));
+    background: rgba(7, 11, 26, 0.94); border-top: 1px solid var(--n2-border); backdrop-filter: blur(6px);
+  }
+  .n2-mini-list { list-style: none; margin: 0; padding: 0; display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 2px 12px; font-size: 0.75rem; }
+  .n2-mini-list li { display: flex; justify-content: space-between; gap: 6px; min-width: 0; }
+  .n2-mini-list span { color: var(--n2-muted); }
+  .n2-mini-list b { font: 500 0.75rem var(--n2-mono); white-space: nowrap; }
+  .n2-mini-list .lvl-ok b { color: var(--n2-ok); }
+  .n2-mini-list .lvl-warn b { color: var(--n2-warn); }
+  .n2-mini-list .lvl-danger b { color: var(--n2-danger); }
+  .n2-mini-list .lvl-pending b { color: var(--n2-muted); }
+  .n2-mini-more { padding: 8px 10px; font-size: 0.8rem; white-space: nowrap; }
 }
 @media (prefers-reduced-motion: reduce) {
   .n2-fill { transition: none; }
