@@ -22,6 +22,8 @@
   "projectLabel": "Project name",
   "projectPlaceholder": "e.g. Lunar Hummingbird",
   "pickMission": "Pick a destination to see what it demands and its max budget.",
+  "slider": { "label": "Available destinations", "prev": "Previous destination", "next": "Next destination" },
+  "dock": { "collapse": "Collapse" },
   "difficulty": "Difficulty",
   "maxBudget": "Max budget",
   "targetTitle": "Choose the science objective:",

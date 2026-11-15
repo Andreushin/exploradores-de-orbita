@@ -15,6 +15,24 @@ let catalog = null;  // tarjetas por segmento
 let scenes = null;   // fondo animado
 let dragging = null; // { seg, id, placed } durante un arrastre
 let onResize = null;
+let onScroll = null;
+let onDockPointer = null;
+let hudObserver = null;
+let dockOpen = true; // panel «Misión configurada»: se recuerda entre pasos, pero cada entrada a la pantalla lo abre (mount)
+let dockHinted = null; // ¿ya se le avisó al jugador dónde queda la pestaña? (se guarda en el navegador: solo la primera vez)
+const DOCK_HINT_KEY = 'eo-dock-hint';
+
+function dockHintDone() {
+  if (dockHinted === null) {
+    try { dockHinted = localStorage.getItem(DOCK_HINT_KEY) === '1'; } catch { dockHinted = false; }
+  }
+  return dockHinted;
+}
+
+function markDockHinted() {
+  dockHinted = true;
+  try { localStorage.setItem(DOCK_HINT_KEY, '1'); } catch { /* sin almacenamiento: el aviso solo dura esta sesión */ }
+}
 
 function el(tag, cls, html) {
   const e = document.createElement(tag);
@@ -159,9 +177,12 @@ function nameField() {
   return field;
 }
 
+/** Slider de destinos: una tarjeta por vista, con flechas que solo aparecen si hay hacia dónde moverse. */
 function destinationGrid() {
   const { state, data, t, tx } = ctx;
-  const grid = el('div', 'card-grid lvl-dest');
+  const grid = el('div', 'lvl-dest');
+  grid.setAttribute('role', 'group');
+  grid.setAttribute('aria-label', t('mission.slider.label'));
   for (const m of data.missions) {
     const on = m.id === state.missionId;
     const card = el('button', 'card mission-card' + (on ? ' is-selected' : ''));
@@ -178,7 +199,57 @@ function destinationGrid() {
     card.addEventListener('click', () => selectMission(m));
     grid.append(card);
   }
-  return grid;
+  return destinationSlider(grid);
+}
+
+function destinationSlider(track) {
+  const { t } = ctx;
+  const arrow = (dir, glyph) => {
+    const b = el('button', `lvl-arrow lvl-arrow-${dir}`, glyph);
+    b.type = 'button';
+    b.setAttribute('aria-label', t(`mission.slider.${dir}`));
+    return b;
+  };
+  const prev = arrow('prev', '‹');
+  const next = arrow('next', '›');
+  const slider = el('div', 'lvl-slider');
+  slider.append(track, prev, next);
+
+  const cards = [...track.children];
+  const step = () => (cards[1] ? cards[1].offsetLeft - cards[0].offsetLeft : track.clientWidth);
+  const reduced = () => window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+  const go = (dir) => track.scrollBy({ left: dir * step(), behavior: reduced() ? 'auto' : 'smooth' });
+
+  /** Oculta cada flecha en su extremo; si tenía el foco, lo pasa a la otra para no perderlo. */
+  const sync = () => {
+    const atStart = track.scrollLeft <= 1;
+    const atEnd = track.scrollLeft + track.clientWidth >= track.scrollWidth - 1;
+    for (const [btn, hide, other] of [[prev, atStart, next], [next, atEnd, prev]]) {
+      const focused = document.activeElement === btn;
+      btn.hidden = hide;
+      if (hide && focused && !other.hidden) other.focus({ preventScroll: true });
+    }
+  };
+  prev.addEventListener('click', () => go(-1));
+  next.addEventListener('click', () => go(1));
+  track.addEventListener('scroll', sync, { passive: true });
+
+  // Al construirse (o reconstruirse tras elegir) se muestra la tarjeta elegida, sin animar.
+  if (typeof ResizeObserver === 'function') {
+    let placed = false;
+    const ro = new ResizeObserver(() => {
+      if (!track.isConnected) { ro.disconnect(); return; }
+      if (!placed) {
+        placed = true;
+        const on = track.querySelector('.is-selected');
+        if (on) track.scrollTo({ left: on.offsetLeft, behavior: 'instant' });
+      }
+      sync();
+    });
+    ro.observe(track);
+  }
+  sync();
+  return slider;
 }
 
 function scienceTargets(mission) {
@@ -300,7 +371,10 @@ function cardEl(card, placed) {
     e.dataTransfer.effectAllowed = 'move';
     e.dataTransfer.setData('text/plain', card.id);
     art.classList.add('is-dragging');
-    live.stage.classList.add(placed ? 'is-dragging-placed' : 'is-dragging-bank');
+    const mode = placed ? 'is-dragging-placed' : 'is-dragging-bank';
+    live.stage.classList.add(mode);
+    live.dock.root.classList.add(mode);
+    if (!placed) setDock(true); // el panel es el destino del arrastre: tiene que estar a la vista
   });
   art.addEventListener('dragend', endDrag);
   return art;
@@ -309,8 +383,10 @@ function cardEl(card, placed) {
 function endDrag() {
   dragging = null;
   if (!live?.stage) return;
-  live.stage.classList.remove('is-dragging-placed', 'is-dragging-bank');
-  live.stage.querySelectorAll('.is-over, .is-dragging').forEach((n) => n.classList.remove('is-over', 'is-dragging'));
+  for (const box of [live.stage, live.dock.root]) {
+    box.classList.remove('is-dragging-placed', 'is-dragging-bank');
+    box.querySelectorAll('.is-over, .is-dragging').forEach((n) => n.classList.remove('is-over', 'is-dragging'));
+  }
 }
 
 /** Zona que acepta tarjetas arrastradas. */
@@ -399,7 +475,6 @@ function missionSummary(ev, current) {
 function renderSegmentBody(k, ev) {
   const { t } = ctx;
   const plan = ctx.state.plan;
-  const s = ev.segments[k];
 
   const bank = el('section', 'bank');
   bank.append(el('h3', null, t('mission.bank.title')), el('p', 'muted', t('mission.bank.help')));
@@ -408,8 +483,16 @@ function renderSegmentBody(k, ev) {
   bank.append(list);
   dropZone(bank, (d) => d.placed, (d) => placeCard(d.seg, null));
 
-  const config = el('section', 'config');
-  config.append(el('h3', null, t('mission.config.title')), el('p', 'muted', t('mission.config.help')));
+  const board = el('div', 'board');
+  board.append(bank);
+  live.body.replaceChildren(board);
+  renderDock(k, ev);
+}
+
+/** Contenido del panel «Misión configurada»: ranura del segmento, retroalimentación y mini resumen. */
+function renderDock(k, ev) {
+  const { t } = ctx;
+  const s = ev.segments[k];
   const slot = el('div', `slot is-${s.status}`);
   slot.innerHTML = `
     <div class="slot-head">
@@ -417,12 +500,84 @@ function renderSegmentBody(k, ev) {
       <span class="slot-status">${STATUS_ICON[s.status]} ${t(`mission.status.${s.status}`)}</span>
     </div>`;
   slot.append(s.card ? cardEl(s.card, true) : el('p', 'slot-empty', t('mission.config.empty', { seg: segName(k) })));
-  config.append(slot, segmentFeedback(k, ev), missionSummary(ev, k));
-  dropZone(config, (d) => !d.placed && d.seg === k, (d) => placeCard(d.seg, d.id));
+  live.dock.body.replaceChildren(slot, segmentFeedback(k, ev), missionSummary(ev, k));
+  const { badge, tab } = live.dock;
+  const text = `$${ev.spent}M ${t('mission.bar.spent')}`;
+  if (badge.textContent && badge.textContent !== text && !tab.hidden) {
+    badge.classList.remove('is-bump'); // el panel está recogido y lo asignado cambió: destello en la pestaña
+    badge.getBoundingClientRect(); // fuerza el reflow para reiniciar la animación aunque se repita seguida
+    badge.classList.add('is-bump');
+  }
+  badge.textContent = text;
+}
 
-  const board = el('div', 'board');
-  board.append(bank, config);
-  live.body.replaceChildren(board);
+// --- Panel lateral «Misión configurada» ------------------------------------------------
+/** Abre o recoge el panel. Recogido queda una pestaña en el borde derecho con lo asignado. */
+function setDock(open, focus = false) {
+  dockOpen = open;
+  const d = live.dock;
+  d.root.classList.toggle('is-open', open);
+  d.panel.inert = !open;
+  d.tab.hidden = open;
+  d.tab.setAttribute('aria-expanded', String(open));
+  if (open) {
+    d.tab.classList.remove('is-hint'); // si se reabre a medio aviso, no se repite al volver a recogerlo
+    d.badge.classList.remove('is-bump');
+  } else if (!dockHintDone()) {
+    d.tab.classList.add('is-hint'); // primera vez que se recoge: la pestaña pulsa para que se vea dónde quedó
+    markDockHinted();
+  }
+  if (focus) (open ? d.close : d.tab).focus({ preventScroll: true });
+}
+
+/** El panel nace justo debajo del bloque fijo (o del encabezado) para no taparlo. */
+function syncDockTop() {
+  if (!live?.hud) return;
+  const header = document.querySelector('.app-header')?.offsetHeight ?? 64;
+  const top = Math.max(header, live.hud.getBoundingClientRect().bottom) + 8;
+  live.dock.root.style.setProperty('--dock-top', `${Math.round(top)}px`);
+}
+
+function buildDock() {
+  const { t } = ctx;
+  const title = t('mission.config.title');
+  const root = el('aside', 'dock');
+  root.setAttribute('aria-label', title);
+
+  const tab = el('button', 'dock-tab', `
+    <span class="dock-chev" aria-hidden="true">‹</span>
+    <span class="dock-tab-title">${title}</span>
+    <span class="dock-badge"></span>`);
+  tab.type = 'button';
+  tab.setAttribute('aria-controls', 'dock-panel');
+
+  const panel = el('section', 'dock-panel', `
+    <header class="dock-head">
+      <div><h3 id="dock-title">${title}</h3><p class="muted">${t('mission.config.help')}</p></div>
+      <button type="button" class="btn dock-close">${t('mission.dock.collapse')} <span aria-hidden="true">›</span></button>
+    </header>
+    <div class="dock-body"></div>`);
+  panel.id = 'dock-panel';
+  panel.setAttribute('aria-labelledby', 'dock-title');
+
+  root.append(panel, tab);
+  const dock = {
+    root, tab, panel,
+    body: panel.querySelector('.dock-body'),
+    close: panel.querySelector('.dock-close'),
+    badge: tab.querySelector('.dock-badge'),
+  };
+  // Los avisos son de una sola vez: al terminar se quitan las clases (y al reabrir el panel, en setDock).
+  tab.addEventListener('animationend', (e) => {
+    if (e.animationName === 'dock-pulse') tab.classList.remove('is-hint');
+    if (e.animationName === 'dock-bump') dock.badge.classList.remove('is-bump');
+  });
+  tab.addEventListener('click', () => setDock(true, true));
+  dock.close.addEventListener('click', () => setDock(false, true));
+  panel.addEventListener('keydown', (e) => {
+    if (e.key === 'Escape') setDock(false, true);
+  });
+  return dock;
 }
 
 function segmentStage(k) {
@@ -550,7 +705,14 @@ function renderLive(focus = null, edited = false) {
   else if (id === 'review') renderReviewBody(ev);
   renderNav(ev, steps);
   updateScene(ev);
-  if (focus?.id) live.stage.querySelector(`.opt[data-seg="${focus.seg}"][data-id="${focus.id}"] .opt-move`)?.focus();
+  live.dock.root.hidden = !isSegment(id);
+  syncDockTop();
+  if (focus?.id) {
+    // La tarjeta movida puede estar en el panel; si está recogido, el foco va a su pestaña.
+    const sel = `.opt[data-seg="${focus.seg}"][data-id="${focus.id}"] .opt-move`;
+    const btn = live.stage.querySelector(sel) ?? live.dock.body.querySelector(sel);
+    (btn && !btn.closest('[inert]') ? btn : live.dock.tab).focus();
+  }
 }
 
 function validateAndContinue() {
@@ -582,11 +744,41 @@ function build() {
   live.stepper.setAttribute('aria-label', t('mission.stepsLabel'));
   const hud = el('div', 'lvl-hud');
   hud.append(live.stepper, live.bar);
+  live.hud = hud;
+  live.dock = buildDock();
+  document.body.append(live.dock.root); // fuera de la pantalla: su animación de entrada rompería el `position: fixed`
+  dropZone(live.dock.panel, (d) => !d.placed && d.seg === stepId(), (d) => placeCard(d.seg, d.id));
+  setDock(dockOpen);
+  if (typeof ResizeObserver === 'function') {
+    hudObserver = new ResizeObserver(syncDockTop);
+    hudObserver.observe(hud);
+  }
   const pops = el('div', 'opt-pops');
   for (const k of SEGMENTS) catalog[k].forEach((c) => pops.append(infoPopover(c)));
   root.replaceChildren(el('h1', null, t('mission.title')), el('p', 'lead', t('mission.intro')), hud, live.stage, live.nav, pops);
   renderStage();
   renderLive();
+  syncCompact();
+}
+
+// Al bajar, el bloque fijo se adelgaza para dejar ver la escena de fondo. Histéresis (80/20 px) y margen
+// compensado: así el alto de la página no cambia y no entra en bucle justo en el umbral.
+const COMPACT_ON = 80;
+const COMPACT_OFF = 20;
+
+function setCompact(on) {
+  const hud = live.hud;
+  if (hud.classList.contains('is-compact') === on) return;
+  const full = hud.offsetHeight;
+  hud.classList.toggle('is-compact', on);
+  hud.style.marginBottom = on ? `${Math.max(0, full - hud.offsetHeight)}px` : '';
+}
+
+function syncCompact() {
+  if (!live?.hud) return;
+  const compact = live.hud.classList.contains('is-compact');
+  if (!compact && window.scrollY > COMPACT_ON) setCompact(true);
+  else if (compact && window.scrollY < COMPACT_OFF) setCompact(false);
 }
 
 /** El bloque fijo (pasos + presupuesto) se pega justo debajo del encabezado, cuya altura cambia en móvil. */
@@ -600,14 +792,37 @@ export default {
   mount(container, context) {
     ctx = context;
     root = container;
+    dockOpen = true; // al entrar (primera vez, Continuar o tras Reiniciar) el panel siempre empieza abierto
     scenes = createScenes();
     syncHeaderHeight();
-    onResize = syncHeaderHeight;
+    onResize = () => {
+      syncHeaderHeight();
+      setCompact(false); // el alto compensado depende del ancho: se vuelve a medir
+      syncCompact();
+      syncDockTop();
+    };
+    onScroll = () => {
+      syncCompact();
+      syncDockTop();
+    };
+    // Un clic fuera del panel lo recoge (menos el cuerpo de una tarjeta: ahí empieza un arrastre hacia el panel).
+    onDockPointer = (e) => {
+      if (!live?.dock || !dockOpen || live.dock.root.hidden || live.dock.root.contains(e.target)) return;
+      if (e.target.closest('.opt') && !e.target.closest('button')) return;
+      setDock(false);
+    };
     window.addEventListener('resize', onResize);
+    window.addEventListener('scroll', onScroll, { passive: true });
+    document.addEventListener('pointerdown', onDockPointer);
     build();
   },
   unmount() {
     window.removeEventListener('resize', onResize);
+    window.removeEventListener('scroll', onScroll);
+    document.removeEventListener('pointerdown', onDockPointer);
+    hudObserver?.disconnect();
+    hudObserver = null;
+    live?.dock.root.remove();
     document.querySelectorAll('.opt-pop:popover-open').forEach((p) => p.hidePopover());
     scenes?.destroy();
     scenes = null;

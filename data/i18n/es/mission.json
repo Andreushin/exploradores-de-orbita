@@ -22,6 +22,8 @@
   "projectLabel": "Nombre del proyecto",
   "projectPlaceholder": "Ej. Colibrí Lunar",
   "pickMission": "Elige un destino para ver lo que exige y su presupuesto máximo.",
+  "slider": { "label": "Destinos disponibles", "prev": "Destino anterior", "next": "Destino siguiente" },
+  "dock": { "collapse": "Colapsar" },
   "difficulty": "Dificultad",
   "maxBudget": "Presupuesto máximo",
   "targetTitle": "Elige el objetivo científico:",

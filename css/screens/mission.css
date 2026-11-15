@@ -57,6 +57,20 @@
 .bb-track { position: relative; display: flex; height: 10px; border-radius: 6px; overflow: hidden; background: var(--surface-2); }
 .bb-track span { height: 100%; transition: width 0.3s; }
 .bb-limit { position: absolute; top: 0; bottom: 0; width: 3px; margin-left: -1px; background: var(--danger); }
+/* Compacto (al bajar, js/screens/mission.js → syncCompact): una sola fila delgada y más translúcida para no tapar la escena. */
+.lvl-hud.is-compact { display: flex; flex-wrap: wrap; align-items: center; gap: 4px 20px; padding: 5px 16px; background: rgba(5, 8, 22, 0.72); }
+.is-compact .stepper { flex: none; grid-template-columns: repeat(6, auto); gap: 4px; }
+.is-compact .stp button { gap: 6px; padding: 2px; border-bottom-width: 2px; }
+.is-compact .stp-dot { width: 24px; height: 24px; font-size: 0.8rem; }
+.is-compact .stp-label { display: none; }
+.is-compact .stp.is-current .stp-label { display: grid; font-size: 0.8rem; }
+.is-compact .stp.is-current .stp-label small { display: none; }
+.is-compact .budget-bar { flex: 1 1 360px; min-width: 0; gap: 3px; }
+.is-compact .bb-nums { display: flex; flex-wrap: wrap; justify-content: space-between; gap: 0 14px; }
+.is-compact .bb-nums > div { display: flex; align-items: baseline; gap: 6px; }
+.is-compact .bb-nums dt { font-size: 0.68rem; }
+.is-compact .bb-nums dd { font-size: 0.82rem; }
+.is-compact .bb-track { height: 4px; }
 .sw-launch { background: var(--seg-launch); }
 .sw-space { background: var(--seg-space); }
 .sw-ground { background: var(--seg-ground); }
@@ -70,10 +84,34 @@
 .step-head h2:focus { outline: none; }
 .lvl-question { color: #cfe8ff; font-style: italic; margin: 0 0 10px; }
 .step-req { margin: 0 0 12px; display: inline-block; background: var(--panel); border: 1px solid var(--border); border-radius: 999px; padding: 6px 14px; font-size: 0.9rem; }
-.step-card, .bank, .config { background: var(--panel); backdrop-filter: blur(6px); border: 1px solid var(--border); border-radius: var(--radius); padding: 16px; }
+.step-card, .bank { background: var(--panel); backdrop-filter: blur(6px); border: 1px solid var(--border); border-radius: var(--radius); padding: 16px; }
 .lvl-hint { margin: 16px 0 0; }
 
 /* Paso 1: proyecto */
+/* El panel ocupa ~40 % de la columna (mínimo 360 px): el resto deja ver la escena de fondo (luna, órbitas). */
+.step-project .step-card { width: 40%; min-width: 360px; }
+/* Destinos: slider de una tarjeta alargada por vista; flechas a los lados (solo la que tiene hacia dónde ir). */
+.lvl-slider { position: relative; }
+.lvl-dest {
+  position: relative; display: flex; gap: 12px; overflow-x: auto;
+  scroll-snap-type: x mandatory; overscroll-behavior-x: contain; scrollbar-width: none;
+}
+.lvl-dest::-webkit-scrollbar { display: none; }
+.lvl-dest > .card { flex: 0 0 100%; scroll-snap-align: start; }
+.lvl-dest > .card:focus-visible { outline-offset: -4px; } /* el contenedor recorta lo que sobresale */
+.lvl-arrow {
+  position: absolute; top: 50%; z-index: 1; translate: 0 -50%;
+  width: 34px; height: 34px; display: grid; place-items: center; padding: 0;
+  font: inherit; font-size: 1.1rem; line-height: 1; color: #f1f5f9; cursor: pointer;
+  background: rgba(15, 23, 51, 0.85); border: 1px solid rgba(241, 245, 249, 0.4); border-radius: 50%;
+  -webkit-backdrop-filter: blur(6px); backdrop-filter: blur(6px);
+  transition: background 0.2s, border-color 0.2s;
+}
+.lvl-arrow:hover { background: rgba(91, 140, 255, 0.6); border-color: rgba(255, 255, 255, 0.7); }
+.lvl-arrow:focus-visible { outline: 2px solid var(--accent-2); outline-offset: 2px; }
+.lvl-arrow[hidden] { display: none; }
+.lvl-arrow-prev { left: -17px; }
+.lvl-arrow-next { right: -17px; }
 .lvl-field { display: grid; gap: 6px; max-width: 420px; margin: 0 0 16px; font-weight: 600; }
 .lvl-field input {
   font: inherit; font-weight: 400; color: var(--text);
@@ -96,16 +134,14 @@
 .lvl-req-list li { background: var(--surface-2); border-radius: 8px; padding: 4px 10px; font-size: 0.9rem; font-variant-numeric: tabular-nums; }
 .lvl-seg-reqs { margin: 12px 0 0; padding-left: 18px; display: grid; gap: 2px; font-size: 0.95rem; }
 
-/* Pasos 2–5: banco + misión configurada */
-.board { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 20px; align-items: start; }
-.bank h3, .config h3 { margin: 0; font-size: 1.05rem; }
-.bank > .muted, .config > .muted { margin: 2px 0 10px; font-size: 0.85rem; }
+/* Pasos 2–5: el banco va en la página; la misión configurada, en el panel lateral (.dock, más abajo). */
+.board { display: grid; grid-template-columns: minmax(0, 560px); gap: 20px; align-items: start; }
+.bank h3 { margin: 0; font-size: 1.05rem; }
+.bank > .muted { margin: 2px 0 10px; font-size: 0.85rem; }
 .bank-list { display: grid; gap: 10px; }
-.config { display: grid; gap: 12px; }
-.config > h3, .config > .muted { margin-bottom: -6px; }
-.bank, .config { transition: border-color 0.15s, background 0.15s; }
-.step-stage.is-dragging-bank .config, .step-stage.is-dragging-placed .bank { border-style: dashed; border-color: var(--accent-2); }
-.bank.is-over, .config.is-over { background: rgba(23, 33, 74, 0.92); }
+.bank { transition: border-color 0.15s, background 0.15s; }
+.step-stage.is-dragging-placed .bank { border-style: dashed; border-color: var(--accent-2); }
+.bank.is-over { background: rgba(23, 33, 74, 0.92); }
 
 .opt {
   display: grid; gap: 4px; padding: 12px; border-radius: 12px; cursor: grab;
@@ -193,9 +229,63 @@
 .lvl-nav .btn-primary:not(:disabled) { animation: ready-pulse 2s ease-in-out infinite; }
 @keyframes ready-pulse { 50% { box-shadow: 0 0 0 6px rgba(91, 140, 255, 0.25); } }
 
+/* Panel lateral «Misión configurada»: sale del borde derecho; un clic fuera lo recoge y queda su pestaña (js/screens/mission.js → setDock). */
+.dock {
+  --panel: rgba(15, 23, 51, 0.82); /* el panel vive en <body>, fuera de #screen-mission */
+  position: fixed; z-index: 30; top: var(--dock-top, 140px); right: 0;
+  max-height: calc(100vh - var(--dock-top, 140px) - 12px);
+  display: flex; justify-content: flex-end; pointer-events: none;
+}
+.dock[hidden] { display: none; }
+.dock > * { pointer-events: auto; }
+.dock-panel {
+  box-sizing: border-box; width: min(400px, 92vw); max-height: inherit; overflow-y: auto;
+  display: grid; align-content: start; gap: 12px; padding: 14px;
+  background: rgba(10, 15, 36, 0.94); -webkit-backdrop-filter: blur(10px); backdrop-filter: blur(10px);
+  border: 1px solid var(--border); border-right: 0; border-radius: 16px 0 0 16px;
+  box-shadow: -10px 12px 40px rgba(0, 0, 0, 0.45);
+  transform: translateX(105%); visibility: hidden; transition: transform 0.25s ease, visibility 0s 0.25s, background 0.15s;
+}
+.dock.is-open .dock-panel { transform: none; visibility: visible; transition: transform 0.25s ease, background 0.15s; }
+.dock-panel.is-over { background: rgba(23, 33, 74, 0.97); }
+.dock.is-dragging-bank .dock-panel { outline: 2px dashed var(--accent-2); outline-offset: -6px; }
+.dock-head { display: flex; justify-content: space-between; align-items: start; gap: 10px; }
+.dock-head h3 { margin: 0; font-size: 1.05rem; }
+.dock-head .muted { margin: 2px 0 0; font-size: 0.8rem; }
+.dock-close { flex: none; padding: 6px 12px; font-size: 0.85rem; white-space: nowrap; }
+.dock-body { display: grid; gap: 12px; }
+.dock-tab {
+  align-self: start; display: grid; justify-items: center; gap: 12px; width: 46px; padding: 12px 0 14px; cursor: pointer;
+  font: inherit; color: var(--text); background: rgba(10, 15, 36, 0.94);
+  -webkit-backdrop-filter: blur(10px); backdrop-filter: blur(10px);
+  border: 1px solid var(--border); border-right: 0; border-left: 3px solid var(--accent-2); border-radius: 16px 0 0 16px;
+  box-shadow: -6px 8px 24px rgba(0, 0, 0, 0.4); transition: background 0.2s, border-color 0.2s;
+}
+.dock-tab:hover { background: rgba(23, 33, 74, 0.96); border-top-color: var(--accent-2); border-bottom-color: var(--accent-2); }
+.dock-tab:focus-visible { outline: 2px solid var(--accent-2); outline-offset: -3px; }
+.dock-tab[hidden] { display: none; }
+.dock-chev { width: 28px; height: 28px; display: grid; place-items: center; border-radius: 50%; background: var(--surface-2); border: 1px solid var(--border); color: var(--accent-2); font-size: 1.1rem; line-height: 1; }
+.dock-tab-title, .dock-badge { writing-mode: vertical-rl; transform: rotate(180deg); white-space: nowrap; }
+.dock-tab-title { font-size: 0.8rem; font-weight: 700; letter-spacing: 0.12em; text-transform: uppercase; }
+.dock-badge { padding: 8px 4px; font-size: 0.78rem; font-weight: 600; font-variant-numeric: tabular-nums; color: var(--ok); background: rgba(74, 222, 128, 0.12); border: 1px solid rgba(74, 222, 128, 0.4); border-radius: 8px; }
+/* Avisos de la pestaña: al recogerse entra con un rebote; la primera vez (.is-hint) además pulsa 3 veces. */
+.dock-tab { animation: dock-peek 0.5s cubic-bezier(0.2, 0.8, 0.2, 1.2); }
+.dock-tab.is-hint { animation: dock-peek 0.5s cubic-bezier(0.2, 0.8, 0.2, 1.2), dock-pulse 1.3s ease-out 0.5s 3; }
+.dock-tab.is-hint .dock-chev { animation: dock-nudge 0.6s ease-in-out 0.5s 6 alternate; }
+.dock-badge.is-bump { animation: dock-bump 0.7s ease-out; }
+@keyframes dock-peek { from { translate: 100% 0; } to { translate: 0 0; } }
+@keyframes dock-pulse {
+  from { box-shadow: -6px 8px 24px rgba(0, 0, 0, 0.4), 0 0 0 0 rgba(124, 204, 255, 0.7); }
+  to { box-shadow: -6px 8px 24px rgba(0, 0, 0, 0.4), 0 0 0 16px rgba(124, 204, 255, 0); }
+}
+@keyframes dock-nudge { to { translate: -6px 0; } }
+@keyframes dock-bump { 30% { scale: 1.18; background: rgba(74, 222, 128, 0.35); } }
+
 @media (max-width: 860px) {
+  .step-project .step-card { width: 100%; min-width: 0; }
+  .lvl-dest > .card { flex-basis: min(100%, 360px); }
   .board { grid-template-columns: 1fr; }
-  .stp-label { display: none; }
+  .stp-label, .is-compact .stp.is-current .stp-label { display: none; }
   .stp button { justify-content: center; }
 }
 @media (max-width: 640px) {
@@ -262,18 +352,17 @@
 /* 4 · Tierra */
 .sc-target { animation: blink 1.4s steps(2) infinite; }
 @keyframes blink { 50% { opacity: 0.1; } }
-.sc-dish { opacity: 0.22; transition: opacity 0.5s; }
+/* Una sola antena que crece con el nivel de la red (sin tarjeta: tenue y pequeña). Su origen (la base) va en línea en el SVG. */
+.sc-dish { opacity: 0.22; scale: 0.6; transition: scale 0.6s cubic-bezier(0.2, 0.8, 0.2, 1.2), opacity 0.5s; }
+.scene-ground:not([data-level="0"]) .sc-dish { opacity: 1; }
+.scene-ground[data-level="2"] .sc-dish { scale: 1; }
+.scene-ground[data-level="3"] .sc-dish { scale: 1.6; }
 .sc-waves { display: none; }
 .sc-waves circle { fill: none; stroke: #a5f3fc; stroke-width: 4; transform-box: fill-box; transform-origin: center; animation: wave 2.4s ease-out infinite; }
 .sc-waves circle:nth-child(2) { animation-delay: 0.8s; }
 .sc-waves circle:nth-child(3) { animation-delay: 1.6s; }
 @keyframes wave { from { scale: 0.3; opacity: 0.9; } to { scale: 3.2; opacity: 0; } }
-.scene-ground[data-level="1"] [data-dish="1"],
-.scene-ground[data-level="2"] [data-dish="1"], .scene-ground[data-level="2"] [data-dish="2"],
-.scene-ground[data-level="3"] .sc-dish { opacity: 1; }
-.scene-ground[data-level="1"] [data-dish="1"] .sc-waves,
-.scene-ground[data-level="2"] [data-dish="2"] .sc-waves,
-.scene-ground[data-level="3"] [data-dish="3"] .sc-waves { display: inline; }
+.scene-ground:not([data-level="0"]) .sc-waves { display: inline; }
 
 /* 5 · Usuario */
 .sc-rain rect { fill: rgba(124, 204, 255, 0.45); animation: rain 3s linear infinite; }
@@ -297,6 +386,6 @@
 
 /* Movimiento reducido: escenas estáticas (cada estado ya tiene su aspecto final sin animar). */
 @media (prefers-reduced-motion: reduce) {
-  .lvl-scenes *, .step-stage, .slot .opt, .opt, .lvl-nav .btn-primary { animation: none !important; transition: none !important; }
+  .lvl-scenes *, .step-stage, .slot .opt, .opt, .dock-panel, .dock-tab, .dock-chev, .dock-badge, .lvl-nav .btn-primary { animation: none !important; transition: none !important; }
   .opt:hover { transform: none; }
 }
