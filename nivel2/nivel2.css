@@ -125,18 +125,11 @@ body.n2 {
   scrollbar-color: var(--n2-border) transparent;
 }
 
-/* Col central: visor SVG — overflow: hidden, NUNCA scroll */
+/* Col central: visor 3D — overflow: hidden, NUNCA scroll */
 .n2-col-viewer {
   overflow: hidden;
   position: relative;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  background: radial-gradient(ellipse 55% 55% at 50% 50%, rgba(79,195,247,0.05), transparent 72%);
-}
-.n2-col-viewer svg {
-  display: block;
-  width: 100%; height: 100%;
+  background: radial-gradient(ellipse 55% 55% at 50% 50%, rgba(79,195,247,0.07), transparent 72%);
 }
 
 /* Col derecha: telemetría */
@@ -175,6 +168,7 @@ body.n2 {
   background: rgba(74,222,128,0.04);
 }
 .n2-piece:disabled { cursor: not-allowed; }
+.n2-piece.is-hover { border-color: #fff; box-shadow: 0 0 0 1px #fff inset, 0 0 14px rgba(255, 255, 255, 0.4); background: rgba(255, 255, 255, 0.07); }
 .n2-piece.is-off { opacity: 0.5; filter: grayscale(1); border-style: dashed; }
 .n2-piece strong { font-size: 0.82rem; line-height: 1.2; }
 .n2-specs { color: var(--n2-muted); font: 500 0.68rem var(--n2-mono); overflow-wrap: anywhere; }
@@ -199,21 +193,45 @@ body.n2 {
 .n2-info:hover { background: var(--n2-info); color: var(--n2-bg); }
 .n2-info:focus-visible { outline: 2px solid var(--n2-info); outline-offset: 2px; }
 
-/* Popover TRL */
+/* Ventana de información (una sola, popover nativo) */
 .n2-pops { display: contents; }
 .n2-pop {
-  width: min(420px, calc(100vw - 32px));
+  width: min(460px, calc(100vw - 32px)); max-height: calc(100vh - 32px); overflow-y: auto;
   padding: 16px; margin: auto;
   color: var(--n2-text); background: var(--n2-surface);
   border: 1px solid var(--n2-border); border-radius: var(--n2-radius);
   box-shadow: 0 20px 60px rgba(0,0,0,0.65);
 }
 .n2-pop::backdrop { background: rgba(2,4,12,0.62); }
-.n2-pop h3 { margin: 0 0 4px; font-size: 1rem; }
-.n2-pop h4 { margin: 12px 0 3px; font-size: 0.88rem; color: var(--n2-info); }
+.n2-pop h3 { margin: 0 0 4px; font-size: 1.05rem; line-height: 1.25; }
+.n2-pop h4 { margin: 14px 0 4px; font-size: 0.78rem; letter-spacing: 0.06em; text-transform: uppercase; color: var(--n2-info); }
 .n2-pop p { margin: 0; font-size: 0.88rem; }
-.n2-pop-level { color: var(--n2-muted); }
-.n2-pop .n2-btn { margin-top: 14px; width: 100%; }
+.n2-pop .n2-btn { margin-top: 12px; width: 100%; }
+.n2-pop-muted { color: var(--n2-muted); font-size: 0.78rem; }
+.n2-formula { font: 500 0.8rem/1.45 var(--n2-mono); color: var(--n2-text); padding: 8px 10px; border-radius: 8px; background: var(--n2-surface-2); border: 1px solid var(--n2-border); }
+.n2-pop-head { display: flex; flex-wrap: wrap; align-items: center; gap: 4px 8px; margin-bottom: 2px; }
+.n2-pop-head h3 { flex-basis: 100%; margin: 0; }
+.n2-chip { font: 500 0.7rem var(--n2-mono); padding: 2px 8px; border-radius: 999px; border: 1px solid var(--n2-border); color: var(--n2-muted); }
+.n2-chip-trl { color: var(--n2-info); border-color: var(--n2-info); }
+.n2-facts { list-style: none; margin: 0; padding: 0; display: grid; gap: 5px; font-size: 0.84rem; }
+.n2-facts li { display: grid; grid-template-columns: 16px 1fr; gap: 6px; }
+.n2-facts .lvl-ok { color: var(--n2-text); } .n2-facts .lvl-ok span { color: var(--n2-ok); }
+.n2-facts .lvl-warn span { color: var(--n2-warn); }
+.n2-facts .lvl-bad { color: var(--n2-danger); }
+.n2-facts .lvl-info span { color: var(--n2-muted); }
+.n2-hint-block { padding: 8px 10px; border: 1px solid var(--n2-border); border-radius: 8px; background: var(--n2-surface-2); display: grid; gap: 2px; }
+.n2-hint-block + .n2-hint-block { margin-top: 8px; }
+.n2-hint-block .n2-btn { margin-top: 8px; }
+.n2-trl-note { margin-top: 12px; font-size: 0.8rem; color: var(--n2-muted); }
+.n2-trl-note summary { cursor: pointer; }
+.n2-trl-note p { margin-top: 6px; font-size: 0.8rem; }
+.n2-pop-actions { display: grid; gap: 8px; margin-top: 4px; }
+
+/* Sin soporte de `popover`: misma ventana controlada con clases (JS: .n2-no-popover en <html>, .is-open en la ventana) */
+.n2-pop-backdrop { position: fixed; inset: 0; z-index: 59; background: rgba(2,4,12,0.62); }
+.n2-pop-backdrop[hidden] { display: none; }
+.n2-no-popover .n2-pop { display: none; position: fixed; inset: 0; z-index: 60; height: fit-content; }
+.n2-no-popover .n2-pop.is-open { display: block; }
 
 /* ── Botones compartidos ── */
 .n2-btn {
@@ -222,15 +240,15 @@ body.n2 {
   padding: 8px 14px; cursor: pointer; transition: background 0.12s;
   display: inline-block;
 }
-.n2-btn:hover:not(:disabled) { background: var(--n2-border); }
-.n2-btn:disabled { opacity: 0.4; cursor: not-allowed; }
+.n2-btn:hover:not(:disabled):not([aria-disabled="true"]) { background: var(--n2-border); }
+.n2-btn:disabled, .n2-btn[aria-disabled="true"] { opacity: 0.4; cursor: not-allowed; }
 .n2-btn:focus-visible { outline: 2px solid var(--n2-info); outline-offset: 2px; }
 .n2-btn-ghost { background: transparent; }
 .n2-btn-primary {
   background: var(--n2-accent); border-color: var(--n2-accent);
   color: var(--n2-on-accent); font-weight: 700;
 }
-.n2-btn-primary:hover:not(:disabled) { background: var(--n2-accent-hover); border-color: var(--n2-accent-hover); }
+.n2-btn-primary:hover:not(:disabled):not([aria-disabled="true"]) { background: var(--n2-accent-hover); border-color: var(--n2-accent-hover); }
 
 /* ── Telemetría ── */
 .n2-telem-section { display: flex; flex-direction: column; gap: 8px; }
@@ -263,137 +281,214 @@ body.n2 {
 .n2-note { color: var(--n2-muted); font: 500 0.65rem var(--n2-mono); line-height: 1.3; }
 .n2-alert { margin: 0; padding: 6px 10px; color: var(--n2-danger); font-size: 0.78rem; border: 1px solid var(--n2-danger); border-radius: 8px; background: rgba(255,122,122,0.07); }
 
-.n2-checks { list-style: none; margin: 0; padding: 0; display: grid; gap: 3px; }
-.n2-checks li { font-size: 0.78rem; }
 .n2-ok { color: var(--n2-ok); }
 .n2-bad { color: var(--n2-danger); }
-.n2-pending { color: var(--n2-muted); }
 .n2-pending-note { margin: 0; color: var(--n2-muted); font-size: 0.72rem; }
-.n2-tips { list-style: none; margin: 0; padding: 7px 10px; display: grid; gap: 5px; font-size: 0.75rem; border: 1px solid var(--n2-warn); border-radius: 8px; color: var(--n2-text); }
-.n2-tips[hidden], .n2-pending-note[hidden] { display: none; } /* si no, `display` pisa al atributo hidden y queda una caja vacía */
+
+/* Panel guía: verificaciones y consejos clicables (abren la ventana de información) */
+.n2-guide { gap: 6px; }
+.n2-guide-head { display: flex; justify-content: space-between; align-items: baseline; gap: 8px; }
+.n2-guide-count { font: 500 0.72rem var(--n2-mono); color: var(--n2-muted); }
+.n2-guide-bar { height: 4px; border-radius: 999px; background: var(--n2-surface-2); overflow: hidden; }
+.n2-guide-bar i { display: block; height: 100%; background: var(--n2-ok); transition: width 0.25s ease; }
+.n2-rows { display: grid; gap: 2px; padding: 4px; border: 1px solid var(--n2-border); border-radius: 10px; background: var(--n2-surface); }
+.n2-row, .n2-tip {
+  position: relative; display: grid; align-items: center; gap: 8px; width: 100%;
+  font: inherit; color: var(--n2-text); text-align: left; cursor: pointer;
+  background: transparent; border: 1px solid transparent; border-radius: 8px;
+}
+.n2-row { grid-template-columns: 16px 1fr auto; padding: 5px 8px; font-size: 0.78rem; line-height: 1.3; }
+.n2-row:hover, .n2-tip:hover { background: var(--n2-surface-2); border-color: var(--n2-border); }
+.n2-row:focus-visible, .n2-tip:focus-visible { outline: 2px solid var(--n2-info); outline-offset: 1px; }
+.n2-row.is-ok { color: var(--n2-ok); }
+.n2-row.is-bad { color: var(--n2-danger); }
+.n2-row.is-pending { color: var(--n2-muted); }
+.n2-row-go { color: var(--n2-muted); font-size: 1rem; line-height: 1; }
+.n2-guide-tap { margin: 0; }
+.n2-guide-next { margin-top: 2px; color: var(--n2-accent); }
+.n2-tips + .n2-rows { margin-top: 4px; }
+.n2-tips { display: grid; gap: 6px; }
+.n2-tip { grid-template-columns: 22px 1fr auto; padding: 8px 10px; background: var(--n2-surface); border-color: var(--n2-warn); }
+.n2-tip-n { display: grid; place-items: center; width: 22px; height: 22px; border-radius: 50%; font: 700 0.75rem var(--n2-mono); color: var(--n2-on-accent); background: var(--n2-accent); }
+.n2-tip-body { display: grid; gap: 2px; min-width: 0; }
+.n2-tip-body b { font-size: 0.84rem; line-height: 1.25; }
+.n2-tip-body small { color: var(--n2-muted); font-size: 0.72rem; line-height: 1.35; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+.n2-allgreen { margin: 4px 0 0; padding: 8px 10px; border: 1px solid var(--n2-ok); border-radius: 8px; color: var(--n2-ok); font-size: 0.82rem; }
+
+/* Empujón por inactividad: la primera fila en rojo y el primer consejo laten */
+.is-nudge { animation: n2-nudge 1.4s ease-in-out infinite; }
+.is-nudge .n2-row-go { color: var(--n2-accent); animation: n2-bob 0.7s ease-in-out infinite alternate; }
+@keyframes n2-nudge {
+  0%, 100% { box-shadow: 0 0 0 0 rgba(255, 107, 53, 0); border-color: var(--n2-border); }
+  50%      { box-shadow: 0 0 0 4px rgba(255, 107, 53, 0.35); border-color: var(--n2-accent); }
+}
+@keyframes n2-bob { to { transform: translateX(4px); } }
+.n2-btn.is-risky { background: var(--n2-surface-2); border-color: var(--n2-accent); color: var(--n2-text); }
+.n2-btn.is-risky:hover { background: var(--n2-accent); color: var(--n2-on-accent); }
 .n2-footer { display: flex; gap: 8px; }
 .n2-footer a, .n2-footer button { flex: 1; text-align: center; }
 .n2-sr { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
 
 /* ═══════════════════════════════════════════════
-   SVG — ANIMACIONES DE ACOPLAMIENTO
+   VISOR 3D — CubeSat en CSS 3D (sin JS por frame)
+   Jerarquía: scene (perspective) > fit (escala) > tilt (ángulo fijo) > sat (flota y gira)
    ═══════════════════════════════════════════════ */
+@property --w { syntax: '<length>'; inherits: true; initial-value: 72px; }
+@property --h { syntax: '<length>'; inherits: true; initial-value: 100px; }
+@property --d { syntax: '<length>'; inherits: true; initial-value: 72px; }
 
-/* Piezas internas: entran deslizándose desde la izquierda */
-@keyframes n2-dock-in {
-  from { transform: translateX(-70px); opacity: 0; }
-  to   { transform: translateX(0);     opacity: 1; }
+.n2-scene { position: absolute; inset: 0; perspective: 1000px; perspective-origin: 50% 40%; overflow: hidden; }
+.n2-fit {
+  position: absolute; left: 50%; top: 50%; width: 0; height: 0;
+  transform-style: preserve-3d;
+  transition: transform 0.35s cubic-bezier(0.4, 0, 0.2, 1);
 }
-.n2-svg-piece {
-  transform-box: fill-box;
-  transform-origin: 50% 50%;
-  animation: n2-dock-in 0.38s cubic-bezier(0.34,1.56,0.64,1) both;
+.n2-tilt { transform-style: preserve-3d; transform: rotateX(-14deg) rotateY(-28deg); }
+.n2-sat {
+  --flame: #ff6b35;
+  --fuel: 0;
+  --ww: 120px;
+  --wh: 120px;
+  transform-style: preserve-3d;
+  animation: n2-float 9s ease-in-out infinite;
 }
-.n2-svg-piece:nth-child(1) { animation-delay: 0s; }
-.n2-svg-piece:nth-child(2) { animation-delay: 0.06s; }
-.n2-svg-piece:nth-child(3) { animation-delay: 0.12s; }
-.n2-svg-piece:nth-child(4) { animation-delay: 0.18s; }
-.n2-svg-piece:nth-child(5) { animation-delay: 0.24s; }
-.n2-svg-piece:nth-child(6) { animation-delay: 0.30s; }
-.n2-svg-piece:nth-child(7) { animation-delay: 0.36s; }
-.n2-svg-piece:nth-child(8) { animation-delay: 0.42s; }
+.n2-sat > * { position: absolute; left: 0; top: 0; transform-style: preserve-3d; }
+.n2-sat[data-prop="prop-ion"] { --flame: #4fc3f7; }
+.n2-sat[data-prop="prop-cold"] { --flame: #e8eeff; }
 
-/* Paneles solares: nacen plegados contra el chasis y se despliegan */
-@keyframes n2-panel-left {
-  from { transform: rotate(-82deg); opacity: 0; }
-  to   { transform: rotate(0deg);   opacity: 1; }
-}
-@keyframes n2-panel-right {
-  from { transform: rotate(82deg); opacity: 0; }
-  to   { transform: rotate(0deg);  opacity: 1; }
-}
-.n2-svg-panel-l {
-  transform-box: fill-box;
-  transform-origin: 100% 50%;
-  animation: n2-panel-left 0.5s cubic-bezier(0.34,1.56,0.64,1) 0.08s both;
-}
-.n2-svg-panel-r {
-  transform-box: fill-box;
-  transform-origin: 0% 50%;
-  animation: n2-panel-right 0.5s cubic-bezier(0.34,1.56,0.64,1) 0.08s both;
+@keyframes n2-float {
+  0%, 100% { transform: translateY(-10px) rotateY(-15deg); }
+  50%      { transform: translateY(10px)  rotateY(15deg); }
 }
 
-/* Propulsor: sube desde abajo hacia la base del chasis */
-@keyframes n2-thruster-up {
-  from { transform: translateY(55px); opacity: 0; }
-  to   { transform: translateY(0);    opacity: 1; }
+/* Caja 3D: 6 caras. Las dimensiones salen de --w, --h, --d (se animan gracias a @property). */
+.n2-box {
+  position: absolute;
+  left: calc(var(--w) / -2); top: calc(var(--h) / -2);
+  width: var(--w); height: var(--h);
+  transform-style: preserve-3d;
+  transition: --w 0.35s cubic-bezier(0.34, 1.56, 0.64, 1), --h 0.35s cubic-bezier(0.34, 1.56, 0.64, 1), --d 0.35s cubic-bezier(0.34, 1.56, 0.64, 1);
 }
-.n2-svg-thruster {
-  transform-box: fill-box;
-  animation: n2-thruster-up 0.42s cubic-bezier(0.34,1.56,0.64,1) 0.14s both;
+.n2-f { position: absolute; display: block; box-sizing: border-box; }
+.n2-f.fr, .n2-f.bk { left: 0; top: 0; width: var(--w); height: var(--h); }
+.n2-f.fr { transform: translateZ(calc(var(--d) / 2)); }
+.n2-f.bk { transform: rotateY(180deg) translateZ(calc(var(--d) / 2)); }
+.n2-f.lf, .n2-f.rt { left: calc((var(--w) - var(--d)) / 2); top: 0; width: var(--d); height: var(--h); }
+.n2-f.rt { transform: rotateY(90deg) translateZ(calc(var(--w) / 2)); }
+.n2-f.lf { transform: rotateY(-90deg) translateZ(calc(var(--w) / 2)); }
+.n2-f.tp, .n2-f.bt { left: 0; top: calc((var(--h) - var(--d)) / 2); width: var(--w); height: var(--d); }
+.n2-f.tp { transform: rotateX(90deg) translateZ(calc(var(--h) / 2)); }
+.n2-f.bt { transform: rotateX(-90deg) translateZ(calc(var(--h) / 2)); }
+
+/* Carcasa: caras translúcidas (opacity en cada cara: en el contenedor aplanaría el 3D) */
+.n2-shell .n2-f { opacity: 0.8; background: rgba(79, 195, 247, 0.1); border: 1.5px solid rgba(79, 195, 247, 0.85); }
+.n2-shell { --h: 120px; }
+
+/* Sin paneles desplegables: paneles de cuerpo, oscuros y con líneas, a los lados */
+.n2-sat:not(.has-wings) .n2-shell .n2-f.lf,
+.n2-sat:not(.has-wings) .n2-shell .n2-f.rt {
+  background:
+    repeating-linear-gradient(0deg, transparent 0 11px, rgba(120, 180, 255, 0.4) 11px 12px),
+    repeating-linear-gradient(90deg, transparent 0 17px, rgba(120, 180, 255, 0.4) 17px 18px),
+    rgba(12, 28, 90, 0.92);
 }
 
-/* Antenas: bajan desde la cara superior */
-@keyframes n2-antenna-down {
-  from { transform: translateY(-28px); opacity: 0; }
-  to   { transform: translateY(0);     opacity: 1; }
+/* Piezas internas: bloques de colores dentro de la carcasa */
+.n2-b { --w: 58px; --d: 58px; --c: #9aa6cf; transition: transform 0.4s cubic-bezier(0.34, 1.56, 0.64, 1), --h 0.35s ease; }
+.n2-b.is-new { animation: n2-dock 0.45s cubic-bezier(0.34, 1.56, 0.64, 1) both; }
+@keyframes n2-dock { from { translate: -110px 0 0; scale: 0.4; } }
+.n2-b .n2-f { background: color-mix(in srgb, var(--c) 82%, transparent); border: 1px solid rgba(255, 255, 255, 0.35); }
+.n2-b .n2-f.lf, .n2-b .n2-f.rt { filter: brightness(0.78); }
+.n2-b .n2-f.tp, .n2-b .n2-f.bt { filter: brightness(0.9); }
+.n2-b .n2-f.fr { display: grid; place-items: center; overflow: hidden; font: 600 8.5px/1 var(--n2-mono); color: #0a0f22; }
+.n2-b.is-over .n2-f { background: rgba(255, 70, 70, 0.92); border-color: #fff; animation: n2-blink 0.7s ease-in-out infinite; }
+@keyframes n2-blink { 50% { opacity: 0.35; } }
+.n2-fuel { position: absolute; left: 0; right: 0; bottom: 0; height: calc(var(--fuel) * 100%); background: rgba(255, 255, 255, 0.45); transition: height 0.15s linear; }
+
+/* Alas: paneles desplegables que se abren desde el costado */
+.n2-wing {
+  top: calc(var(--wh) / -2); width: var(--ww); height: var(--wh);
+  border: 2px solid #9aa6cf; box-sizing: border-box;
+  background:
+    repeating-linear-gradient(90deg, transparent 0 23px, rgba(160, 210, 255, 0.55) 23px 24px),
+    repeating-linear-gradient(0deg, transparent 0 23px, rgba(160, 210, 255, 0.55) 23px 24px),
+    linear-gradient(135deg, #1b3a9e, #2f63e0 50%, #1b3a9e);
+  opacity: 0;
+  transition: transform 0.7s cubic-bezier(0.34, 1.56, 0.64, 1), opacity 0.25s;
 }
-.n2-svg-antenna {
-  transform-box: fill-box;
-  animation: n2-antenna-down 0.34s cubic-bezier(0.34,1.56,0.64,1) 0.04s both;
+.n2-wing-l { left: calc(-36px - var(--ww)); transform-origin: 100% 50%; transform: rotateY(90deg); }
+.n2-wing-r { left: 36px; transform-origin: 0 50%; transform: rotateY(-90deg); }
+.n2-sat.has-wings .n2-wing { opacity: 1; transform: none; }
+
+/* Propulsión: cono en la base con llama */
+.n2-thrust { visibility: hidden; scale: 0.2; transform-origin: 50% 0; transition: transform 0.4s cubic-bezier(0.34, 1.56, 0.64, 1), scale 0.4s cubic-bezier(0.34, 1.56, 0.64, 1), visibility 0s 0.4s; }
+.n2-sat.has-prop .n2-thrust { visibility: visible; scale: 1; transition-delay: 0s; }
+.n2-cone, .n2-flame { position: absolute; left: -22px; width: 44px; }
+.n2-cone { top: 0; height: 28px; clip-path: polygon(30% 0, 70% 0, 100% 100%, 0 100%); background: linear-gradient(90deg, #6b7499, #c4cbe6 45%, #6b7499); }
+.n2-flame {
+  top: 28px; height: 70px; transform-origin: 50% 0;
+  clip-path: polygon(0 0, 100% 0, 50% 100%);
+  background: linear-gradient(#fff 0%, #ffd24d 22%, var(--flame) 62%, transparent 100%);
+  animation: n2-flame 0.4s ease-in-out infinite;
+}
+.n2-cone.x, .n2-flame.x { transform: rotateY(90deg); }
+@keyframes n2-flame { 0%, 100% { scale: 1 1; } 50% { scale: 0.82 1.28; } }
+
+/* Error de masa o volumen: la carcasa se tiñe y el borde parpadea en rojo */
+.n2-sat.is-error .n2-shell .n2-f.n2-f { background: rgba(255, 80, 80, 0.2); animation: n2-err 0.8s ease-in-out infinite; }
+@keyframes n2-err {
+  0%, 100% { border-color: #ff7a7a; box-shadow: 0 0 16px rgba(255, 80, 80, 0.85) inset; }
+  50%      { border-color: rgba(255, 122, 122, 0.25); box-shadow: none; }
 }
 
-/* RTG: aparece desde el costado */
-@keyframes n2-rtg-in {
-  from { transform: translateX(55px); opacity: 0; }
-  to   { transform: translateX(0);    opacity: 1; }
-}
-.n2-svg-rtg {
-  transform-box: fill-box;
-  animation: n2-rtg-in 0.4s cubic-bezier(0.34,1.56,0.64,1) 0.1s both;
+.n2-empty { position: absolute; inset: 0; display: grid; place-items: center; padding: 24px; margin: 0; text-align: center; color: var(--n2-muted); font-size: 0.9rem; pointer-events: none; }
+.n2-hud { position: absolute; left: 0; right: 0; bottom: 10px; margin: 0; padding: 0 12px; text-align: center; font: 500 0.75rem var(--n2-mono); color: var(--n2-muted); pointer-events: none; }
+.n2-hud.is-error { color: var(--n2-danger); }
+.n2-empty[hidden], .n2-hud[hidden] { display: none; }
+
+/* ── UX: hover bidireccional, brillo solar, batería y Lanzar bloqueado ── */
+.n2-shell { pointer-events: none; }
+.n2-b .n2-f { cursor: pointer; }
+.n2-b.is-hover .n2-f { box-shadow: 0 0 14px 4px rgba(255, 255, 255, 0.95); filter: brightness(1.35); border-color: #fff; }
+.n2-shell.is-hover .n2-f { box-shadow: 0 0 18px 3px rgba(255, 255, 255, 0.9); border-color: #fff; }
+
+/* Alas: planas (no 3D) y solo reaccionan al ratón cuando están desplegadas */
+.n2-wing { transform-style: flat; pointer-events: none; }
+.n2-sat.has-wings .n2-wing { pointer-events: auto; cursor: pointer; }
+.n2-wing.is-hover { box-shadow: 0 0 18px 4px rgba(255, 255, 255, 0.95); border-color: #fff; }
+.n2-wing::after { content: ''; position: absolute; inset: 0; pointer-events: none; }
+.n2-sat.has-wings .n2-wing::after { animation: n2-sun 1.6s ease-in-out infinite; }
+@keyframes n2-sun {
+  0%, 100% { box-shadow: 0 0 6px 1px rgba(251, 191, 36, 0.35); }
+  50%      { box-shadow: 0 0 26px 8px rgba(251, 191, 36, 0.95); }
 }
 
-/* Llama del propulsor: animación continua */
-@keyframes n2-flame {
-  0%,100% { transform: scaleY(1) scaleX(1);   opacity: 0.75; }
-  50%      { transform: scaleY(1.3) scaleX(0.8); opacity: 1; }
+/* Batería: barra vertical con los Wh usables que piden eclipses y quemados */
+.n2-b[data-id^="battery"] .n2-f.fr { padding-right: 11px; }
+.n2-batt {
+  --bc: var(--n2-ok); --pct: 0%;
+  position: absolute; right: 3px; top: 3px; bottom: 3px; width: 6px;
+  border: 1px solid rgba(255, 255, 255, 0.7); border-radius: 2px; background: rgba(10, 15, 34, 0.6);
+  display: flex; align-items: flex-end; overflow: hidden;
 }
-.n2-svg-flame {
-  transform-box: fill-box;
-  transform-origin: 50% 0%;
-  animation: n2-flame 0.42s ease-in-out infinite;
-}
+.n2-batt i { display: block; width: 100%; height: var(--pct); background: var(--bc); transition: height 0.15s linear; }
+.n2-batt[data-level="warn"] { --bc: var(--n2-warn); }
+.n2-batt[data-level="danger"] { --bc: var(--n2-danger); }
+.n2-batt[data-level="pending"] { --bc: var(--n2-muted); }
 
-/* Señal de antena: ondas que se expanden y desvanecen */
-@keyframes n2-signal {
-  from { transform: scale(0.3); opacity: 0.9; }
-  to   { transform: scale(1.5); opacity: 0;   }
-}
-.n2-svg-signal {
-  transform-box: fill-box;
-  transform-origin: 50% 50%;
-  animation: n2-signal 1.6s ease-out infinite;
-}
-.n2-svg-signal:nth-child(2) { animation-delay: 0.52s; }
-.n2-svg-signal:nth-child(3) { animation-delay: 1.04s; }
+/* Recurso en rojo: la viñeta de bordes del Nivel 1 (mission.css, .lvl-scenes[data-status="insufficient"]) parpadea en toda la página.
+   La sombra es fija; solo se anima `opacity` y `will-change` solo existe mientras late, para no dejar una capa de GPU fija. */
+.n2-alarm { position: fixed; inset: 0; z-index: 40; opacity: 0; pointer-events: none; box-shadow: inset 0 0 220px 30px rgba(248, 113, 113, 0.5); }
+.n2.has-danger .n2-alarm { will-change: opacity; animation: n2-vignette 2.4s ease-in-out infinite; }
+@keyframes n2-vignette { 0%, 100% { opacity: 0.2; } 50% { opacity: 1; } }
 
-/* Volumen excedido: parpadeo rojo */
-@keyframes n2-overflow-blink {
-  0%,100% { opacity: 1;   }
-  50%      { opacity: 0.2; }
-}
-.n2-svg-overflow { animation: n2-overflow-blink 0.75s ease-in-out infinite; }
-
-/* Chasis: transición suave al cambiar de tamaño */
-#n2-chassis {
-  transition:
-    width  0.35s cubic-bezier(0.34,1.56,0.64,1),
-    height 0.35s cubic-bezier(0.34,1.56,0.64,1),
-    x      0.35s cubic-bezier(0.34,1.56,0.64,1),
-    y      0.35s cubic-bezier(0.34,1.56,0.64,1);
-}
-
-/* Movimiento reducido: sin animaciones de entrada */
 @media (prefers-reduced-motion: reduce) {
-  .n2-svg-piece, .n2-svg-panel-l, .n2-svg-panel-r,
-  .n2-svg-thruster, .n2-svg-antenna, .n2-svg-rtg,
-  .n2-fill { animation: none !important; transition: none !important; }
-  #n2-chassis { transition: none; }
+  .n2-sat, .n2-flame, .n2-b.is-new, .n2-b.is-over .n2-f, .n2-sat.is-error .n2-shell .n2-f.n2-f { animation: none; }
+  .n2-fit, .n2-box, .n2-b, .n2-wing, .n2-thrust, .n2-fill, .n2-batt i { transition: none; }
+  .n2-sat.has-wings .n2-wing::after { animation: none; box-shadow: 0 0 18px 5px rgba(251, 191, 36, 0.7); }
+  .n2.has-danger .n2-alarm { animation: none; opacity: 0.75; will-change: auto; }
+  .is-nudge { animation: none; box-shadow: 0 0 0 2px var(--n2-accent); }
+  .is-nudge .n2-row-go { animation: none; }
 }
 
 /* ── Celular: resumen fijo abajo ── */
