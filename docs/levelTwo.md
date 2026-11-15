@@ -39,13 +39,14 @@
   - **Estructuras:** su descripción y su masa máxima (`U × 1.33 kg`, CubeSat 101).
   - **Instrumentos:** ✔ por qué sirve, o ✘ por qué no sirve, en gris y deshabilitado.
 - **Slider de propelente**, si hay propulsión.
-- **4 medidores en vivo** (`role="meter"`). Se actualizan al agregar o quitar piezas y **mientras se arrastra** el propelente:
+- **5 medidores en vivo** (`role="meter"`). Se actualizan al agregar o quitar piezas y **mientras se arrastra** el propelente:
 
 | Medidor | Muestra | Verde | Amarillo | Rojo |
 |---|---|---|---|---|
 | Δv | Δv contra el requerido (con línea) | ≥ 110 % del requerido | 100–110 % ("margen justo") | < requerido |
 | Masa | g contra el límite que manda | < 85 % | 85–100 % | > 100 % |
-| Energía | consumo contra generación | < 85 % | 85–100 % | > 100 %, o generación menor al mínimo del destino |
+| Energía | **neto** = generación − consumo (puede ser negativo); la barra muestra el consumo contra la generación | consumo < 85 % de lo generado | 85–100 % | neto negativo, o generación menor al mínimo del destino |
+| Batería | Wh que cubren eclipses y quemados contra los Wh usables (50 % de la capacidad) | < 85 % | 85–100 % | > 100 % |
 | Costo | costo contra el segmento Espacio | < 85 % | 85–100 % | > 100 % |
 
 - **Aviso del cohete:** si la masa supera la carga útil del cohete del Nivel 1, y ese es el límite que manda, aparece "🚫 … solo lleva N g: así no podrá despegar".
@@ -63,8 +64,8 @@
 | Computadora | Hay OBC |
 | Masa | Masa húmeda ≤ `min(U × 1.33 kg, carga útil del cohete)` |
 | Volumen | Las piezas caben en las U |
-| Energía | Genera ≥ consumo y ≥ el mínimo del destino (solar ∝ 1/d²) |
-| Batería | Si hay quemados químicos, lleva batería |
+| Energía | Neto ≥ 0 (generación − consumo) y generación ≥ el mínimo del destino (solar ∝ 1/d²; la estructura trae paneles de serie) |
+| Batería | Los Wh usables cubren el eclipse y los quemados químicos (ver «Modelo de energía» en `docs/fuentes.md`) |
 | Radio | Alcance ≥ dificultad de comunicaciones del destino |
 | Propelente | Hay propulsión y el propelente no supera su máximo |
 | Δv | Δv (Tsiolkovsky) ≥ requerido para la inserción |

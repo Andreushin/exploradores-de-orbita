@@ -23,7 +23,11 @@ export function dvLevel(dv, required) {
   return dv / required < DV_MARGIN ? 'warn' : 'ok'; // proporción: evita 1800 × 1.1 = 1980.0000000000002
 }
 
-/** Datos de los 4 medidores a partir de physics.validateDesign(...).metrics. */
+/**
+ * Datos de los 5 medidores a partir de physics.validateDesign(...).metrics.
+ * Energía: muestra el neto (generación − consumo) y se pone roja si es negativo o si no llega al mínimo del destino.
+ * Batería: energía que deben cubrir los eclipses y quemados contra la parte usable de la capacidad (Wh).
+ */
 export function meterData(m, mission, spaceBudget) {
   const pct = (v, max) => {
     if (max > 0) return Math.min(100, (v / max) * 100);
@@ -33,14 +37,34 @@ export function meterData(m, mission, spaceBudget) {
   const dvScale = req > 0 ? Math.max(req * 1.3, m.dv * 1.05) : Math.max(m.dv, 1);
   const massCap = m.massCap === Infinity ? 0 : m.massCap;
   const minW = mission?.minPowerW || 0;
-  const powerLow = m.power.generated < minW;
+  const { generated, consumed, net } = m.power;
+  const powerLow = generated < minW;
+  const { neededWh, usableWh, capacityWh } = m.storage;
   return {
     dv: { pct: pct(m.dv, dvScale), level: dvLevel(m.dv, req), required: req, markerPct: req > 0 ? (req / dvScale) * 100 : null },
     mass: { pct: pct(m.wet, massCap), level: limitLevel(m.wet, massCap), cap: massCap },
-    power: { pct: pct(m.power.consumed, m.power.generated), level: powerLow ? 'danger' : limitLevel(m.power.consumed, m.power.generated), minW, powerLow },
+    power: { pct: pct(consumed, generated), level: net < 0 || powerLow ? 'danger' : limitLevel(consumed, generated), net, minW, powerLow },
+    battery: { pct: pct(neededWh, usableWh), level: limitLevel(neededWh, usableWh), needed: neededWh, usable: usableWh, capacity: capacityWh },
     cost: { pct: pct(m.cost, spaceBudget), level: limitLevel(m.cost, spaceBudget) },
   };
 }
+
+/**
+ * Energía de una pieza para el catálogo: "+36 W" (genera), "−4 W" (consume) o "80 Wh" (guarda, no genera).
+ * Los paneles pierden luz con la distancia: `atDest(w)` agrega cuánto dan en el destino (solarFactor = 1/d²).
+ */
+export function powerText(piece, solarFactor = 1, atDest = () => '') {
+  if (piece.storageWh) return `${piece.storageWh} Wh`;
+  const w = piece.powerW || 0;
+  if (w > 0) return `−${w} W`;
+  if (w === 0) return '0 W';
+  const here = piece.solar ? -w * solarFactor : -w;
+  const dimmer = piece.solar && Math.abs(-w - here) > 0.05;
+  return dimmer ? `+${-w} W ${atDest(here)}` : `+${-w} W`;
+}
+
+/** Neto con signo para el medidor: "+1.0 W" / "−2.5 W". */
+export const signedW = (w, d = 1) => `${w < 0 ? '−' : '+'}${Math.abs(w).toFixed(d)} W`;
 
 /** ¿El cohete es el límite que manda y la masa lo supera? (si no, lo marca la estructura). */
 export function rocketOverload(m, rocket) {

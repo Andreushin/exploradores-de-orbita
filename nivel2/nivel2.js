@@ -3,7 +3,7 @@
 // los límites de masa, energía y presupuesto, y escribe solo la sección `satellite`.
 import { validateDesign, KG_PER_U } from '../js/physics.js';
 import { loadMission, saveMission, levelHref } from '../js/mision-store.js';
-import { grams, meterData, rocketOverload, instrumentStatus, incompatibleSelected } from '../js/taller-reglas.js';
+import { grams, meterData, rocketOverload, instrumentStatus, incompatibleSelected, powerText, signedW } from '../js/taller-reglas.js';
 import { TEXTOS } from './textos.js';
 
 const CATEGORIES = ['structure', 'power', 'propulsion', 'comms', 'adcs', 'obc', 'instrument'];
@@ -13,7 +13,7 @@ export const DEMO = {
   rocketId: 'pico',
   budget: { total: 100, launch: 25, space: 25, ground: 8, user: 5 },
   plan: { scienceTargetIdx: 0 },
-  satellite: { formFactor: 'struct-6u', pieces: ['solar-body', 'battery', 'prop-green', 'comm-uhf', 'obc', 'inst-camera'], propellantKg: 2.5 },
+  satellite: { formFactor: 'struct-6u', pieces: ['battery', 'prop-green', 'comm-uhf', 'obc', 'inst-camera'], propellantKg: 2.5 },
 };
 
 // --- Idioma -------------------------------------------------------------------
@@ -54,6 +54,11 @@ export function satelliteSummary(sat, result, rocket) {
     wetKg: r1(result.metrics.wet),
     isp: result.metrics.isp,
     dvAvailable: Math.round(result.metrics.dv),
+    // Energía en el destino: la generación y el consumo van por separado y el neto puede ser negativo.
+    powerGenW: r1(result.metrics.power.generated),
+    powerUseW: r1(result.metrics.power.consumed),
+    powerNetW: r1(result.metrics.power.net),
+    batteryWh: result.metrics.storage.capacityWh,
     maxPayloadKg: rocket?.maxPayloadKg ?? null,
     validated: result.valid,
   };
@@ -85,7 +90,7 @@ function togglePiece(p) {
 }
 
 // --- Catálogo -----------------------------------------------------------------
-function pieceButton(p) {
+function pieceButton(p, solarFactor) {
   const sat = m.satellite;
   const fit = instrumentStatus(p, m, data.workshop.instrumentFit);
   const selected = p.id === sat.formFactor || sat.pieces.includes(p.id);
@@ -105,7 +110,7 @@ function pieceButton(p) {
   }
   // El nombre va primero: es el inicio del nombre accesible del botón.
   b.innerHTML = `<strong>${tx(p.name)}</strong>
-    <small class="n2-specs">${grams(p.massKg)} g · ${p.volumeU}U · ${p.powerW > 0 ? '−' : '+'}${Math.abs(p.powerW)} W · $${p.cost}M · TRL ${p.trl}${p.isp ? ` · Isp ${p.isp}s` : ''}</small>${extra}`;
+    <small class="n2-specs">${grams(p.massKg)} g · ${p.volumeU}U · ${powerText(p, solarFactor, (w) => t('atDest', { w: fmt(w) }))} · $${p.cost}M · TRL ${p.trl}${p.isp ? ` · Isp ${p.isp}s` : ''}</small>${extra}`;
   b.addEventListener('click', () => togglePiece(p));
   return b;
 }
@@ -113,12 +118,13 @@ function pieceButton(p) {
 function renderCatalog() {
   const box = $('n2-catalog');
   box.replaceChildren();
+  const { solarFactor } = validateDesign(m, data).metrics.power; // los paneles dan menos lejos del Sol
   for (const cat of CATEGORIES) {
     const h = document.createElement('h2');
     h.textContent = t(`categories.${cat}`);
     const list = document.createElement('div');
     list.className = 'n2-pieces';
-    for (const p of data.pieces.filter((x) => x.category === cat)) list.append(pieceButton(p));
+    for (const p of data.pieces.filter((x) => x.category === cat)) list.append(pieceButton(p, solarFactor));
     box.append(h, list);
   }
 }
@@ -142,7 +148,10 @@ function metersHTML(mission) {
   const rocket = data.rockets.find((r) => r.id === mission.rocketId);
   const M = meterData(x, dest, mission.budget.space);
   const req = t('required', { n: fmt(M.dv.required, 0) });
-  const use = t('powerUse', { c: fmt(x.power.consumed), g: fmt(x.power.generated) });
+  const use = t('powerUse', { g: fmt(x.power.generated), c: fmt(x.power.consumed) });
+  const sun = x.power.solarFactor < 0.995 ? t('sunAtDest', { pct: fmt(x.power.solarFactor * 100, 0) }) : '';
+  const s = x.storage;
+  const storeUse = t('batteryUse', { n: fmt(s.neededWh, 0), e: fmt(s.eclipseWh, 0), b: fmt(s.burnWh, 0), u: fmt(s.usableWh, 0), c: fmt(s.capacityWh, 0) });
   return [
     meterHTML({
       label: 'Δv', d: M.dv, value: `${fmt(x.dv, 0)} / ${fmt(M.dv.required, 0)} m/s`, aria: `${fmt(x.dv, 0)} m/s, ${req}`,
@@ -151,8 +160,11 @@ function metersHTML(mission) {
     }),
     meterHTML({ label: t('mass'), d: M.mass, value: `${grams(x.wet)} / ${grams(M.mass.cap)} g`, aria: `${grams(x.wet)} g / ${grams(M.mass.cap)} g` }),
     meterHTML({
-      label: t('power'), d: M.power, value: `+${fmt(x.power.generated)} / −${fmt(x.power.consumed)} W`, aria: use,
-      note: M.power.powerLow ? t('minPower', { n: M.power.minW }) : use,
+      label: t('power'), d: M.power, value: signedW(M.power.net), aria: `${signedW(M.power.net)}: ${use}`,
+      note: [M.power.powerLow ? t('minPower', { n: M.power.minW }) : '', use, sun].filter(Boolean).join(' · '),
+    }),
+    meterHTML({
+      label: t('battery'), d: M.battery, value: `${fmt(s.neededWh, 0)} / ${fmt(s.usableWh, 0)} Wh`, aria: storeUse, note: storeUse,
     }),
     meterHTML({ label: t('cost'), d: M.cost, value: `$${x.cost}M / $${mission.budget.space}M`, aria: `$${x.cost}M / $${mission.budget.space}M` }),
     rocketOverload(x, rocket)

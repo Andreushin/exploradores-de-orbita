@@ -3,6 +3,10 @@
     "kicker": "NASA Space Apps Challenge 2026 · Space Mission Design Game",
     "tagline": "Lead a real science mission: split the budget, build a CubeSat, cross space on finite fuel and get into orbit. Every decision has consequences.",
     "play": "Start",
+    "continue": "Continue",
+    "reset": "Start over",
+    "resumeAt": "You resume at Level {n}: {title}",
+    "allDone": "You completed every level",
     "resourcesTitle": "Based on official NASA resources"
   },
   "levels": {

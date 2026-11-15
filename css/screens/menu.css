@@ -23,6 +23,22 @@
 .start-title { font-size: clamp(2.2rem, 8vw, 4rem); line-height: 1.05; margin: 0; }
 .start-tagline { margin: 0 auto 12px; }
 .btn-xl { font-size: 1.2rem; padding: 14px 40px; border-radius: 999px; }
+/* Con partida guardada: Continuar (grande) y Reiniciar al lado; el aviso de dónde se retoma va debajo. */
+.start-actions { display: flex; flex-wrap: wrap; align-items: center; justify-content: center; gap: 12px; }
+.start-saved { flex-basis: 100%; margin: 0; font-size: 0.9rem; color: #cfe8ff; }
+/* Botón secundario: vidrio esmerilado con borde y texto perla sobre el fondo estrellado. */
+.start .btn-ghost {
+  color: #f1f5f9;
+  background: rgba(248, 250, 252, 0.08);
+  border-color: rgba(241, 245, 249, 0.35);
+  -webkit-backdrop-filter: blur(8px);
+  backdrop-filter: blur(8px);
+  transition: transform 0.05s, background 0.2s, border-color 0.2s;
+}
+.start .btn-ghost:hover:not(:disabled) {
+  background: rgba(255, 255, 255, 0.18);
+  border-color: rgba(255, 255, 255, 0.6);
+}
 .start-resources-title { margin: 24px 0 0; font-size: 0.85rem; }
 .start-resources { list-style: none; padding: 0; margin: 0; display: flex; flex-wrap: wrap; justify-content: center; gap: 8px; }
 .start-resources li { background: var(--surface); border: 1px solid var(--border); border-radius: 999px; padding: 4px 12px; font-size: 0.85rem; color: var(--muted); }

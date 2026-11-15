@@ -18,8 +18,8 @@ check('insertion flyby', p.insertionOutcome(500, 1000) === 'flyby');
 check('insertion crash', p.insertionOutcome(1300, 1000) === 'crash');
 
 const ref = {
-  moon: ['pico', 'struct-6u', ['solar-body', 'battery', 'prop-green', 'comm-uhf', 'obc', 'inst-camera'], 2.5, 45],
-  mars: ['medio', 'struct-12u', ['solar-deploy', 'solar-body', 'battery', 'prop-green', 'comm-x', 'adcs', 'obc', 'inst-camera', 'inst-mag'], 7, 60],
+  moon: ['pico', 'struct-6u', ['battery', 'prop-green', 'comm-uhf', 'obc', 'inst-camera'], 2.5, 45],
+  mars: ['medio', 'struct-12u', ['solar-deploy', 'battery', 'prop-green', 'comm-x', 'adcs', 'obc', 'inst-camera', 'inst-mag'], 7, 60],
   europa: ['pesado', 'struct-12u', ['rtg-mini', 'solar-deploy', 'prop-ion', 'comm-x', 'obc', 'inst-mag', 'inst-camera'], 1.5, 85],
 };
 const design = (m, changes = {}) => {
@@ -42,6 +42,28 @@ for (const m of Object.keys(ref)) {
   check(`diseño de referencia ${m} es válido ${r.valid ? '' : '→ falla: ' + failed(r)}`, r.valid);
 }
 
+// Modelo de energía: generación y consumo separados, neto que puede ser negativo, batería que guarda (no genera).
+const near = (a, b) => Math.abs(a - b) < 1e-6;
+const sat = (m, changes) => { const d = design(m, changes); return p.resolvePieces([d.satellite.formFactor, ...d.satellite.pieces].filter(Boolean), pieces); };
+const moonPow = p.powerBalance(sat('moon'), 1);
+check('Luna 6U: paneles de serie 8 W, consumo UHF 2 + OBC 1 + cámara 4 = 7 W, neto +1 W', near(moonPow.generated, 8) && near(moonPow.consumed, 7) && near(moonPow.net, 1));
+check('cada pieza genera o consume, nunca ambas', pieces.every((x) => !(x.powerW < 0 && x.storageWh) && !(x.storageWh && x.powerW !== 0)));
+check('la estructura trae paneles de serie ≈1.33 W por U (3U 4 W · 6U 8 W · 12U 16 W)', ['struct-3u', 'struct-6u', 'struct-12u'].every((id) => { const s = pieces.find((x) => x.id === id); return s.solar && near(-s.powerW, s.volumeU * 4 / 3); }));
+const marsPow = p.powerBalance(sat('mars'), 1.52);
+check(`Marte: los paneles dan solo ${(100 / 1.52 ** 2).toFixed(0)} % de la luz (16 W de serie + 36 W desplegables = 52 W → ${marsPow.generated.toFixed(1)} W)`, near(marsPow.generated, 52 / 1.52 ** 2));
+const europaPow = p.powerBalance(sat('europa'), 5.2);
+check(`Europa: el RTG (${europaPow.generatedNoSun} W) es casi toda la generación; los paneles dan ${(europaPow.generated - europaPow.generatedNoSun).toFixed(1)} W`, near(europaPow.generatedNoSun, 35) && europaPow.generated - europaPow.generatedNoSun < 2);
+check('la batería no genera: con o sin ella, la generación y el neto son iguales', near(p.powerBalance(sat('moon', { remove: ['battery'] }), 1).net, moonPow.net));
+const moonSto = p.energyStorage(sat('moon'), moonPow, 0.6);
+check('Luna: la batería de 80 Wh usa la mitad (40 Wh) y debe cubrir eclipse 4.2 + quemados 20 Wh', near(moonSto.capacityWh, 80) && near(moonSto.usableWh, 40) && near(moonSto.eclipseWh, 4.2) && near(moonSto.burnWh, 20) && moonSto.neededWh <= moonSto.usableWh);
+const rtgSto = p.energyStorage(sat('europa'), europaPow, 1.0);
+check('Europa: el RTG sigue generando en el eclipse, no necesita batería', rtgSto.eclipseWh === 0 && rtgSto.neededWh === 0);
+check('batería de 160 Wh suma a la de 80 Wh (240 Wh)', p.energyStorage(sat('moon', { add: ['battery-large'] }), moonPow, 0.6).capacityWh === 240);
+const heavy = design('mars', { add: ['inst-radar', 'inst-spectro'], remove: ['inst-mag'] });
+const heavyBig = design('mars', { add: ['inst-radar', 'inst-spectro', 'battery-large'], remove: ['inst-mag'] });
+check('con la batería de 160 Wh el diseño hambriento de energía pasa el check "battery"', failed(p.validateDesign(heavy, data)).includes('battery') && !failed(p.validateDesign(heavyBig, data)).includes('battery'));
+check('validateDesign expone metrics.power.net y metrics.storage', (() => { const x = p.validateDesign(design('moon'), data).metrics; return near(x.power.net, 1) && x.storage.capacityWh === 80; })());
+
 // Diseños inválidos: cada uno debe fallar justo en el check esperado.
 const invalid = [
   ['exceso de masa (Luna con 6 kg de propelente en 6U)', 'moon', { propellantKg: 6 }, 'mass'],
@@ -53,6 +75,10 @@ const invalid = [
   ['sin estructura', 'moon', { formFactor: null }, 'structure'],
   ['sin computadora de vuelo', 'moon', { remove: ['obc'] }, 'obc'],
   ['monopropelente sin batería', 'moon', { remove: ['battery'] }, 'battery'],
+  ['energía neta negativa (Luna con radar y sin paneles desplegables)', 'moon', { add: ['inst-radar'] }, 'power'],
+  ['3U no llega a la potencia mínima de la Luna (4 W < 5 W)', 'moon', { formFactor: 'struct-3u' }, 'power'],
+  ['Marte sin paneles desplegables (la luz cae a 43 %)', 'mars', { remove: ['solar-deploy'] }, 'power'],
+  ['batería chica para instrumentos hambrientos (radar + espectrómetro en Marte)', 'mars', { add: ['inst-radar', 'inst-spectro'], remove: ['inst-mag'] }, 'battery'],
   ['sin instrumentos', 'moon', { remove: ['inst-camera'] }, 'science'],
   ['sin presupuesto (costo > segmento Espacio)', 'moon', { space: 10 }, 'cost'],
   ['exceso de volumen (diseño de Marte en 3U)', 'mars', { formFactor: 'struct-3u' }, 'volume'],

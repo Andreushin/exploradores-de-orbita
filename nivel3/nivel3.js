@@ -18,7 +18,7 @@ const IONIC_ISP = 1500;      // para la sugerencia educativa
 // Diseño de referencia (docs/fuentes.md) para el modo demo
 const DEMO = {
   missionId: 'moon', rocketId: 'pico',
-  satellite: { formFactor: 'struct-6u', pieces: ['solar-body', 'battery', 'prop-green', 'comm-uhf', 'obc', 'inst-camera'], propellantKg: 2.5 },
+  satellite: { formFactor: 'struct-6u', pieces: ['battery', 'prop-green', 'comm-uhf', 'obc', 'inst-camera'], propellantKg: 2.5 },
 };
 
 // --- Idioma -------------------------------------------------------------------

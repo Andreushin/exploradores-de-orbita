@@ -8,13 +8,14 @@
     },
     "massKg": 0.4,
     "volumeU": 3,
-    "powerW": 0,
+    "powerW": -4,
+    "solar": true,
     "cost": 2,
     "trl": 9,
     "scienceValue": 0,
     "desc": {
-      "es": "10×10×34 cm. Masa máx. ~4 kg.",
-      "en": "10×10×34 cm. Max mass ~4 kg."
+      "es": "10×10×34 cm. Masa máx. ~4 kg. Paneles de serie: ~4 W a 1 UA.",
+      "en": "10×10×34 cm. Max mass ~4 kg. Built-in panels: ~4 W at 1 AU."
     }
   },
   {
@@ -26,13 +27,14 @@
     },
     "massKg": 1.1,
     "volumeU": 6,
-    "powerW": 0,
+    "powerW": -8,
+    "solar": true,
     "cost": 4,
     "trl": 9,
     "scienceValue": 0,
     "desc": {
-      "es": "Formato común en misiones de espacio profundo (ej. MarCO).",
-      "en": "Common deep-space format (e.g. MarCO)."
+      "es": "Formato común en misiones de espacio profundo (ej. MarCO). Paneles de serie: ~8 W a 1 UA.",
+      "en": "Common deep-space format (e.g. MarCO). Built-in panels: ~8 W at 1 AU."
     }
   },
   {
@@ -44,32 +46,14 @@
     },
     "massKg": 2.0,
     "volumeU": 12,
-    "powerW": 0,
+    "powerW": -16,
+    "solar": true,
     "cost": 7,
     "trl": 9,
     "scienceValue": 0,
     "desc": {
-      "es": "Más espacio, más masa y más caro de lanzar.",
-      "en": "More room, more mass, costlier to launch."
-    }
-  },
-  {
-    "id": "solar-body",
-    "category": "power",
-    "name": {
-      "es": "Paneles en el cuerpo",
-      "en": "Body-mounted panels"
-    },
-    "massKg": 0.3,
-    "volumeU": 0,
-    "powerW": -8,
-    "solar": true,
-    "cost": 2,
-    "trl": 9,
-    "scienceValue": 0,
-    "desc": {
-      "es": "~8 W a 1 UA. Simples y confiables.",
-      "en": "~8 W at 1 AU. Simple and reliable."
+      "es": "Más espacio, más masa y más caro de lanzar. Paneles de serie: ~16 W a 1 UA.",
+      "en": "More room, more mass, costlier to launch. Built-in panels: ~16 W at 1 AU."
     }
   },
   {
@@ -101,12 +85,32 @@
     "massKg": 0.5,
     "volumeU": 0.5,
     "powerW": 0,
+    "storageWh": 80,
     "cost": 1,
     "trl": 9,
     "scienceValue": 0,
     "desc": {
-      "es": "Energía para eclipses y quemados.",
-      "en": "Energy for eclipses and burns."
+      "es": "Guarda energía: no la genera. Cubre los eclipses y los quemados químicos (usa solo la mitad para durar más ciclos).",
+      "en": "Stores energy, doesn't make it. Covers eclipses and chemical burns (only half is used so it lasts more cycles)."
+    }
+  },
+  {
+    "id": "battery-large",
+    "category": "power",
+    "name": {
+      "es": "Batería 160 Wh",
+      "en": "160 Wh battery"
+    },
+    "massKg": 1.0,
+    "volumeU": 1,
+    "powerW": 0,
+    "storageWh": 160,
+    "cost": 3,
+    "trl": 9,
+    "scienceValue": 0,
+    "desc": {
+      "es": "Doble reserva: para instrumentos hambrientos de energía. Pesa y ocupa el doble.",
+      "en": "Double the reserve: for power-hungry instruments. Twice the mass and volume."
     }
   },
   {

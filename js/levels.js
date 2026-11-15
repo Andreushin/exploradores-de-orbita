@@ -41,6 +41,16 @@ export const LEVELS = [
   },
 ];
 
+/** ¿Hay una partida en curso? (algún nivel completo, un destino elegido o una misión con nombre). */
+export function hasProgress(state) {
+  return LEVELS.some((l) => l.done(state)) || Boolean(state.missionId) || Boolean(state.plan?.projectName?.trim());
+}
+
+/** Dónde retomar: el primer nivel abierto y sin completar. `null` si ya completó todos. */
+export function resumeLevel(state) {
+  return levelStatus(state).find((l) => l.unlocked && !l.done) ?? null;
+}
+
 /** Estado de cada nivel: un nivel se desbloquea al completar el anterior. */
 export function levelStatus(state) {
   return LEVELS.map((level, i) => ({

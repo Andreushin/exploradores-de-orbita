@@ -1,5 +1,5 @@
 // OWNER: Rol 1 — Selector de niveles. Cada nivel se carga al seleccionarlo (ver js/levels.js).
-import { levelStatus } from '../levels.js';
+import { levelStatus, hasProgress } from '../levels.js';
 
 function el(tag, cls, html) {
   const e = document.createElement(tag);
@@ -49,7 +49,7 @@ export default {
     back.type = 'button';
     back.addEventListener('click', () => ctx.goTo('start'));
     footer.append(back);
-    if (levels.some((lv) => lv.done) || state.missionId) {
+    if (hasProgress(state)) {
       const reset = el('button', 'btn btn-ghost', t('menu.levels.reset'));
       reset.type = 'button';
       reset.addEventListener('click', () => {

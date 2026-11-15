@@ -4,7 +4,7 @@ import { getState, update, subscribe, reset } from './state.js';
 import { loadTranslations, getSavedLang, setLang, t, tx, applyStatic } from './i18n.js';
 import * as physics from './physics.js';
 import { LEVELS, levelStatus } from './levels.js';
-import { loadMission, saveMission, pickSections, levelUrl } from './mision-store.js';
+import { loadMission, saveMission, clearMission, pickSections, levelUrl } from './mision-store.js';
 import startScreen from './screens/start.js';
 import levelsScreen from './screens/levels.js';
 
@@ -58,7 +58,9 @@ function makeCtx() {
     get state() { return getState(); },
     update,
     subscribe,
-    reset,
+    // Reiniciar también borra lo guardado: saveMission() mezcla por sección, así que sin esto quedarían claves
+    // viejas (p. ej. satellite.validated) que al recargar dan por hechos niveles de una partida anterior.
+    reset: () => { clearMission(); reset(); },
     data,
     physics,
     t,
