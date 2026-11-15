@@ -22,9 +22,15 @@ export const DESTINOS = {
         'La nave de mando Columbia dio vueltas a la Luna mientras Armstrong y Aldrin bajaban en el Águila.',
         'The Columbia command module orbited the Moon while Armstrong and Aldrin descended in the Eagle.',
       ),
-      // Órbita medida por seguimiento tras el primer encendido de entrada en órbita (LOI-1):
-      // 61.6 × 169.5 millas náuticas = 114.1 × 313.9 km. Apollo Flight Journal (NASA).
-      orbitaObjetivo: { alturaPerilunioKm: 114.1, alturaApolunioKm: 313.9 },
+      // Órbita preliminar por seguimiento tras el primer encendido de entrada en órbita (LOI-1):
+      // 61.6 × 169.5 millas náuticas = 114.1 × 313.9 km. La cifra aparece en las transcripciones de las comunicaciones
+      // del Apolo 11 (apollo11.spacelog.org, texto de NASA reproducido por terceros). NO se pudo abrir esa página ni
+      // confirmarla en el documento original: es la referencia menos sólida de la misión. Ver FUENTES.md.
+      orbitaObjetivo: {
+        alturaPerilunioKm: 114.1, alturaApolunioKm: 313.9,
+        verificacion: 'transcripción de terceros, sin confirmar en el documento original',
+        enlace: 'https://apollo11.spacelog.org/03:04:56:41',
+      },
       // La duración del encendido LOI-1 aparece como 5:57 y como 6:02 según la fuente: se muestra como rango.
       encendidoRealS: [357, 362],
       noVerificado: ['Δv de LOI-1', 'número de órbitas lunares', 'segunda órbita (LOI-2)'],
