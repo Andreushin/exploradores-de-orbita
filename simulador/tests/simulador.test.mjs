@@ -75,6 +75,28 @@ for (const c of datos.cohetes) {
     return (SUELTAS[c.id]?.[clave]?.length ?? 0) > 0;
   });
   check(`${c.nombre}: todos los eventos de separación en vuelo disparan piezas 3D`, evSueltas.length > 0 && todasDisparan, `${evSueltas.length} eventos`);
+
+  // Datos de animación: deben existir, ser coherentes y no tocar la física
+  const v = c.visual;
+  check(`${c.nombre}: tiene bloque visual con nota de fuentes`, !!v && typeof v._nota === 'string');
+  check(`${c.nombre}: encendido previo entre 0 y 10 s`, v && v.encendidoPrevio >= 0 && v.encendidoPrevio <= 10, `${v?.encendidoPrevio} s`);
+  const seps = Object.entries(v?.separaciones || {});
+  const sepsOk = seps.every(([clave, s]) => (SUELTAS[c.id]?.[clave]?.length ?? 0) > 0
+    && (s.retardo == null || (s.retardo > 0 && s.retardo < 10))
+    && (!s.retros || s.retros.n > 0)
+    && (!s.ullage || (s.ullage.n > 0 && etapasDef.some((e) => e.id === s.ullage.en))));
+  check(`${c.nombre}: separaciones visuales apuntan a piezas 3D reales`, sepsOk, `${seps.length} separaciones`);
+}
+
+{
+  // Tiempos del AS-506 (Saturn V Flight Evaluation Report, tabla 2-2) usados en la animación
+  const v = datos.cohetes.find((c) => c.id === 'saturno-v').visual;
+  check('Saturno V: encendido a T−8.9 s', v.encendidoPrevio === 8.9);
+  check('Saturno V: OECO S-IC 161.63 → separación 162.3 s', Math.abs(161.63 + v.separaciones['s-ic'].retardo - 162.3) < 0.01);
+  check('Saturno V: OECO S-II 548.22 → separación 549.0 s', Math.abs(548.22 + v.separaciones['s-ii'].retardo - 549.0) < 0.01);
+  check('Saturno V: rampa S-II = 163.0 → 166.2 s', Math.abs(v.rampas['s-ii'] - (166.2 - 163.0)) < 0.01);
+  const fh = datos.cohetes.find((c) => c.id === 'falcon-heavy').visual;
+  check('Falcon Heavy: BECO 3:03 → separación 3:07 y MECO 4:02 → 4:06', fh.separaciones.laterales.retardo === 4 && fh.separaciones.central.retardo === 4);
 }
 
 console.log(`\n${pass} PASS · ${fail} FAIL`);

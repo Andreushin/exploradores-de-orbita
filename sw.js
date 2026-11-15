@@ -6,7 +6,7 @@
 // Si agregas o quitas archivos: `node scripts/precache.mjs` actualiza el bloque de abajo.
 
 /* PRECACHE:INICIO — generado por scripts/precache.mjs, no editar a mano */
-const VERSION = "49dc9989c4";
+const VERSION = "726d75baf1";
 const NUCLEO = [
   "",
   "nivel2/",
@@ -64,6 +64,16 @@ const NUCLEO = [
   "js/vendor/three-r128/OrbitControls.js",
   "js/vendor/three-r128/three.min.js",
   "js/vendor/three/addons/controls/OrbitControls.js",
+  "js/vendor/three/addons/postprocessing/EffectComposer.js",
+  "js/vendor/three/addons/postprocessing/MaskPass.js",
+  "js/vendor/three/addons/postprocessing/OutputPass.js",
+  "js/vendor/three/addons/postprocessing/Pass.js",
+  "js/vendor/three/addons/postprocessing/RenderPass.js",
+  "js/vendor/three/addons/postprocessing/ShaderPass.js",
+  "js/vendor/three/addons/postprocessing/UnrealBloomPass.js",
+  "js/vendor/three/addons/shaders/CopyShader.js",
+  "js/vendor/three/addons/shaders/LuminosityHighPassShader.js",
+  "js/vendor/three/addons/shaders/OutputShader.js",
   "js/vendor/three/three.module.js",
   "nivel2/index.html",
   "nivel2/nivel2.css",
