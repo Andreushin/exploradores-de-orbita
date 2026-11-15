@@ -46,8 +46,9 @@ El jugador entra al taller de ensamblaje. Según [CubeSat 101](https://www3.nasa
 ## 2. Qué ve el jugador
 
 - **Objetivo científico** del Nivel 1 en el encabezado (🎯), con el aviso de que los instrumentos que no sirven aparecen en gris.
-- **Catálogo por categoría.** Cada pieza muestra masa en gramos, volumen en U, energía, costo y TRL.
-  - **Estructuras:** su descripción y su masa máxima (`U × 1.33 kg`, CubeSat 101).
+- **Catálogo por categoría.** Cada pieza muestra masa en gramos, volumen en U, energía, costo y TRL con su significado corto («TRL 4 · en laboratorio»).
+  - **Botón ⓘ** en cada pieza: un popover nativo (mismo patrón que el «?» del Nivel 1) que explica qué es el TRL, qué significa el nivel de esa pieza y por qué lo tiene (su `desc`). Se cierra con Esc o con un clic afuera.
+  - **Estructuras:** su descripción y su masa máxima (`U × 1.33 kg`, CubeSat 101), en la fuente de los números: en Space Grotesk «15 960» se leía como «45 960».
   - **Instrumentos:** ✔ por qué sirve, o ✘ por qué no sirve, en gris y deshabilitado.
 - **Slider de propelente**, si hay propulsión.
 - **5 medidores en vivo** (`role="meter"`). Se actualizan al agregar o quitar piezas y **mientras se arrastra** el propelente:
@@ -61,7 +62,10 @@ El jugador entra al taller de ensamblaje. Según [CubeSat 101](https://www3.nasa
 | Costo | costo contra el segmento Espacio | < 85 % | 85–100 % | > 100 % |
 
 - **Aviso del cohete:** si la masa supera la carga útil del cohete del Nivel 1, y ese es el límite que manda, aparece "🚫 … solo lleva N g: así no podrá despegar".
-- **Lista de verificaciones** (✔ / ✘) y botones **Atrás** / **🚀 Lanzar**.
+- **Antes de elegir estructura nada se juzga:** los medidores quedan en gris (`— / — g`, «Elige una estructura») y las verificaciones en ○ pendiente, en vez de mostrar ✔ porque «0 g cabe en cualquier límite». La batería sigue pendiente mientras no haga falta ni haya una. Reglas: `checkState` y `meterData` en `js/taller-reglas.js`.
+- **Lista de verificaciones** (✔ / ✘ / ○) y botones **Atrás** / **🚀 Lanzar**.
+- **💡 Consejos con números** bajo las verificaciones que fallan (hasta 2, `tradeHints` en `js/taller-reglas.js`). Orientan el *trade study* sin regalar nada: «la 3U admite 3 990 g y con el propelente de la misión pesaría unos 5 042 g: prueba la 6U», «con el monopropelente verde ($8M) el total baja a $26M», «faltan 178 m/s: carga 2.0 kg». Solo sugieren alternativas que sirven (una propulsión que llegue al Δv con su tanque, un instrumento compatible con el objetivo).
+- **En celular (≤ 860 px)** una barra fija abajo resume Δv, masa, energía y costo con ✔ / ▲ / ✘ / ○, y **Ver detalle ↓** lleva al panel completo.
 
 ---
 
@@ -198,4 +202,5 @@ Recorrido manual sugerido (en ES y EN, escritorio y 360 px):
 - [ ] **E2E** (pausado en #46): cuando se reactive, los diseños de referencia deben elegir objetivo e instrumentos compatibles. Por ejemplo, Marte con cámara + magnetómetro no sirve para ningún objetivo de Marte: usar magnetómetro con «campo magnético» (sigue siendo válido: Δv 1382 m/s, 14.80 kg).
 - [ ] Prueba visual en navegador real (escritorio y celular, ES y EN).
 - [ ] #15: vista del CubeSat ensamblado con las U ocupadas.
-- [ ] #16: tooltips de CubeSat 101 por subsistema. Este nivel ya cubre instrumentos y estructuras.
+- [ ] #16: tooltips de CubeSat 101 por subsistema. Ya cubre instrumentos, estructuras y el TRL de cada pieza (ⓘ).
+- **Balanceo (revisado con `gemini-code-leve-2-fix.md`):** no hace falta rebalancear. 6U + monopropelente verde ya cumple la Luna con $20M (Δv 1027 / 850 m/s); 3U + verde es físicamente imposible (el motor ocupa 3U y la Luna pide ~5 kg contra 3.99 kg de la 3U), y es justo lo que enseña el nivel. El presupuesto mayor (ruta iónica) ya existe en el Nivel 1 con la nave interplanetaria ($50M).
