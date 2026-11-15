@@ -45,6 +45,9 @@ El jugador entra al taller de ensamblaje. Según [CubeSat 101](https://www3.nasa
 
 ## 2. Qué ve el jugador
 
+- **Pantalla de 3 columnas, sin scroll de página** (escritorio): **catálogo** a la izquierda (con scroll propio), **visor del CubeSat** al centro y **telemetría** (propelente, medidores, verificaciones, consejos y botones) a la derecha. En celular (≤ 860 px) se apilan y una barra fija abajo resume Δv, masa, energía y costo.
+- **Visor SVG del CubeSat** (`renderSVG` en `nivel2/nivel2.js`): dibuja el chasis como rejilla de unidades U (3U, 6U o 12U) y cada pieza al instalarla: las internas (batería, ADCS, computadora, instrumentos) entran en las celdas, los paneles se despliegan a los lados, la tobera con su llama sale por abajo, las antenas por arriba y el RTG por un costado. El volumen que sobra se marca en rojo parpadeante. Los colores salen solo de los tokens del nivel (`--n2-*`): **naranja** = propulsión, **azul** = el resto de piezas. Verde, amarillo y rojo se reservan para ✔ / ▲ / ✘, así que la categoría la dice el rótulo de cada pieza y no el color.
+- **↺ Reiniciar ensamblaje** (barra superior): vacía la estructura, las piezas y el propelente.
 - **Objetivo científico** del Nivel 1 en el encabezado (🎯), con el aviso de que los instrumentos que no sirven aparecen en gris.
 - **Catálogo por categoría.** Cada pieza muestra masa en gramos, volumen en U, energía, costo y TRL con su significado corto («TRL 4 · en laboratorio»).
   - **Botón ⓘ** en cada pieza: un popover nativo (mismo patrón que el «?» del Nivel 1) que explica qué es el TRL, qué significa el nivel de esa pieza y por qué lo tiene (su `desc`). Se cierra con Esc o con un clic afuera.
@@ -201,6 +204,6 @@ Recorrido manual sugerido (en ES y EN, escritorio y 360 px):
 - [x] Se retiró la pantalla `js/screens/workshop.js` de la app: el Taller vive solo en `nivel2/`.
 - [ ] **E2E** (pausado en #46): cuando se reactive, los diseños de referencia deben elegir objetivo e instrumentos compatibles. Por ejemplo, Marte con cámara + magnetómetro no sirve para ningún objetivo de Marte: usar magnetómetro con «campo magnético» (sigue siendo válido: Δv 1382 m/s, 14.80 kg).
 - [ ] Prueba visual en navegador real (escritorio y celular, ES y EN).
-- [ ] #15: vista del CubeSat ensamblado con las U ocupadas.
 - [ ] #16: tooltips de CubeSat 101 por subsistema. Ya cubre instrumentos, estructuras y el TRL de cada pieza (ⓘ).
 - **Balanceo (revisado con `gemini-code-leve-2-fix.md`):** no hace falta rebalancear. 6U + monopropelente verde ya cumple la Luna con $20M (Δv 1027 / 850 m/s); 3U + verde es físicamente imposible (el motor ocupa 3U y la Luna pide ~5 kg contra 3.99 kg de la 3U), y es justo lo que enseña el nivel. El presupuesto mayor (ruta iónica) ya existe en el Nivel 1 con la nave interplanetaria ($50M).
+- [x] #15: vista del CubeSat ensamblado con las U ocupadas (visor SVG, §2).
