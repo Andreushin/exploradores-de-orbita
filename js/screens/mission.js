@@ -5,7 +5,7 @@
 // Estado que escribe: missionId, rocketId, budget.{total,launch,space,ground,user},
 //   plan.{step,projectName,scienceTargetIdx,cards,maturity,penalty,cmlCap,validated}
 // Reglas: js/budget.js · Documentación: docs/niveles/nivel-1.md
-import { SEGMENTS, STEPS, cardCatalog, requiredLevels, evaluatePlan, stepStatus } from '../budget.js';
+import { SEGMENTS, STEPS, cardCatalog, requiredLevels, evaluatePlan, stepStatus, validProjectName } from '../budget.js';
 import { createScenes } from './mission-scenes.js';
 
 let ctx;
@@ -169,11 +169,22 @@ function nameField() {
   input.autocomplete = 'off';
   input.placeholder = t('mission.projectPlaceholder');
   input.value = state.plan.projectName;
+  // Aviso bajo el campo: neutro mientras está vacío, de error cuando hay texto que no vale (p. ej. «123»).
+  const hint = el('small', 'lvl-field-hint', t('mission.projectHint'));
+  hint.id = 'project-name-hint';
+  input.setAttribute('aria-describedby', hint.id);
+  const syncHint = () => {
+    const bad = input.value.trim() !== '' && !validProjectName(input.value);
+    hint.classList.toggle('is-error', bad);
+    input.setAttribute('aria-invalid', String(bad));
+  };
+  syncHint();
   input.addEventListener('input', () => {
+    syncHint();
     ctx.update({ plan: { projectName: input.value } });
     renderLive(null, true);
   });
-  field.append(input);
+  field.append(input, hint);
   return field;
 }
 
@@ -363,9 +374,26 @@ function cardEl(card, placed) {
     <p class="opt-cap">${capability(card)}</p>
     <div class="opt-foot">
       <b class="opt-cost">$${card.cost}M</b>
-      <button type="button" class="btn opt-move">${placed ? t('mission.remove') : t('mission.add')}</button>
+      ${placed ? `<button type="button" class="btn opt-move">${t('mission.remove')}</button>` : ''}
     </div>`;
-  art.querySelector('.opt-move').addEventListener('click', () => placeCard(card.segment, placed ? null : card.id));
+  if (placed) {
+    art.querySelector('.opt-move').addEventListener('click', () => placeCard(card.segment, null));
+  } else {
+    // Tarjeta del banco: sin botón; todo el área la añade (solo «?» abre la info).
+    // Con teclado: Tab hasta la tarjeta y Enter o Espacio.
+    art.classList.add('is-pickable');
+    art.tabIndex = 0;
+    art.setAttribute('aria-label', t('mission.addCard', { name: tx(card.name) }));
+    art.addEventListener('click', (e) => {
+      if (e.target.closest('.opt-info')) return;
+      placeCard(card.segment, card.id);
+    });
+    art.addEventListener('keydown', (e) => {
+      if (e.target !== art || (e.key !== 'Enter' && e.key !== ' ')) return;
+      e.preventDefault();
+      placeCard(card.segment, card.id);
+    });
+  }
   art.addEventListener('dragstart', (e) => {
     dragging = { seg: card.segment, id: card.id, placed };
     e.dataTransfer.effectAllowed = 'move';
@@ -709,9 +737,11 @@ function renderLive(focus = null, edited = false) {
   syncDockTop();
   if (focus?.id) {
     // La tarjeta movida puede estar en el panel; si está recogido, el foco va a su pestaña.
-    const sel = `.opt[data-seg="${focus.seg}"][data-id="${focus.id}"] .opt-move`;
-    const btn = live.stage.querySelector(sel) ?? live.dock.body.querySelector(sel);
-    (btn && !btn.closest('[inert]') ? btn : live.dock.tab).focus();
+    // Colocada → su botón «Quitar»; devuelta al banco → la propia tarjeta (no tiene botón).
+    const sel = `.opt[data-seg="${focus.seg}"][data-id="${focus.id}"]`;
+    const card = live.stage.querySelector(sel) ?? live.dock.body.querySelector(sel);
+    const target = card?.querySelector('.opt-move') ?? card;
+    (target && !target.closest('[inert]') ? target : live.dock.tab).focus();
   }
 }
 

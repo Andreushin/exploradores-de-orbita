@@ -4,7 +4,7 @@
 <style>body{font:14px monospace;background:#111;color:#ddd;padding:16px}.ok{color:#4ade80}.fail{color:#f87171}</style></head>
 <body><h1>budget.js (Nivel 1 · tarjetas)</h1><ul id="out"></ul>
 <script type="module">
-import { evaluatePlan, cardCatalog, stepStatus, STEPS } from '../js/budget.js';
+import { evaluatePlan, cardCatalog, stepStatus, STEPS, validProjectName } from '../js/budget.js';
 import { validateDesign } from '../js/physics.js';
 const out = document.getElementById('out');
 const check = (name, cond) => { const li = document.createElement('li'); li.className = cond ? 'ok' : 'fail'; li.textContent = (cond ? 'PASS ' : 'FAIL ') + name; out.append(li); };
@@ -67,6 +67,15 @@ const st = (missionId, cards, extra = {}) => ({ missionId, budget: { total: 0 },
 const flags = (s) => stepStatus(s, evaluatePlan(s, data)).map((x) => `${x.unlocked ? 'U' : '-'}${x.done ? 'D' : '-'}`).join(' ');
 const none = { launch: null, space: null, ground: null, user: null };
 check(`orden de pasos = ${STEPS}`, STEPS.join() === 'project,launch,space,ground,user,review');
+// Nombre del proyecto: mínimo 3 letras, no solo números
+check('nombre: «Luna» es válido', validProjectName('Luna'));
+check('nombre: «Mar» (3 letras justas) es válido', validProjectName(' Mar '));
+check('nombre: «Misión 2» (letras + número) es válido', validProjectName('Misión 2'));
+check('nombre: «Órbita» (con tilde) es válido', validProjectName('Órbita'));
+check('nombre: solo números («12345») no es válido', !validProjectName('12345'));
+check('nombre: menos de 3 letras («ab», «a1b2») no es válido', !validProjectName('ab') && !validProjectName('a1b2'));
+check('nombre: solo símbolos o vacío no es válido', !validProjectName('***') && !validProjectName('') && !validProjectName(null) && !validProjectName(undefined));
+check('nombre numérico bloquea el paso 1 y la misión', flags(st('moon', none, { projectName: '123' })) === 'U- -- -- -- -- --' && plan('moon', ['pico', 'space-near', 'ground-uhf', 'standard'], { projectName: '123' }).blockers.some((b) => b.id === 'name'));
 check('sin proyecto: solo el paso 1 abierto', flags(st(null, none, { projectName: '' })) === 'U- -- -- -- -- --');
 check('proyecto completo: se abren los segmentos, no la revisión', flags(st('moon', none)) === 'UD U- U- U- U- --');
 const partial = st('mars', { ...none, launch: 'pico', space: 'space-interplanetary' });
