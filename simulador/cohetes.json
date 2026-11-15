@@ -1,0 +1,398 @@
+{
+  "_nota": "Masas en kg, empuje en kN, Isp en s, tiempos en s desde el despegue. Cada cohete trae `fuentes` (ver FUENTES.md). 'est.' = estimado cuando ninguna fuente lo da.",
+  "constantes": {
+    "muTierra": 398600441800000.0,
+    "radioTierra": 6378137,
+    "omegaTierra": 7.2921159e-05,
+    "g0": 9.80665,
+    "orbitaEsperaKm": 185
+  },
+  "destinos": {
+    "luna": {
+      "nombre": "la Luna",
+      "radioOrbitaKm": 384400,
+      "tipo": "geocentrico"
+    },
+    "marte": {
+      "nombre": "Marte",
+      "radioOrbitaUA": 1.524,
+      "tipo": "heliocentrico"
+    },
+    "jupiter": {
+      "nombre": "Júpiter",
+      "radioOrbitaUA": 5.203,
+      "tipo": "heliocentrico"
+    }
+  },
+  "cohetes": [
+    {
+      "id": "saturno-v",
+      "nombre": "Saturno V (AS-506)",
+      "modelo": "modelos/originales/saturno-v/apollo11-assembled.html",
+      "despiece": "modelos/originales/saturno-v/apollo11-exploded.html",
+      "mision": {
+        "nombre": "Apolo 11",
+        "destino": "luna",
+        "nave": "Nave Apolo (Columbia + Eagle)",
+        "masaNave": 45693,
+        "fecha": "16 de julio de 1969",
+        "sitio": "LC-39A, Kennedy",
+        "latitud": 28.6
+      },
+      "diametro": 10.1,
+      "cd": 0.5,
+      "guiado": {
+        "giroInicio": 12,
+        "tFin": 160,
+        "pitchFinal": 16,
+        "forma": 0.8,
+        "lazoCerradoDesdeGrupo": 1,
+        "tau": 75,
+        "_nota": "Programa de cabeceo calibrado buscando órbita circular de ~185 km y los tiempos históricos (ver FUENTES.md)."
+      },
+      "masasFijas": [
+        {
+          "id": "les",
+          "nombre": "Torre de escape (LES)",
+          "masa": 4170,
+          "suelta": {
+            "t": 197.9
+          },
+          "est": true
+        },
+        {
+          "id": "iu",
+          "nombre": "Unidad de instrumentos",
+          "masa": 1939
+        }
+      ],
+      "fases": [
+        {
+          "id": "s-ic",
+          "nombre": "S-IC (1.ª etapa)",
+          "seco": 166502,
+          "propelente": 2071716,
+          "motores": [
+            {
+              "nombre": "F-1",
+              "n": 5,
+              "empujeVac": 7740,
+              "ispSL": 263,
+              "ispVac": 304,
+              "apagaUno": {
+                "t": 135.2,
+                "texto": "Corte del motor central F-1"
+              }
+            }
+          ],
+          "alApagar": "Separación de la S-IC",
+          "historico": {
+            "apagado": 161.63
+          }
+        },
+        {
+          "id": "s-ii",
+          "nombre": "S-II (2.ª etapa)",
+          "seco": 36158,
+          "propelente": 444842,
+          "pausaPrevia": 1.4,
+          "extra": [
+            {
+              "id": "inter-1",
+              "nombre": "Interetapa S-IC/S-II",
+              "masa": 5206,
+              "suelta": {
+                "trasEncender": 30
+              }
+            },
+            {
+              "id": "inter-2",
+              "nombre": "Interetapa S-II/S-IVB",
+              "masa": 3663,
+              "conEtapa": true
+            }
+          ],
+          "motores": [
+            {
+              "nombre": "J-2",
+              "n": 5,
+              "empujeVac": 1000,
+              "ispSL": 200,
+              "ispVac": 421,
+              "apagaUno": {
+                "t": 460.6,
+                "texto": "Corte del motor central J-2"
+              }
+            }
+          ],
+          "alApagar": "Separación de la S-II",
+          "historico": {
+            "apagado": 548.22
+          }
+        },
+        {
+          "id": "s-ivb",
+          "nombre": "S-IVB (3.ª etapa)",
+          "seco": 11189,
+          "propelente": 107930,
+          "pausaPrevia": 3.8,
+          "superior": true,
+          "motores": [
+            {
+              "nombre": "J-2",
+              "n": 1,
+              "empujeVac": 1000,
+              "ispSL": 200,
+              "ispVac": 421
+            }
+          ],
+          "historico": {
+            "orbita": 709.34,
+            "orbitaKm": [
+              183.8,
+              186.5
+            ],
+            "duracionEncendidoDestino": 346.9
+          }
+        }
+      ],
+      "fuentes": [
+        "as506-fer",
+        "a11-press",
+        "a11-mor"
+      ]
+    },
+    {
+      "id": "atlas-agena-d",
+      "nombre": "Atlas LV-3 Agena D",
+      "modelo": "modelos/originales/atlas-agena-d/atlas-agena-assembled.html",
+      "despiece": "modelos/originales/atlas-agena-d/atlas-agena-exploded.html",
+      "mision": {
+        "nombre": "Mariner 4",
+        "destino": "marte",
+        "nave": "Mariner 4",
+        "masaNave": 260.7,
+        "fecha": "28 de noviembre de 1964",
+        "sitio": "LC-12, Cabo Cañaveral",
+        "latitud": 28.5
+      },
+      "diametro": 3.05,
+      "cd": 0.5,
+      "guiado": {
+        "giroInicio": 10,
+        "tFin": 300,
+        "pitchFinal": 3,
+        "forma": 0.5,
+        "lazoCerradoDesdeGrupo": 1,
+        "tau": 90,
+        "_nota": "Programa de cabeceo calibrado buscando órbita circular de ~185 km y los tiempos históricos (ver FUENTES.md)."
+      },
+      "masasFijas": [
+        {
+          "id": "cofia",
+          "nombre": "Cofia y adaptador de Mariner 4",
+          "masa": 500,
+          "suelta": {
+            "altitudKm": 110
+          },
+          "est": true
+        }
+      ],
+      "fases": [
+        {
+          "id": "atlas",
+          "nombre": "Atlas (1½ etapas)",
+          "seco": 2347,
+          "propelente": 104955,
+          "extra": [
+            {
+              "id": "booster",
+              "nombre": "Faldón de motores booster",
+              "masa": 3050,
+              "suelta": {
+                "t": 130
+              },
+              "texto": "Separación del faldón booster (BECO)"
+            }
+          ],
+          "motores": [
+            {
+              "nombre": "LR89 (booster)",
+              "n": 2,
+              "empujeSL": 631.5,
+              "ispSL": 256,
+              "ispVac": 290,
+              "apagaEn": {
+                "t": 130
+              }
+            },
+            {
+              "nombre": "LR105 (sustentador)",
+              "n": 1,
+              "empujeSL": 254,
+              "ispSL": 220,
+              "ispVac": 309
+            }
+          ],
+          "alApagar": "Apagado del sustentador y separación del Atlas"
+        },
+        {
+          "id": "agena",
+          "nombre": "Agena D",
+          "seco": 673,
+          "propelente": 6148,
+          "pausaPrevia": 5,
+          "superior": true,
+          "motores": [
+            {
+              "nombre": "Bell 8096",
+              "n": 1,
+              "empujeVac": 71.17,
+              "ispSL": 150,
+              "ispVac": 300
+            }
+          ],
+          "historico": {
+            "encendido1": 144,
+            "duracionEncendidoDestino": 95
+          }
+        }
+      ],
+      "fuentes": [
+        "mariner4-jpl",
+        "astronautix-atlas-agena",
+        "astronautix-agena-d",
+        "wiki-ma2"
+      ]
+    },
+    {
+      "id": "falcon-heavy",
+      "nombre": "Falcon Heavy (desechable)",
+      "modelo": "modelos/originales/falcon-heavy/falcon-heavy-assembled.html",
+      "despiece": "modelos/originales/falcon-heavy/falcon-heavy-exploded.html",
+      "mision": {
+        "nombre": "Europa Clipper",
+        "destino": "jupiter",
+        "nave": "Europa Clipper",
+        "masaNave": 6065,
+        "fecha": "14 de octubre de 2024",
+        "sitio": "LC-39A, Kennedy",
+        "latitud": 28.6,
+        "rutaReal": "asistencias gravitatorias de Marte (2025) y la Tierra (2026); llegada a Júpiter en abril de 2030"
+      },
+      "diametro": 3.66,
+      "anchoTotal": 12.2,
+      "cd": 0.5,
+      "guiado": {
+        "giroInicio": 10,
+        "tFin": 180,
+        "pitchFinal": 5,
+        "forma": 0.5,
+        "lazoCerradoDesdeGrupo": 1,
+        "tau": 40,
+        "_nota": "Programa de cabeceo calibrado buscando órbita circular de ~185 km y los tiempos históricos (ver FUENTES.md)."
+      },
+      "masasFijas": [
+        {
+          "id": "cofia",
+          "nombre": "Cofia de 5.2 m",
+          "masa": 1900,
+          "suelta": {
+            "altitudKm": 115
+          },
+          "est": true
+        }
+      ],
+      "fases": [
+        {
+          "id": "laterales",
+          "nombre": "Propulsores laterales (2 × 9 Merlin 1D)",
+          "seco": 51200,
+          "propelente": 791400,
+          "paralelo": true,
+          "areaFrontal": 31.6,
+          "motores": [
+            {
+              "nombre": "Merlin 1D",
+              "n": 18,
+              "empujeSL": 845,
+              "ispSL": 282,
+              "ispVac": 311
+            }
+          ],
+          "alApagar": "Separación de los propulsores laterales"
+        },
+        {
+          "id": "central",
+          "nombre": "Núcleo central (9 Merlin 1D)",
+          "seco": 25600,
+          "propelente": 395700,
+          "enParaleloCon": "laterales",
+          "areaFrontal": 10.5,
+          "extra": [
+            {
+              "id": "inter",
+              "nombre": "Interetapa",
+              "masa": 0,
+              "conEtapa": true
+            }
+          ],
+          "motores": [
+            {
+              "nombre": "Merlin 1D",
+              "n": 9,
+              "empujeSL": 845,
+              "ispSL": 282,
+              "ispVac": 311,
+              "regulacion": [
+                {
+                  "t": 0,
+                  "f": 1
+                },
+                {
+                  "t": 35,
+                  "f": 0.45
+                },
+                {
+                  "trasFase": "laterales",
+                  "f": 0.6
+                }
+              ]
+            }
+          ],
+          "alApagar": "Apagado y separación del núcleo central",
+          "historico": {
+            "separacion": 251
+          }
+        },
+        {
+          "id": "segunda",
+          "nombre": "2.ª etapa (Merlin Vacuum)",
+          "seco": 4000,
+          "propelente": 107500,
+          "pausaPrevia": 7,
+          "superior": true,
+          "motores": [
+            {
+              "nombre": "Merlin 1D Vacuum",
+              "n": 1,
+              "empujeVac": 981,
+              "ispSL": 200,
+              "ispVac": 348
+            }
+          ],
+          "historico": {
+            "reencendidoDestino": "~45 min después del despegue"
+          }
+        }
+      ],
+      "fuentes": [
+        "clipper-nasa-launch",
+        "clipper-jpl",
+        "nsf-clipper",
+        "wiki-f9",
+        "wiki-fh"
+      ]
+    }
+  ]
+}

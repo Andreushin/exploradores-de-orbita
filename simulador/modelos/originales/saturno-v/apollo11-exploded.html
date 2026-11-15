@@ -1,0 +1,988 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>NASA Apolo 11 / Saturno V - Despiece Interactivo 3D</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    html, body {
+      width: 100%; height: 100%;
+      overflow: hidden;
+      background-color: #030712;
+      color: #fff;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", sans-serif;
+      user-select: none;
+      -webkit-user-select: none;
+    }
+    canvas { display: block; width: 100vw; height: 100vh; }
+
+    /* HUD Superior */
+    #hud {
+      position: fixed; top: 24px; left: 28px;
+      z-index: 10; pointer-events: none;
+    }
+    .hud-badge {
+      display: inline-flex; align-items: center; gap: 8px;
+      padding: 4px 10px; border-radius: 9999px;
+      background: rgba(15, 23, 42, 0.75);
+      backdrop-filter: blur(12px);
+      border: 1px solid rgba(56, 189, 248, 0.35);
+      font-family: 'SF Mono', Consolas, monospace;
+      font-size: 9px; letter-spacing: 0.18em;
+      color: #bae6fd; text-transform: uppercase;
+      margin-bottom: 6px;
+    }
+    .hud-dot {
+      width: 6px; height: 6px; border-radius: 50%;
+      background: #38bdf8; box-shadow: 0 0 10px #38bdf8;
+      animation: pulse 2s infinite;
+    }
+    @keyframes pulse {
+      0%, 100% { opacity: 1; transform: scale(1); }
+      50% { opacity: 0.4; transform: scale(0.85); }
+    }
+    .hud-title {
+      font-size: 24px; font-weight: 800;
+      color: #f8fafc; letter-spacing: -0.02em;
+    }
+    .hud-sub {
+      font-family: 'SF Mono', Consolas, monospace;
+      font-size: 10px; color: rgba(255,255,255,0.5);
+      letter-spacing: 0.15em; margin-top: 2px;
+    }
+
+    /* Panel de Telemetría de la Etapa */
+    #info-card {
+      position: fixed; right: 28px; top: 28px; width: 340px;
+      background: rgba(15, 23, 42, 0.85);
+      backdrop-filter: blur(16px);
+      border: 1px solid rgba(255, 255, 255, 0.15);
+      border-radius: 12px;
+      padding: 20px;
+      z-index: 20;
+      box-shadow: 0 20px 40px rgba(0,0,0,0.6);
+      transition: transform 0.4s cubic-bezier(0.16, 1, 0.3, 1), opacity 0.4s ease;
+      transform: translateX(380px);
+      opacity: 0;
+      pointer-events: auto;
+    }
+    #info-card.visible { transform: translateX(0); opacity: 1; }
+    .info-header {
+      display: flex; justify-content: space-between; align-items: flex-start;
+      margin-bottom: 12px; border-bottom: 1px solid rgba(255,255,255,0.1);
+      padding-bottom: 10px;
+    }
+    .info-tag {
+      font-family: 'SF Mono', Consolas, monospace;
+      font-size: 9px; letter-spacing: 0.15em; color: #38bdf8; text-transform: uppercase;
+    }
+    .info-name { font-size: 18px; font-weight: 700; color: #fff; margin-top: 2px; }
+    .info-close {
+      cursor: pointer; background: rgba(255,255,255,0.1); border: none;
+      color: #fff; width: 24px; height: 24px; border-radius: 50%;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 14px; transition: background 0.2s;
+    }
+    .info-close:hover { background: rgba(255,255,255,0.25); }
+    .info-desc { font-size: 12px; line-height: 1.5; color: #cbd5e1; margin-bottom: 14px; }
+    .info-specs { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+    .spec-item {
+      background: rgba(0,0,0,0.3); border-radius: 6px; padding: 8px;
+      border: 1px solid rgba(255,255,255,0.05);
+    }
+    .spec-label {
+      font-family: 'SF Mono', Consolas, monospace; font-size: 8px;
+      color: rgba(255,255,255,0.4); text-transform: uppercase; letter-spacing: 0.1em;
+    }
+    .spec-val { font-size: 12px; font-weight: 600; color: #f8fafc; margin-top: 2px; }
+
+    /* Barra de Control Inferior */
+    #controls-bar {
+      position: fixed; bottom: 24px; left: 50%;
+      transform: translateX(-50%);
+      display: flex; align-items: center; gap: 16px;
+      background: rgba(15, 23, 42, 0.85);
+      backdrop-filter: blur(16px);
+      border: 1px solid rgba(255, 255, 255, 0.15);
+      padding: 10px 22px;
+      border-radius: 40px;
+      z-index: 15;
+      box-shadow: 0 10px 30px rgba(0,0,0,0.5);
+    }
+    .control-label {
+      font-family: 'SF Mono', Consolas, monospace;
+      font-size: 10px; letter-spacing: 0.12em; color: #cbd5e1; text-transform: uppercase;
+      white-space: nowrap;
+    }
+    .slider-wrap { display: flex; align-items: center; gap: 10px; width: 220px; }
+    input[type=range] {
+      -webkit-appearance: none; width: 100%; height: 4px;
+      background: rgba(255,255,255,0.2); border-radius: 2px; outline: none;
+    }
+    input[type=range]::-webkit-slider-thumb {
+      -webkit-appearance: none; width: 16px; height: 16px;
+      border-radius: 50%; background: #38bdf8;
+      cursor: pointer; box-shadow: 0 0 10px rgba(56,189,248,0.8);
+    }
+    .btn {
+      background: rgba(255,255,255,0.08); border: 1px solid rgba(255,255,255,0.2);
+      color: #fff; padding: 6px 14px; border-radius: 20px;
+      font-family: 'SF Mono', Consolas, monospace; font-size: 10px;
+      letter-spacing: 0.1em; text-transform: uppercase;
+      cursor: pointer; transition: all 0.2s ease;
+      white-space: nowrap;
+    }
+    .btn:hover { background: rgba(56,189,248,0.3); border-color: #38bdf8; }
+    .btn.active { background: #38bdf8; border-color: #38bdf8; color: #000; font-weight: 700; }
+
+    /* Menú lateral de Etapas */
+    #stages-menu {
+      position: fixed; left: 28px; top: 110px;
+      z-index: 10; display: flex; flex-direction: column; gap: 6px;
+    }
+    .stage-pill {
+      background: rgba(15, 23, 42, 0.65);
+      backdrop-filter: blur(10px);
+      border: 1px solid rgba(255,255,255,0.1);
+      padding: 6px 12px; border-radius: 8px;
+      font-family: 'SF Mono', Consolas, monospace; font-size: 10px;
+      color: #cbd5e1; cursor: pointer; transition: all 0.2s;
+      display: flex; align-items: center; gap: 8px;
+    }
+    .stage-pill:hover { background: rgba(255,255,255,0.15); border-color: rgba(255,255,255,0.3); }
+    .stage-pill.active { background: rgba(56,189,248,0.25); border-color: #38bdf8; color: #bae6fd; }
+    .stage-pill-dot { width: 6px; height: 6px; border-radius: 50%; background: #64748b; }
+    .stage-pill.active .stage-pill-dot { background: #38bdf8; box-shadow: 0 0 6px #38bdf8; }
+  </style>
+
+  <script type="importmap">
+  {
+    "imports": {
+      "three": "https://unpkg.com/three@0.160.0/build/three.module.js",
+      "three/addons/": "https://unpkg.com/three@0.160.0/examples/jsm/"
+    }
+  }
+  </script>
+</head>
+<body>
+
+  <div id="hud">
+    <div class="hud-badge">
+      <span class="hud-dot"></span>
+      <span>NASA APOLLO 11 / SATURN V · EXPLODED CAD VIEW</span>
+    </div>
+    <div class="hud-title">Saturno V - Misión Apolo 11 (1969)</div>
+    <div class="hud-sub">DESPIECE DE ETAPAS LUNARES · ARRASTRA PARA ROTAR · CLIC PARA INSPECCIONAR</div>
+  </div>
+
+  <div id="stages-menu">
+    <div class="stage-pill" data-part="les"><span class="stage-pill-dot"></span>1. Torre de Escape (LES)</div>
+    <div class="stage-pill" data-part="csm"><span class="stage-pill-dot"></span>2. Módulo de Mando y Servicio (Columbia)</div>
+    <div class="stage-pill" data-part="lm"><span class="stage-pill-dot"></span>3. Módulo Lunar (Eagle)</div>
+    <div class="stage-pill" data-part="sla"><span class="stage-pill-dot"></span>4. Adaptador SLA & Etapa S-IVB</div>
+    <div class="stage-pill" data-part="s2"><span class="stage-pill-dot"></span>5. Segunda Etapa (S-II)</div>
+    <div class="stage-pill" data-part="s1c"><span class="stage-pill-dot"></span>6. Primera Etapa (S-IC / Motores F-1)</div>
+  </div>
+
+  <div id="info-card">
+    <div class="info-header">
+      <div>
+        <div class="info-tag" id="c-tag">PROGRAMA APOLO</div>
+        <div class="info-name" id="c-name">Componente</div>
+      </div>
+      <button class="info-close" id="c-close">✕</button>
+    </div>
+    <div class="info-desc" id="c-desc">Descripción técnica del componente.</div>
+    <div class="info-specs" id="c-specs"></div>
+  </div>
+
+  <div id="controls-bar">
+    <span class="control-label">Ensamblado</span>
+    <div class="slider-wrap">
+      <input type="range" id="explode-slider" min="0" max="1" step="0.005" value="0.55">
+    </div>
+    <span class="control-label">Despiece</span>
+    <button class="btn" id="btn-auto">Auto-Animar</button>
+    <button class="btn" id="btn-reset">Enfocar</button>
+  </div>
+
+  <script type="module">
+    import * as THREE from 'three';
+    import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
+
+    // ── 1. WebGL Renderer & Escena ───────────────────────────────────────────
+    const renderer = new THREE.WebGLRenderer({ antialias: true, powerPreference: 'high-performance' });
+    renderer.setSize(innerWidth, innerHeight);
+    renderer.setPixelRatio(Math.min(devicePixelRatio, 2.0));
+    renderer.toneMapping = THREE.ACESFilmicToneMapping;
+    renderer.toneMappingExposure = 1.15;
+    renderer.shadowMap.enabled = true;
+    renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+    document.body.appendChild(renderer.domElement);
+
+    const scene = new THREE.Scene();
+    scene.background = new THREE.Color(0x030712);
+
+    const camera = new THREE.PerspectiveCamera(38, innerWidth / innerHeight, 0.1, 1000);
+    camera.position.set(24, 4, 30);
+
+    const controls = new OrbitControls(camera, renderer.domElement);
+    controls.enableDamping = true;
+    controls.dampingFactor = 0.05;
+    controls.target.set(0, 1.5, 0);
+    controls.maxDistance = 85;
+    controls.minDistance = 6;
+
+    // ── 2. Iluminación Cinemática ────────────────────────────────────────────
+    const ambientLight = new THREE.AmbientLight(0xffffff, 0.6);
+    scene.add(ambientLight);
+
+    const sunLight = new THREE.DirectionalLight(0xfff8ee, 2.4);
+    sunLight.position.set(30, 40, 25);
+    sunLight.castShadow = true;
+    scene.add(sunLight);
+
+    const fillLight = new THREE.DirectionalLight(0x38bdf8, 1.1);
+    fillLight.position.set(-25, -10, -25);
+    scene.add(fillLight);
+
+    // Fondo estelar
+    const starGeo = new THREE.BufferGeometry();
+    const starPos = [];
+    for(let i=0; i<4500; i++) {
+      starPos.push((Math.random()-0.5)*350, (Math.random()-0.5)*350, (Math.random()-0.5)*350);
+    }
+    starGeo.setAttribute('position', new THREE.Float32BufferAttribute(starPos, 3));
+    const starMat = new THREE.PointsMaterial({ size: 0.65, color: 0xffffff, transparent: true, opacity: 0.65 });
+    scene.add(new THREE.Points(starGeo, starMat));
+
+    // ── 3. Generación Procedural de Texturas Saturno V ────────────────────────
+    function createTexture(w, h, drawFn) {
+      const cv = document.createElement('canvas');
+      cv.width = w; cv.height = h;
+      const ctx = cv.getContext('2d');
+      drawFn(ctx, w, h);
+      const tex = new THREE.CanvasTexture(cv);
+      tex.wrapS = THREE.RepeatWrapping;
+      tex.wrapT = THREE.ClampToEdgeWrapping;
+      return tex;
+    }
+
+    function drawFlag(ctx, x, y, w, h) {
+      ctx.fillStyle = '#b91c1c';
+      ctx.fillRect(x, y, w, h);
+      const stripeH = h / 7;
+      ctx.fillStyle = '#ffffff';
+      for(let s = 1; s < 7; s += 2) ctx.fillRect(x, y + s * stripeH, w, stripeH);
+      ctx.fillStyle = '#1e3a8a';
+      ctx.fillRect(x, y, w * 0.45, h * 0.55);
+      ctx.fillStyle = '#ffffff';
+      for(let r = 0; r < 3; r++) {
+        for(let c = 0; c < 4; c++) ctx.fillRect(x + 4 + c * 8, y + 3 + r * 6, 2, 2);
+      }
+    }
+
+    // 1. Textura Primera Etapa (S-IC): Patrón Ajedrezado Blanco/Negro + "USA" Rojo + Bandera
+    const s1cTex = createTexture(1024, 2048, (ctx, w, h) => {
+      ctx.fillStyle = '#f8fafc';
+      ctx.fillRect(0, 0, w, h);
+
+      // Bloques negros en la parte superior (patrón de seguimiento de balanceo)
+      ctx.fillStyle = '#0f172a';
+      ctx.fillRect(0, 0, w * 0.25, 280);
+      ctx.fillRect(w * 0.5, 0, w * 0.25, 280);
+
+      // Bloques negros en la parte inferior sobre los motores
+      ctx.fillRect(0, 1150, w * 0.25, 480);
+      ctx.fillRect(w * 0.5, 1150, w * 0.25, 480);
+
+      // Sección intertanque corrugada (franja gris/blanca estriada)
+      ctx.fillStyle = '#e2e8f0';
+      ctx.fillRect(0, 720, w, 280);
+      ctx.fillStyle = '#cbd5e1';
+      for(let x = 0; x < w; x += 12) {
+        ctx.fillRect(x, 720, 6, 280);
+      }
+
+      // Líneas de separación y soldaduras horizontales
+      ctx.strokeStyle = '#334155';
+      ctx.lineWidth = 4;
+      ctx.beginPath(); ctx.moveTo(0, 720); ctx.lineTo(w, 720); ctx.stroke();
+      ctx.beginPath(); ctx.moveTo(0, 1000); ctx.lineTo(w, 1000); ctx.stroke();
+
+      // Bandera de EE.UU. en la parte media
+      drawFlag(ctx, 380, 420, 160, 95);
+      drawFlag(ctx, 890, 420, 160, 95);
+
+      // Letras "USA" en rojo brillante vertical
+      ctx.fillStyle = '#dc2626';
+      ctx.font = 'bold 96px Arial, Helvetica, sans-serif';
+      ctx.letterSpacing = '14px';
+      ctx.fillText('U', 380, 1260);
+      ctx.fillText('S', 380, 1370);
+      ctx.fillText('A', 380, 1480);
+
+      ctx.fillText('U', 890, 1260);
+      ctx.fillText('S', 890, 1370);
+      ctx.fillText('A', 890, 1480);
+    });
+
+    // 2. Textura Segunda Etapa (S-II): Bloques negros superiores + "UNITED STATES" vertical
+    const s2Tex = createTexture(1024, 1024, (ctx, w, h) => {
+      ctx.fillStyle = '#f8fafc';
+      ctx.fillRect(0, 0, w, h);
+
+      // Cuadrantes negros en el faldón superior cónico
+      ctx.fillStyle = '#0f172a';
+      ctx.fillRect(0, 0, w * 0.25, 200);
+      ctx.fillRect(w * 0.5, 0, w * 0.25, 200);
+
+      // Franja inferior de interetapa estriada
+      ctx.fillStyle = '#e2e8f0';
+      ctx.fillRect(0, 800, w, 224);
+      ctx.fillStyle = '#cbd5e1';
+      for(let x = 0; x < w; x += 12) {
+        ctx.fillRect(x, 800, 6, 224);
+      }
+
+      // Letras rojas "UNITED STATES"
+      ctx.fillStyle = '#dc2626';
+      ctx.font = 'bold 36px Arial, Helvetica, sans-serif';
+      ctx.letterSpacing = '8px';
+
+      ctx.save();
+      ctx.translate(380, 320);
+      ctx.rotate(Math.PI / 2);
+      ctx.fillText('UNITED STATES', 0, 0);
+      ctx.restore();
+
+      ctx.save();
+      ctx.translate(890, 320);
+      ctx.rotate(Math.PI / 2);
+      ctx.fillText('UNITED STATES', 0, 0);
+      ctx.restore();
+    });
+
+    // 3. Textura Tercera Etapa (S-IVB) y Adaptador SLA
+    const s4bTex = createTexture(1024, 1024, (ctx, w, h) => {
+      ctx.fillStyle = '#f8fafc';
+      ctx.fillRect(0, 0, w, h);
+
+      // Banda negra divisoria del Instrument Unit (IU)
+      ctx.fillStyle = '#0f172a';
+      ctx.fillRect(0, 480, w, 36);
+
+      // Paneles y remaches del adaptador SLA
+      ctx.strokeStyle = '#cbd5e1';
+      ctx.lineWidth = 3;
+      // 4 líneas de partición de los 4 pétalos del SLA
+      for(let x = 0; x < w; x += 256) {
+        ctx.beginPath(); ctx.moveTo(x, 0); ctx.lineTo(x, 480); ctx.stroke();
+      }
+
+      ctx.fillStyle = '#dc2626';
+      ctx.font = 'bold 28px Arial, sans-serif';
+      ctx.fillText('USA', 320, 720);
+      drawFlag(ctx, 580, 680, 80, 50);
+    });
+
+    // 4. Textura del Módulo de Mando y Servicio (CSM Columbia)
+    const csmTex = createTexture(1024, 512, (ctx, w, h) => {
+      ctx.fillStyle = '#e2e8f0';
+      ctx.fillRect(0, 0, w, h);
+
+      // Radiadores térmicos rectangulares oscuros en el SM
+      ctx.fillStyle = '#1e293b';
+      for(let i=0; i<4; i++) {
+        ctx.fillRect(i * 256 + 32, 60, 192, 380);
+        ctx.strokeStyle = '#334155';
+        ctx.lineWidth = 1;
+        for(let l = 75; l < 430; l += 20) {
+          ctx.beginPath(); ctx.moveTo(i*256 + 32, l); ctx.lineTo(i*256 + 224, l); ctx.stroke();
+        }
+      }
+
+      ctx.fillStyle = '#38bdf8';
+      ctx.font = 'bold 20px monospace';
+      ctx.fillText('APOLLO 11 · CSM-107', 350, 40);
+    });
+
+    // 5. Textura de Láminas de Oro Kapton (Módulo Lunar Eagle)
+    const goldFoilTex = createTexture(512, 512, (ctx, w, h) => {
+      ctx.fillStyle = '#d97706';
+      ctx.fillRect(0, 0, w, h);
+      ctx.fillStyle = '#f59e0b';
+      for(let y=0; y<h; y+=32) {
+        for(let x=0; x<w; x+=32) {
+          if((x+y)%64 === 0) ctx.fillRect(x, y, 32, 32);
+        }
+      }
+      // Arrugas de foil
+      ctx.strokeStyle = 'rgba(0,0,0,0.2)';
+      ctx.lineWidth = 1.5;
+      for(let i=0; i<30; i++) {
+        ctx.beginPath();
+        ctx.moveTo(Math.random()*w, Math.random()*h);
+        ctx.lineTo(Math.random()*w, Math.random()*h);
+        ctx.stroke();
+      }
+    });
+
+    // 6. Textura de Domo de Tanque Interno
+    const domeTex = createTexture(512, 512, (ctx, w, h) => {
+      const grad = ctx.createRadialGradient(w/2, h/2, 10, w/2, h/2, w/2);
+      grad.addColorStop(0, '#e2e8f0');
+      grad.addColorStop(0.6, '#94a3b8');
+      grad.addColorStop(1, '#334155');
+      ctx.fillStyle = grad;
+      ctx.fillRect(0, 0, w, h);
+      ctx.strokeStyle = 'rgba(255,255,255,0.25)';
+      ctx.lineWidth = 2;
+      for(let r=40; r<w/2; r+=45) {
+        ctx.beginPath(); ctx.arc(w/2, h/2, r, 0, Math.PI*2); ctx.stroke();
+      }
+    });
+
+    // ── 4. Materiales PBR ───────────────────────────────────────────────────
+    const matWhite  = new THREE.MeshStandardMaterial({ color: 0xf8fafc, roughness: 0.35, metalness: 0.1 });
+    const matDark   = new THREE.MeshStandardMaterial({ color: 0x0f172a, roughness: 0.50, metalness: 0.2 });
+    const matS1C    = new THREE.MeshStandardMaterial({ map: s1cTex, roughness: 0.40, metalness: 0.1 });
+    const matS2     = new THREE.MeshStandardMaterial({ map: s2Tex, roughness: 0.40, metalness: 0.1 });
+    const matS4B    = new THREE.MeshStandardMaterial({ map: s4bTex, roughness: 0.35, metalness: 0.1 });
+    const matCSM    = new THREE.MeshStandardMaterial({ map: csmTex, roughness: 0.30, metalness: 0.4 });
+    const matCM     = new THREE.MeshStandardMaterial({ color: 0xe2e8f0, roughness: 0.20, metalness: 0.85 }); // Cápsula metálica espejada
+    const matGold   = new THREE.MeshStandardMaterial({ map: goldFoilTex, roughness: 0.35, metalness: 0.85 }); // Kapton Foil LM
+    const matFoilDark=new THREE.MeshStandardMaterial({ color: 0x1c1917, roughness: 0.40, metalness: 0.7 }); // Mylar negro
+    const matDome   = new THREE.MeshStandardMaterial({ map: domeTex, roughness: 0.35, metalness: 0.6 });
+    const matEngine = new THREE.MeshStandardMaterial({ color: 0x1e293b, roughness: 0.25, metalness: 0.9 });
+    const matMetal  = new THREE.MeshStandardMaterial({ color: 0x64748b, roughness: 0.25, metalness: 0.85 });
+    const matCopper = new THREE.MeshStandardMaterial({ color: 0xb45309, roughness: 0.35, metalness: 0.75 });
+
+    // ── 5. Construcción de Grupos Modulares del Saturno V ────────────────────
+    const root = new THREE.Group();
+    scene.add(root);
+
+    const parts = {};
+
+    // 1. TORRE DE ESCAPE DE LANZAMIENTO (LES - Launch Escape System)
+    const grpLES = new THREE.Group();
+    grpLES.userData = { id: 'les', name: 'Torre de Escape (LES)', tag: 'SEGURIDAD DE TRIPULACIÓN' };
+    {
+      // Cono protector que cubre la punta del módulo de mando
+      const cover = new THREE.Mesh(new THREE.CylinderGeometry(0.22, 0.78, 1.4, 24), matWhite);
+      grpLES.add(cover);
+
+      // Torre de celosía de titanio (truss)
+      for(let i=0; i<4; i++) {
+        const ang = (i * Math.PI) / 2 + Math.PI/4;
+        const leg = new THREE.Mesh(new THREE.CylinderGeometry(0.03, 0.03, 2.8), matWhite);
+        leg.position.set(Math.cos(ang)*0.28, 2.1, Math.sin(ang)*0.28);
+        grpLES.add(leg);
+      }
+
+      // Motor principal de aborto de combustible sólido
+      const motorBody = new THREE.Mesh(new THREE.CylinderGeometry(0.18, 0.18, 2.2, 16), matWhite);
+      motorBody.position.y = 4.4;
+      grpLES.add(motorBody);
+
+      // 4 toberas de escape orientadas a 45 grados
+      for(let i=0; i<4; i++) {
+        const ang = (i * Math.PI) / 2;
+        const noz = new THREE.Mesh(new THREE.ConeGeometry(0.08, 0.25, 12), matEngine);
+        noz.position.set(Math.cos(ang)*0.18, 3.4, Math.sin(ang)*0.18);
+        noz.rotation.z = Math.cos(ang) * 0.45;
+        noz.rotation.x = Math.sin(ang) * -0.45;
+        grpLES.add(noz);
+      }
+
+      // Punta aerodinámica y motor de control de cabeceo
+      const noseTip = new THREE.Mesh(new THREE.ConeGeometry(0.14, 0.9, 16), matMetal);
+      noseTip.position.y = 5.95;
+      grpLES.add(noseTip);
+    }
+    grpLES.userData.baseY = 14.2;
+    grpLES.userData.explodedY = 36.0;
+    root.add(grpLES);
+    parts.les = grpLES;
+
+    // 2. MÓDULO DE MANDO Y SERVICIO (CSM Columbia)
+    const grpCSM = new THREE.Group();
+    grpCSM.userData = { id: 'csm', name: 'Módulo de Mando y Servicio (Columbia)', tag: 'NAVE ESPACIAL APOLO' };
+    {
+      // Módulo de Mando (CM - Cápsula cónica)
+      const cm = new THREE.Mesh(new THREE.CylinderGeometry(0.38, 1.15, 1.1, 32), matCM);
+      cm.position.y = 0.85;
+      grpCSM.add(cm);
+
+      // Sonda de atraque frontal
+      const probe = new THREE.Mesh(new THREE.CylinderGeometry(0.06, 0.10, 0.45, 12), matMetal);
+      probe.position.y = 1.62;
+      grpCSM.add(probe);
+
+      // Escudo térmico de ablación (Avcoat)
+      const heatShield = new THREE.Mesh(new THREE.CylinderGeometry(1.16, 1.15, 0.12, 32), matFoilDark);
+      heatShield.position.y = 0.24;
+      grpCSM.add(heatShield);
+
+      // Módulo de Servicio (SM - Cilíndrico con radiadores)
+      const sm = new THREE.Mesh(new THREE.CylinderGeometry(1.15, 1.15, 1.8, 32), matCSM);
+      sm.position.y = -0.72;
+      grpCSM.add(sm);
+
+      // 4 bloques de propulsores de control de reacción (RCS Quads)
+      for(let i=0; i<4; i++) {
+        const ang = (i * Math.PI) / 2;
+        const rcsBlock = new THREE.Mesh(new THREE.BoxGeometry(0.12, 0.12, 0.12), matMetal);
+        rcsBlock.position.set(Math.cos(ang)*1.20, -0.65, Math.sin(ang)*1.20);
+        grpCSM.add(rcsBlock);
+      }
+
+      // Motor principal de propulsión de servicio (SPS) con gran tobera de campana
+      const spsBell = new THREE.Mesh(new THREE.ConeGeometry(0.55, 1.35, 24, 1, true), matEngine);
+      spsBell.position.y = -2.3;
+      grpCSM.add(spsBell);
+    }
+    grpCSM.userData.baseY = 13.5;
+    grpCSM.userData.explodedY = 28.5;
+    root.add(grpCSM);
+    parts.csm = grpCSM;
+
+    // 3. MÓDULO LUNAR (LM Eagle / Águila)
+    const grpLM = new THREE.Group();
+    grpLM.userData = { id: 'lm', name: 'Módulo Lunar (Eagle)', tag: 'ALUNIZAJE EN EL MAR DE LA TRANQUILIDAD' };
+    {
+      // Etapa de Descenso (Base octogonal forrada en oro Kapton)
+      const descentStage = new THREE.Mesh(new THREE.CylinderGeometry(0.95, 1.05, 0.65, 8), matGold);
+      descentStage.position.y = -0.32;
+      grpLM.add(descentStage);
+
+      // Tobera del motor de descenso
+      const descEngine = new THREE.Mesh(new THREE.ConeGeometry(0.35, 0.6, 16, 1, true), matEngine);
+      descEngine.position.y = -0.85;
+      grpLM.add(descEngine);
+
+      // 4 Patas de aterrizaje con platos de apoyo
+      for(let i=0; i<4; i++) {
+        const ang = (i * Math.PI) / 2 + Math.PI/4;
+        const legGroup = new THREE.Group();
+        legGroup.position.set(Math.cos(ang)*0.95, -0.35, Math.sin(ang)*0.95);
+
+        // Barra principal diagonal
+        const strut = new THREE.Mesh(new THREE.CylinderGeometry(0.035, 0.035, 1.1), matGold);
+        strut.position.set(Math.cos(ang)*0.45, -0.35, Math.sin(ang)*0.45);
+        strut.rotation.z = Math.cos(ang)*0.65;
+        strut.rotation.x = Math.sin(ang)*0.65;
+        legGroup.add(strut);
+
+        // Plato de apoyo circular
+        const pad = new THREE.Mesh(new THREE.CylinderGeometry(0.20, 0.20, 0.04, 12), matGold);
+        pad.position.set(Math.cos(ang)*0.85, -0.75, Math.sin(ang)*0.85);
+        legGroup.add(pad);
+
+        grpLM.add(legGroup);
+      }
+
+      // Etapa de Ascenso (Cabina con ventanas triangulares y tanques de combustible)
+      const cabin = new THREE.Mesh(new THREE.BoxGeometry(0.9, 0.8, 0.85), matFoilDark);
+      cabin.position.y = 0.40;
+      grpLM.add(cabin);
+
+      // Escotilla frontal
+      const hatch = new THREE.Mesh(new THREE.BoxGeometry(0.3, 0.4, 0.05), matWhite);
+      hatch.position.set(0, 0.35, 0.44);
+      grpLM.add(hatch);
+
+      // Dos tanques esféricos laterales de propelente
+      [-0.55, 0.55].forEach(x => {
+        const tank = new THREE.Mesh(new THREE.SphereGeometry(0.32, 16, 16), matFoilDark);
+        tank.position.set(x, 0.45, 0);
+        grpLM.add(tank);
+      });
+
+      // Radar de encuentro y antena parabólica superior
+      const dish = new THREE.Mesh(new THREE.ConeGeometry(0.20, 0.10, 16, 1, true), matMetal);
+      dish.position.set(0.3, 0.95, 0.2);
+      dish.rotation.x = -0.5;
+      grpLM.add(dish);
+    }
+    grpLM.userData.baseY = 10.65;
+    grpLM.userData.explodedY = 22.5;
+    root.add(grpLM);
+    parts.lm = grpLM;
+
+    // 4. ADAPTADOR SLA & TERCERA ETAPA (S-IVB)
+    const grpS4B = new THREE.Group();
+    grpS4B.userData = { id: 'sla', name: 'Adaptador SLA y Tercera Etapa (S-IVB)', tag: 'INSERCIÓN TRANSLUNAR (TLI)' };
+    {
+      // Adaptador cónico SLA que protege al Módulo Lunar en el lanzamiento
+      const slaCone = new THREE.Mesh(new THREE.CylinderGeometry(1.15, 1.95, 2.5, 32, 1, true), matS4B);
+      slaCone.position.y = 0.65;
+      grpS4B.add(slaCone);
+
+      // Anillo de la Unidad de Instrumentos (IU - IBM)
+      const iuRing = new THREE.Mesh(new THREE.CylinderGeometry(1.95, 1.95, 0.4, 32), matDark);
+      iuRing.position.y = -0.80;
+      grpS4B.add(iuRing);
+
+      // Domo superior del tanque de combustible S-IVB
+      const s4bDome = new THREE.Mesh(new THREE.SphereGeometry(1.93, 32, 16, 0, Math.PI*2, 0, Math.PI/2), matDome);
+      s4bDome.position.y = -0.80;
+      grpS4B.add(s4bDome);
+
+      // Cuerpo principal de la Tercera Etapa (S-IVB)
+      const s4bBody = new THREE.Mesh(new THREE.CylinderGeometry(1.95, 1.95, 3.8, 32), matS4B);
+      s4bBody.position.y = -2.9;
+      grpS4B.add(s4bBody);
+
+      // Motor criogénico Rocketdyne J-2
+      const j2Engine = new THREE.Mesh(new THREE.ConeGeometry(0.70, 1.6, 24, 1, true), matEngine);
+      j2Engine.position.y = -5.5;
+      grpS4B.add(j2Engine);
+    }
+    grpS4B.userData.baseY = 10.0;
+    grpS4B.userData.explodedY = 16.5;
+    root.add(grpS4B);
+    parts.sla = grpS4B;
+
+    // 5. SEGUNDA ETAPA (S-II)
+    const grpS2 = new THREE.Group();
+    grpS2.userData = { id: 's2', name: 'Segunda Etapa (S-II)', tag: 'ACELERACIÓN SUB-ORBITAL' };
+    {
+      // Cono interetapa superior S-II a S-IVB
+      const interstageCone = new THREE.Mesh(new THREE.CylinderGeometry(1.95, 3.0, 1.8, 32, 1, true), matS2);
+      interstageCone.position.y = 4.3;
+      grpS2.add(interstageCone);
+
+      // Domo esférico superior del tanque de hidrógeno líquido
+      const s2TopDome = new THREE.Mesh(new THREE.SphereGeometry(2.98, 32, 16, 0, Math.PI*2, 0, Math.PI/2), matDome);
+      s2TopDome.position.y = 3.3;
+      grpS2.add(s2TopDome);
+
+      // Cuerpo cilíndrico principal de 10 metros de diámetro (S-II)
+      const s2Body = new THREE.Mesh(new THREE.CylinderGeometry(3.0, 3.0, 6.2, 32), matS2);
+      s2Body.position.y = 0.3;
+      grpS2.add(s2Body);
+
+      // 5 Motores Rocketdyne J-2 (4 exteriores en anillo y 1 central)
+      const j2Positions = [
+        [0, 0],
+        [-1.15, -1.15],
+        [ 1.15, -1.15],
+        [-1.15,  1.15],
+        [ 1.15,  1.15]
+      ];
+      j2Positions.forEach(([jx, jz]) => {
+        const eng = new THREE.Mesh(new THREE.ConeGeometry(0.55, 1.35, 20, 1, true), matEngine);
+        eng.position.set(jx, -4.2, jz);
+        grpS2.add(eng);
+
+        const pump = new THREE.Mesh(new THREE.CylinderGeometry(0.20, 0.25, 0.4, 12), matCopper);
+        pump.position.set(jx, -3.3, jz);
+        grpS2.add(pump);
+      });
+    }
+    grpS2.userData.baseY = 0.0;
+    grpS2.userData.explodedY = 2.5;
+    root.add(grpS2);
+    parts.s2 = grpS2;
+
+    // 6. PRIMERA ETAPA (S-IC) — 5 MOTORES F-1 GIGANTESCOS Y ALETAS
+    const grpS1C = new THREE.Group();
+    grpS1C.userData = { id: 's1c', name: 'Primera Etapa (S-IC)', tag: 'PROPULSIÓN MASIVA AL DESPEGUE' };
+    {
+      // Domo esférico superior del tanque de oxígeno líquido (LOX Dome)
+      const s1TopDome = new THREE.Mesh(new THREE.SphereGeometry(2.98, 32, 16, 0, Math.PI*2, 0, Math.PI/2), matDome);
+      s1TopDome.position.y = 6.4;
+      grpS1C.add(s1TopDome);
+
+      // Cilindro principal de la primera etapa (42 metros de altura real)
+      const s1Body = new THREE.Mesh(new THREE.CylinderGeometry(3.0, 3.0, 13.0, 32), matS1C);
+      grpS1C.add(s1Body);
+
+      // 4 Aletas aerodinámicas estabilizadoras de base
+      for(let f=0; f<4; f++) {
+        const ang = (f * Math.PI) / 2;
+        const finGroup = new THREE.Group();
+        finGroup.position.set(Math.cos(ang)*3.0, -5.4, Math.sin(ang)*3.0);
+        finGroup.rotation.y = -ang;
+
+        // Carenado del motor F-1 exterior (cóncavos)
+        const fairing = new THREE.Mesh(new THREE.ConeGeometry(0.95, 2.8, 16), matWhite);
+        fairing.position.set(0.65, -0.2, 0);
+        finGroup.add(fairing);
+
+        // Aleta triangular
+        const finShape = new THREE.Shape();
+        finShape.moveTo(0, 0);
+        finShape.lineTo(1.8, -1.8);
+        finShape.lineTo(1.8, -2.6);
+        finShape.lineTo(0, -2.4);
+        finShape.closePath();
+
+        const extSettings = { depth: 0.08, bevelEnabled: false };
+        const finGeo = new THREE.ExtrudeGeometry(finShape, extSettings);
+        const finMesh = new THREE.Mesh(finGeo, matWhite);
+        finMesh.position.set(0.65, 0.4, -0.04);
+        finGroup.add(finMesh);
+
+        grpS1C.add(finGroup);
+      }
+
+      // 5 Motores colosales Rocketdyne F-1 (los motores monocámara más potentes de la historia)
+      const f1Offsets = [
+        [0, 0],
+        [-1.65, 0],
+        [ 1.65, 0],
+        [0, -1.65],
+        [0,  1.65]
+      ];
+      f1Offsets.forEach(([fx, fz]) => {
+        // Campana gigante del motor F-1
+        const f1Bell = new THREE.Mesh(new THREE.ConeGeometry(1.05, 2.5, 32, 1, true), matEngine);
+        f1Bell.position.set(fx, -7.5, fz);
+        grpS1C.add(f1Bell);
+
+        // Tubos de escape del generador de gas y anillo de refuerzo
+        const ring = new THREE.Mesh(new THREE.TorusGeometry(1.05, 0.05, 8, 32), matMetal);
+        ring.rotation.x = Math.PI/2;
+        ring.position.set(fx, -8.7, fz);
+        grpS1C.add(ring);
+      });
+    }
+    grpS1C.userData.baseY = -9.3;
+    grpS1C.userData.explodedY = -11.0;
+    root.add(grpS1C);
+    parts.s1c = grpS1C;
+
+    // ── 6. Lógica de Explosión Armónica ─────────────────────────────────────
+    let explosionFactor = 0.55;
+    let isAutoExploding = false;
+    let autoTime = 0;
+
+    function applyExplosion(factor) {
+      explosionFactor = factor;
+      grpLES.position.y = THREE.MathUtils.lerp(grpLES.userData.baseY, grpLES.userData.explodedY, factor);
+      grpCSM.position.y = THREE.MathUtils.lerp(grpCSM.userData.baseY, grpCSM.userData.explodedY, factor);
+      grpLM.position.y  = THREE.MathUtils.lerp(grpLM.userData.baseY,  grpLM.userData.explodedY,  factor);
+      grpS4B.position.y = THREE.MathUtils.lerp(grpS4B.userData.baseY, grpS4B.userData.explodedY, factor);
+      grpS2.position.y  = THREE.MathUtils.lerp(grpS2.userData.baseY,  grpS2.userData.explodedY,  factor);
+      grpS1C.position.y = THREE.MathUtils.lerp(grpS1C.userData.baseY, grpS1C.userData.explodedY, factor);
+    }
+
+    applyExplosion(0.55);
+
+    // ── 7. Base de Datos Histórica y de Ingeniería de Apolo 11 ──────────────
+    const partData = {
+      les: {
+        tag: 'SEGURIDAD DE TRIPULACIÓN',
+        name: 'Torre de Escape de Lanzamiento (LES)',
+        desc: 'Sistema de escape de emergencia capaz de impulsar a los tres astronautas (Armstrong, Aldrin y Collins) a 1.6 km de distancia en menos de 5 segundos en caso de fallo crítico en el despegue.',
+        specs: [
+          { label: 'EMPUJE ABORTO', val: '689 kN (155,000 lbf)' },
+          { label: 'ALTURA', val: '10.2 metros' },
+          { label: 'TIEMPO REACCIÓN', val: '0.1 segundos' },
+          { label: 'FABRICANTE', val: 'Lockheed Propulsion' }
+        ]
+      },
+      csm: {
+        tag: 'NAVE PRINCIPAL',
+        name: 'Módulo de Mando y Servicio (Columbia)',
+        desc: 'Nave nodriza tripulada. El módulo de mando albergó a la tripulación y fue la única parte que regresó a la Tierra. El módulo de servicio suministró energía, oxígeno y propulsión SPS.',
+        specs: [
+          { label: 'PILOTO EN ÓRBITA', val: 'Michael Collins' },
+          { label: 'MOTOR SPS', val: '91 kN (Aerojet AJ10)' },
+          { label: 'DIÁMETRO', val: '3.90 metros' },
+          { label: 'PESO TOTAL', val: '28,800 kg' }
+        ]
+      },
+      lm: {
+        tag: 'ALUNIZAJE HISTÓRICO',
+        name: 'Módulo Lunar (Eagle / Águila)',
+        desc: 'Primera nave tripulada que aterrizó en la Luna el 20 de julio de 1969. La etapa de descenso permaneció en el Mar de la Tranquilidad, mientras la etapa de ascenso devolvió a Neil y Buzz a la órbita.',
+        specs: [
+          { label: 'TRIPULACIÓN', val: 'Armstrong & Aldrin' },
+          { label: 'EMPUJE DESCENSO', val: '43.9 kN (Regulable)' },
+          { label: 'PESO', val: '15,200 kg' },
+          { label: 'FECHA ALUNIZAJE', val: '20 de Julio, 1969' }
+        ]
+      },
+      sla: {
+        tag: 'TERCERA ETAPA',
+        name: 'Adaptador SLA y Etapa S-IVB',
+        desc: 'Etapa responsable de la Inserción Translunar (TLI), acelerando a la nave fuera de la órbita terrestre a 39,000 km/h rumbo a la Luna. El adaptador cónico SLA albergaba al Módulo Lunar en su interior.',
+        specs: [
+          { label: 'MOTOR', val: '1x Rocketdyne J-2' },
+          { label: 'EMPUJE', val: '1,000 kN (225,000 lbf)' },
+          { label: 'PROPELENTE', val: 'LH2 / LOX (Criogénico)' },
+          { label: 'CEREBRO DE VUELO', val: 'IBM Instrument Unit (IU)' }
+        ]
+      },
+      s2: {
+        tag: 'SEGUNDA ETAPA',
+        name: 'Segunda Etapa (S-II)',
+        desc: 'Impulsó al Apolo 11 a través de las capas superiores de la atmósfera casi hasta la velocidad orbital, quemando más de 450,000 litros de propelente criogénico a través de 5 motores J-2.',
+        specs: [
+          { label: 'MOTORES', val: '5x Rocketdyne J-2' },
+          { label: 'EMPUJE TOTAL', val: '5,000 kN (1,125,000 lbf)' },
+          { label: 'ALTURA', val: '24.8 metros' },
+          { label: 'DIÁMETRO', val: '10.1 metros' }
+        ]
+      },
+      s1c: {
+        tag: 'PROPULSIÓN COLOSAL',
+        name: 'Primera Etapa (S-IC)',
+        desc: 'La etapa de cohete más potente jamás volada con éxito en misiones humanas. Los cinco motores F-1 consumían 15 toneladas de queroseno RP-1 y oxígeno líquido por segundo.',
+        specs: [
+          { label: 'MOTORES', val: '5x Rocketdyne F-1' },
+          { label: 'EMPUJE DESPEGUE', val: '34,500 kN (7,610,000 lbf)' },
+          { label: 'CONSUMO', val: '15,000 kg / segundo' },
+          { label: 'POTENCIA', val: '160 millones de caballos' }
+        ]
+      }
+    };
+
+    // ── 8. Tarjeta de Información & Raycaster ────────────────────────────────
+    const card = document.getElementById('info-card');
+    const cTag = document.getElementById('c-tag');
+    const cName = document.getElementById('c-name');
+    const cDesc = document.getElementById('c-desc');
+    const cSpecs = document.getElementById('c-specs');
+    const cClose = document.getElementById('c-close');
+
+    function showPartInfo(id) {
+      const data = partData[id];
+      if (!data) return;
+
+      cTag.innerText = data.tag;
+      cName.innerText = data.name;
+      cDesc.innerText = data.desc;
+      cSpecs.innerHTML = data.specs.map(s => `
+        <div class="spec-item">
+          <div class="spec-label">${s.label}</div>
+          <div class="spec-val">${s.val}</div>
+        </div>
+      `).join('');
+
+      card.classList.add('visible');
+
+      document.querySelectorAll('.stage-pill').forEach(p => {
+        p.classList.toggle('active', p.getAttribute('data-part') === id);
+      });
+
+      highlightPart(id);
+    }
+
+    cClose.addEventListener('click', () => {
+      card.classList.remove('visible');
+      document.querySelectorAll('.stage-pill').forEach(p => p.classList.remove('active'));
+      clearHighlight();
+    });
+
+    document.querySelectorAll('.stage-pill').forEach(pill => {
+      pill.addEventListener('click', () => {
+        showPartInfo(pill.getAttribute('data-part'));
+      });
+    });
+
+    let lastHighlighted = null;
+    function highlightPart(id) {
+      clearHighlight();
+      const grp = parts[id];
+      if (!grp) return;
+      grp.traverse(child => {
+        if (child.isMesh && child.material) {
+          child.userData.origEmissive = child.material.emissive ? child.material.emissive.clone() : new THREE.Color(0);
+          child.material.emissive = new THREE.Color(0x38bdf8);
+          child.material.emissiveIntensity = 0.22;
+        }
+      });
+      lastHighlighted = grp;
+    }
+
+    function clearHighlight() {
+      if (lastHighlighted) {
+        lastHighlighted.traverse(child => {
+          if (child.isMesh && child.material && child.userData.origEmissive) {
+            child.material.emissive = child.userData.origEmissive;
+            child.material.emissiveIntensity = 0.0;
+          }
+        });
+        lastHighlighted = null;
+      }
+    }
+
+    // Raycast Clic
+    const raycaster = new THREE.Raycaster();
+    const mouse = new THREE.Vector2();
+
+    window.addEventListener('pointerdown', (e) => {
+      if (e.target.closest('#controls-bar') || e.target.closest('#info-card') || e.target.closest('#stages-menu')) return;
+      mouse.x = (e.clientX / innerWidth) * 2 - 1;
+      mouse.y = -(e.clientY / innerHeight) * 2 + 1;
+      raycaster.setFromCamera(mouse, camera);
+
+      const intersects = raycaster.intersectObjects(root.children, true);
+      if (intersects.length > 0) {
+        let obj = intersects[0].object;
+        while (obj.parent && obj.parent !== root) {
+          if (obj.userData && obj.userData.id) break;
+          obj = obj.parent;
+        }
+        if (obj.userData && obj.userData.id) {
+          showPartInfo(obj.userData.id);
+        }
+      }
+    });
+
+    // Slider
+    const slider = document.getElementById('explode-slider');
+    slider.addEventListener('input', (e) => {
+      isAutoExploding = false;
+      document.getElementById('btn-auto').classList.remove('active');
+      applyExplosion(parseFloat(e.target.value));
+    });
+
+    const btnAuto = document.getElementById('btn-auto');
+    btnAuto.addEventListener('click', () => {
+      isAutoExploding = !isAutoExploding;
+      btnAuto.classList.toggle('active', isAutoExploding);
+    });
+
+    const btnReset = document.getElementById('btn-reset');
+    btnReset.addEventListener('click', () => {
+      controls.target.set(0, 1.5, 0);
+      camera.position.set(24, 4, 30);
+      controls.update();
+    });
+
+    showPartInfo('lm');
+
+    // ── 9. Render Loop ───────────────────────────────────────────────────────
+    const clock = new THREE.Clock();
+    function animate() {
+      requestAnimationFrame(animate);
+      const dt = clock.getDelta();
+
+      if (isAutoExploding) {
+        autoTime += dt * 0.7;
+        const val = (Math.sin(autoTime) + 1) * 0.5;
+        slider.value = val;
+        applyExplosion(val);
+      }
+
+      root.rotation.y += 0.06 * dt;
+
+      controls.update();
+      renderer.render(scene, camera);
+    }
+    animate();
+
+    window.addEventListener('resize', () => {
+      camera.aspect = innerWidth / innerHeight;
+      camera.updateProjectionMatrix();
+      renderer.setSize(innerWidth, innerHeight);
+    });
+  </script>
+</body>
+</html>

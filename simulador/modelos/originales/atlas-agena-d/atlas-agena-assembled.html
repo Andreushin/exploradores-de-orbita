@@ -1,0 +1,572 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>NASA Atlas-Agena D - Cohete Completo Ensamblado 3D</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    html, body {
+      width: 100%; height: 100%;
+      overflow: hidden;
+      background-color: #030712;
+      color: #fff;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", sans-serif;
+      user-select: none;
+      -webkit-user-select: none;
+    }
+    canvas { display: block; width: 100vw; height: 100vh; }
+
+    /* HUD Superior */
+    #hud {
+      position: fixed; top: 24px; left: 28px;
+      z-index: 10; pointer-events: none;
+    }
+    .hud-badge {
+      display: inline-flex; align-items: center; gap: 8px;
+      padding: 4px 10px; border-radius: 9999px;
+      background: rgba(15, 23, 42, 0.75);
+      backdrop-filter: blur(12px);
+      border: 1px solid rgba(56, 189, 248, 0.35);
+      font-family: 'SF Mono', Consolas, monospace;
+      font-size: 9px; letter-spacing: 0.18em;
+      color: #bae6fd; text-transform: uppercase;
+      margin-bottom: 6px;
+    }
+    .hud-dot {
+      width: 6px; height: 6px; border-radius: 50%;
+      background: #38bdf8; box-shadow: 0 0 10px #38bdf8;
+      animation: pulse 2s infinite;
+    }
+    @keyframes pulse {
+      0%, 100% { opacity: 1; transform: scale(1); }
+      50% { opacity: 0.4; transform: scale(0.85); }
+    }
+    .hud-title {
+      font-size: 24px; font-weight: 800;
+      color: #f8fafc; letter-spacing: -0.02em;
+    }
+    .hud-sub {
+      font-family: 'SF Mono', Consolas, monospace;
+      font-size: 10px; color: rgba(255,255,255,0.5);
+      letter-spacing: 0.15em; margin-top: 2px;
+    }
+
+    /* Telemetría Histórica */
+    #telemetry-box {
+      position: fixed; top: 24px; right: 28px;
+      z-index: 10; pointer-events: none;
+      background: rgba(15, 23, 42, 0.75);
+      backdrop-filter: blur(12px);
+      border: 1px solid rgba(255, 255, 255, 0.12);
+      border-radius: 10px; padding: 12px 18px;
+      display: flex; gap: 20px;
+    }
+    .telem-item { text-align: right; }
+    .telem-label {
+      font-family: 'SF Mono', Consolas, monospace;
+      font-size: 8px; color: rgba(255,255,255,0.45);
+      letter-spacing: 0.1em; text-transform: uppercase;
+    }
+    .telem-val {
+      font-family: 'SF Mono', Consolas, monospace;
+      font-size: 13px; font-weight: 700; color: #38bdf8; margin-top: 2px;
+    }
+
+    /* Barra de Control Inferior */
+    #controls-bar {
+      position: fixed; bottom: 24px; left: 50%;
+      transform: translateX(-50%);
+      display: flex; align-items: center; gap: 12px;
+      background: rgba(15, 23, 42, 0.85);
+      backdrop-filter: blur(16px);
+      border: 1px solid rgba(255, 255, 255, 0.15);
+      padding: 10px 20px;
+      border-radius: 40px;
+      z-index: 15;
+      box-shadow: 0 10px 30px rgba(0,0,0,0.5);
+    }
+    .btn {
+      background: rgba(255,255,255,0.08); border: 1px solid rgba(255,255,255,0.2);
+      color: #fff; padding: 7px 15px; border-radius: 20px;
+      font-family: 'SF Mono', Consolas, monospace; font-size: 10px;
+      letter-spacing: 0.1em; text-transform: uppercase;
+      cursor: pointer; transition: all 0.2s ease;
+      display: flex; align-items: center; gap: 6px;
+      white-space: nowrap;
+    }
+    .btn:hover { background: rgba(56,189,248,0.3); border-color: #38bdf8; }
+    .btn.active { background: #0284c7; border-color: #38bdf8; color: #fff; font-weight: 700; box-shadow: 0 0 15px rgba(2,132,199,0.6); }
+
+    .cam-nav { display: flex; gap: 6px; border-left: 1px solid rgba(255,255,255,0.15); padding-left: 12px; }
+  </style>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js"></script>
+</head>
+<body>
+
+  <div id="hud">
+    <div class="hud-badge"><span class="hud-dot"></span> NASA · PROJECT GEMINI & PLANETARY</div>
+    <div class="hud-title">Atlas-Agena D</div>
+    <div class="hud-sub">SLV-3 BOOSTER · AGENA TARGET VEHICLE (ATV/ATDA) · 1965-1966</div>
+  </div>
+
+  <div id="telemetry-box">
+    <div class="telem-item">
+      <div class="telem-label">ALTURA TOTAL</div>
+      <div class="telem-val">32.0 m</div>
+    </div>
+    <div class="telem-item">
+      <div class="telem-label">DIÁMETRO ATLAS</div>
+      <div class="telem-val">3.05 m</div>
+    </div>
+    <div class="telem-item">
+      <div class="telem-label">EMPUJE DESPEGUE</div>
+      <div class="telem-val">1,730 kN</div>
+    </div>
+    <div class="telem-item">
+      <div class="telem-label">RENDIMIENTO</div>
+      <div class="telem-val" id="fps-val">60 FPS</div>
+    </div>
+  </div>
+
+  <div id="controls-bar">
+    <button id="btn-ignite" class="btn">🔥 Encender Motores Rocketdyne</button>
+    <button id="btn-rotate" class="btn">🔄 Rotación Órbita</button>
+    <div class="cam-nav">
+      <button class="btn cam-btn active" data-cam="global">Global</button>
+      <button class="btn cam-btn" data-cam="agena">Agena D / ATV</button>
+      <button class="btn cam-btn" data-cam="atlas">Tanque Atlas</button>
+      <button class="btn cam-btn" data-cam="engines">Motores Booster</button>
+    </div>
+  </div>
+
+  <script>
+    // ── 1. Configuración de Escena WebGL ────────────────────────────────────
+    const scene = new THREE.Scene();
+    scene.background = new THREE.Color(0x020617);
+    scene.fog = new THREE.FogExp2(0x020617, 0.008);
+
+    const camera = new THREE.PerspectiveCamera(40, window.innerWidth / window.innerHeight, 0.1, 1000);
+    camera.position.set(20, 2, 24);
+
+    const renderer = new THREE.WebGLRenderer({ antialias: true, powerPreference: "high-performance" });
+    renderer.setSize(window.innerWidth, window.innerHeight);
+    renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+    renderer.toneMapping = THREE.ACESFilmicToneMapping;
+    renderer.toneMappingExposure = 1.25;
+    document.body.appendChild(renderer.domElement);
+
+    const controls = new THREE.OrbitControls(camera, renderer.domElement);
+    controls.enableDamping = true;
+    controls.dampingFactor = 0.05;
+    controls.target.set(0, 1.0, 0);
+    controls.maxDistance = 80;
+    controls.minDistance = 4;
+
+    // ── 2. Iluminación Espacial Cinematográfica ─────────────────────────────
+    const sunLight = new THREE.DirectionalLight(0xfffbeb, 2.6);
+    sunLight.position.set(30, 25, 25);
+    scene.add(sunLight);
+
+    const fillLight = new THREE.DirectionalLight(0x38bdf8, 0.85);
+    fillLight.position.set(-25, -10, -20);
+    scene.add(fillLight);
+
+    const ambLight = new THREE.AmbientLight(0x0f172a, 0.6);
+    scene.add(ambLight);
+
+    const engineLight = new THREE.PointLight(0xf97316, 0, 30);
+    engineLight.position.set(0, -9.5, 0);
+    scene.add(engineLight);
+
+    // Fondo estelar
+    const starsGeo = new THREE.BufferGeometry();
+    const starCount = 1200;
+    const starPos = new Float32Array(starCount * 3);
+    for (let i = 0; i < starCount * 3; i += 3) {
+      starPos[i] = (Math.random() - 0.5) * 500;
+      starPos[i+1] = (Math.random() - 0.5) * 500;
+      starPos[i+2] = (Math.random() - 0.5) * 500;
+    }
+    starsGeo.setAttribute('position', new THREE.BufferAttribute(starPos, 3));
+    const starsMat = new THREE.PointsMaterial({ color: 0xffffff, size: 0.8, transparent: true, opacity: 0.85 });
+    scene.add(new THREE.Points(starsGeo, starsMat));
+
+    // ── 3. Generación Procedural de Texturas HD ─────────────────────────────
+    function createTexture(width, height, drawFn) {
+      const cv = document.createElement('canvas');
+      cv.width = width; cv.height = height;
+      const ctx = cv.getContext('2d');
+      drawFn(ctx, width, height);
+      const tex = new THREE.CanvasTexture(cv);
+      tex.wrapS = THREE.RepeatWrapping;
+      tex.wrapT = THREE.ClampToEdgeWrapping;
+      return tex;
+    }
+
+    function drawFlag(ctx, x, y, w, h) {
+      ctx.fillStyle = '#b91c1c';
+      ctx.fillRect(x, y, w, h);
+      const stripeH = h / 13;
+      ctx.fillStyle = '#ffffff';
+      for(let i = 1; i < 13; i += 2) {
+        ctx.fillRect(x, y + i * stripeH, w, stripeH);
+      }
+      ctx.fillStyle = '#1d4ed8';
+      ctx.fillRect(x, y, w * 0.42, stripeH * 7);
+      ctx.fillStyle = '#ffffff';
+      for(let r = 0; r < 3; r++) {
+        for(let c = 0; c < 4; c++) ctx.fillRect(x + 4 + c * 8, y + 3 + r * 6, 2, 2);
+      }
+    }
+
+    // 1. Textura del Tanque de Acero Inoxidable Atlas (Balloon Tank)
+    const atlasTankTex = createTexture(1024, 2048, (ctx, w, h) => {
+      // Acero inoxidable pulido base
+      const grad = ctx.createLinearGradient(0, 0, w, 0);
+      grad.addColorStop(0, '#94a3b8');
+      grad.addColorStop(0.25, '#cbd5e1');
+      grad.addColorStop(0.5, '#f1f5f9');
+      grad.addColorStop(0.75, '#cbd5e1');
+      grad.addColorStop(1, '#94a3b8');
+      ctx.fillStyle = grad;
+      ctx.fillRect(0, 0, w, h);
+
+      // Líneas horizontales de paneles soldados de acero
+      ctx.strokeStyle = 'rgba(71, 85, 105, 0.35)';
+      ctx.lineWidth = 2;
+      for(let y = 0; y < h; y += 45) {
+        ctx.beginPath(); ctx.moveTo(0, y); ctx.lineTo(w, y); ctx.stroke();
+      }
+
+      // Costuras verticales de tanque presurizado
+      ctx.strokeStyle = 'rgba(100, 116, 139, 0.4)';
+      ctx.lineWidth = 3;
+      for(let x = 0; x < w; x += 256) {
+        ctx.beginPath(); ctx.moveTo(x, 0); ctx.lineTo(x, h); ctx.stroke();
+      }
+
+      // Rótulo vertical UNITED STATES en negro
+      ctx.fillStyle = '#0f172a';
+      ctx.font = 'bold 44px Arial, Helvetica, sans-serif';
+      ctx.letterSpacing = '10px';
+      const textX1 = 340;
+      const textX2 = 852;
+      const letters = ['U','N','I','T','E','D',' ','S','T','A','T','E','S'];
+      letters.forEach((l, idx) => {
+        if(l !== ' ') {
+          ctx.fillText(l, textX1, 580 + idx * 75);
+          ctx.fillText(l, textX2, 580 + idx * 75);
+        }
+      });
+
+      // Placas rojas y marcas de alerta
+      ctx.fillStyle = '#dc2626';
+      ctx.fillRect(textX1 - 30, 1680, 45, 30);
+      ctx.fillRect(textX2 - 30, 1680, 45, 30);
+    });
+
+    // 2. Textura de la Faldón de Popa / Booster Skirt (Corrugada)
+    const skirtTex = createTexture(1024, 512, (ctx, w, h) => {
+      ctx.fillStyle = '#94a3b8';
+      ctx.fillRect(0, 0, w, h);
+
+      // Estructura corrugada vertical
+      for(let x = 0; x < w; x += 10) {
+        ctx.fillStyle = (x % 20 === 0) ? '#64748b' : '#cbd5e1';
+        ctx.fillRect(x, 0, 5, h);
+      }
+
+      // Paneles rectangulares de acceso
+      ctx.fillStyle = '#475569';
+      for(let x = 60; x < w; x += 256) {
+        ctx.fillRect(x, 120, 120, 180);
+        ctx.strokeStyle = '#e2e8f0';
+        ctx.lineWidth = 2;
+        ctx.strokeRect(x, 120, 120, 180);
+      }
+    });
+
+    // 3. Textura de la Interetapa Atlas-Agena con Damero Blanco/Negro
+    const interstageTex = createTexture(1024, 512, (ctx, w, h) => {
+      ctx.fillStyle = '#0f172a';
+      ctx.fillRect(0, 0, w, h);
+
+      // Banda de damero blanco y negro (Checkerboard) histórica de 2 filas
+      const rows = 2;
+      const cols = 24;
+      const cellW = w / cols;
+      const cellH = 65;
+      const startY = 220;
+
+      for(let r = 0; r < rows; r++) {
+        for(let c = 0; c < cols; c++) {
+          if((r + c) % 2 === 0) {
+            ctx.fillStyle = '#f8fafc';
+            ctx.fillRect(c * cellW, startY + r * cellH, cellW, cellH);
+          } else {
+            ctx.fillStyle = '#0f172a';
+            ctx.fillRect(c * cellW, startY + r * cellH, cellW, cellH);
+          }
+        }
+      }
+
+      ctx.strokeStyle = '#64748b';
+      ctx.lineWidth = 3;
+      ctx.beginPath(); ctx.moveTo(0, startY); ctx.lineTo(w, startY); ctx.stroke();
+      ctx.beginPath(); ctx.moveTo(0, startY + rows * cellH); ctx.lineTo(w, startY + rows * cellH); ctx.stroke();
+    });
+
+    // 4. Textura de la Etapa Superior Agena D
+    const agenaTex = createTexture(1024, 512, (ctx, w, h) => {
+      ctx.fillStyle = '#e2e8f0';
+      ctx.fillRect(0, 0, w, h);
+
+      // Bahía de instrumentos corrugada
+      for(let x = 0; x < w; x += 12) {
+        ctx.fillStyle = (x % 24 === 0) ? '#94a3b8' : '#cbd5e1';
+        ctx.fillRect(x, 0, 6, 240);
+      }
+
+      // Bandera estadounidense
+      drawFlag(ctx, 360, 260, 110, 65);
+      drawFlag(ctx, 870, 260, 110, 65);
+
+      // Rótulos de Agena D
+      ctx.fillStyle = '#0f172a';
+      ctx.font = 'bold 22px monospace';
+      ctx.fillText('AGENA D · ATV-5003', 320, 360);
+      ctx.fillText('AGENA D · ATV-5003', 830, 360);
+    });
+
+    // ── 4. Materiales PBR ───────────────────────────────────────────────────
+    const matSteel  = new THREE.MeshStandardMaterial({ map: atlasTankTex, roughness: 0.22, metalness: 0.88 });
+    const matSkirt  = new THREE.MeshStandardMaterial({ map: skirtTex, roughness: 0.35, metalness: 0.65 });
+    const matInter  = new THREE.MeshStandardMaterial({ map: interstageTex, roughness: 0.40, metalness: 0.25 });
+    const matAgena  = new THREE.MeshStandardMaterial({ map: agenaTex, roughness: 0.30, metalness: 0.40 });
+    const matWhite  = new THREE.MeshStandardMaterial({ color: 0xf8fafc, roughness: 0.25, metalness: 0.15 });
+    const matDark   = new THREE.MeshStandardMaterial({ color: 0x0f172a, roughness: 0.50, metalness: 0.30 });
+    const matEngine = new THREE.MeshStandardMaterial({ color: 0x1e293b, roughness: 0.25, metalness: 0.90 });
+    const matMetal  = new THREE.MeshStandardMaterial({ color: 0x64748b, roughness: 0.20, metalness: 0.85 });
+    const matGold   = new THREE.MeshStandardMaterial({ color: 0xf59e0b, roughness: 0.30, metalness: 0.80 });
+
+    // ── 5. Construcción del Cohete Atlas-Agena D ────────────────────────────
+    const rocket = new THREE.Group();
+    scene.add(rocket);
+
+    // [1] COFIA / NOSE FAIRING (Protector cónico aerodinámico superior)
+    {
+      const fairing = new THREE.Mesh(new THREE.CylinderGeometry(0.08, 0.76, 2.4, 32), matWhite);
+      fairing.position.y = 12.8;
+      rocket.add(fairing);
+
+      const noseTip = new THREE.Mesh(new THREE.SphereGeometry(0.08, 16, 8, 0, Math.PI*2, 0, Math.PI/2), matWhite);
+      noseTip.position.y = 14.0;
+      rocket.add(noseTip);
+    }
+
+    // [2] ETAPA SUPERIOR AGENA D (Target Docking Vehicle)
+    {
+      // Cono de Acoplamiento y Adaptador ATDA / TDA
+      const dockingRing = new THREE.Mesh(new THREE.CylinderGeometry(0.74, 0.76, 0.5, 32), matDark);
+      dockingRing.position.y = 11.35;
+      rocket.add(dockingRing);
+
+      // Cilindro principal de Agena D
+      const agenaBody = new THREE.Mesh(new THREE.CylinderGeometry(0.76, 0.76, 3.2, 32), matAgena);
+      agenaBody.position.y = 9.5;
+      rocket.add(agenaBody);
+
+      // Antenas de telemetría y radar de banda L (para acople con Gemini)
+      for(let i=0; i<4; i++) {
+        const ang = (i * Math.PI) / 2 + Math.PI/4;
+        const ant = new THREE.Mesh(new THREE.CylinderGeometry(0.02, 0.02, 0.45), matMetal);
+        ant.position.set(Math.cos(ang)*0.82, 10.8, Math.sin(ang)*0.82);
+        ant.rotation.z = Math.cos(ang) * 0.4;
+        ant.rotation.x = Math.sin(ang) * 0.4;
+        rocket.add(ant);
+      }
+    }
+
+    // [3] INTERETAPA ATLAS-AGENACONTENIENDO EL DAMERO BLANCO Y NEGRO
+    {
+      // Cono de transición y shroud
+      const interstage = new THREE.Mesh(new THREE.CylinderGeometry(0.76, 1.25, 2.2, 32), matInter);
+      interstage.position.y = 6.8;
+      rocket.add(interstage);
+    }
+
+    // [4] TANQUE PRINCIPAL ATLAS SLV-3 (ACERO INOXIDABLE DE PRESIÓN)
+    {
+      // Domo cónico superior de unión
+      const atlasCone = new THREE.Mesh(new THREE.CylinderGeometry(1.25, 1.52, 2.4, 32), matSteel);
+      atlasCone.position.y = 4.5;
+      rocket.add(atlasCone);
+
+      // Cuerpo cilíndrico de acero inoxidable de 3.05 m de diámetro
+      const atlasBody = new THREE.Mesh(new THREE.CylinderGeometry(1.52, 1.52, 9.8, 32), matSteel);
+      atlasBody.position.y = -1.6;
+      rocket.add(atlasBody);
+
+      // Tuberías externas de cableado y LOX (Side Conduits / Pods)
+      [-1.53, 1.53].forEach(x => {
+        const pipe = new THREE.Mesh(new THREE.CylinderGeometry(0.045, 0.045, 11.2), matMetal);
+        pipe.position.set(x, -1.0, 0);
+        rocket.add(pipe);
+
+        const pod = new THREE.Mesh(new THREE.BoxGeometry(0.12, 1.8, 0.16), matWhite);
+        pod.position.set(x, -4.5, 0);
+        rocket.add(pod);
+      });
+    }
+
+    // [5] FALDA DE POPA Y ESTRUCTURA DE MOTORES (BOOSTER SKIRT)
+    {
+      // Faldón corrugado ensanchado de la primera etapa
+      const skirt = new THREE.Mesh(new THREE.CylinderGeometry(1.52, 1.76, 2.8, 32), matSkirt);
+      skirt.position.y = -7.9;
+      rocket.add(skirt);
+
+      // Carenados laterales de los motores de despegue (Booster pods)
+      [-1.55, 1.55].forEach(x => {
+        const fairing = new THREE.Mesh(new THREE.CylinderGeometry(0.35, 0.55, 2.8, 16), matSkirt);
+        fairing.position.set(x, -7.9, 0);
+        rocket.add(fairing);
+      });
+
+      // 2x Motores Booster Rocketdyne XLR89 (exteriores desechables)
+      [-0.95, 0.95].forEach(x => {
+        const bell = new THREE.Mesh(new THREE.ConeGeometry(0.48, 1.4, 24, 1, true), matEngine);
+        bell.position.set(x, -9.9, 0);
+        rocket.add(bell);
+
+        const ring = new THREE.Mesh(new THREE.TorusGeometry(0.48, 0.03, 8, 24), matMetal);
+        ring.rotation.x = Math.PI/2;
+        ring.position.set(x, -10.6, 0);
+        rocket.add(ring);
+      });
+
+      // 1x Motor Central Sustainer Rocketdyne XLR105 (no desechable)
+      const sustainerBell = new THREE.Mesh(new THREE.ConeGeometry(0.40, 1.25, 24, 1, true), matEngine);
+      sustainerBell.position.set(0, -9.7, 0);
+      rocket.add(sustainerBell);
+
+      // 2x Pequeños motores vernier para control de cabeceo y balanceo
+      [ [0, -1.6], [0, 1.6] ].forEach(([vx, vz]) => {
+        const vernier = new THREE.Mesh(new THREE.ConeGeometry(0.12, 0.35, 12, 1, true), matEngine);
+        vernier.position.set(vx, -8.2, vz);
+        vernier.rotation.x = vz > 0 ? 0.3 : -0.3;
+        rocket.add(vernier);
+      });
+    }
+
+    // ── 6. Llamas y Efectos de Encendido de Motores ─────────────────────────
+    const flameGroup = new THREE.Group();
+    rocket.add(flameGroup);
+    flameGroup.visible = false;
+
+    const flameMatInner = new THREE.MeshBasicMaterial({ color: 0xffedd5, transparent: true, opacity: 0.92, blending: THREE.AdditiveBlending });
+    const flameMatOuter = new THREE.MeshBasicMaterial({ color: 0xf97316, transparent: true, opacity: 0.78, blending: THREE.AdditiveBlending });
+
+    const flames = [];
+    // Las 3 toberas principales (2 Boosters + 1 Sustainer)
+    [ [-0.95, 0, 1.1], [0.95, 0, 1.1], [0, 0, 0.9] ].forEach(([fx, fz, scl]) => {
+      const coneIn = new THREE.Mesh(new THREE.ConeGeometry(0.42 * scl, 5.5 * scl, 16), flameMatInner);
+      coneIn.position.set(fx, -13.2 * scl, fz);
+      coneIn.rotation.x = Math.PI;
+      flameGroup.add(coneIn);
+
+      const coneOut = new THREE.Mesh(new THREE.ConeGeometry(0.75 * scl, 8.5 * scl, 16), flameMatOuter);
+      coneOut.position.set(fx, -14.6 * scl, fz);
+      coneOut.rotation.x = Math.PI;
+      flameGroup.add(coneOut);
+
+      flames.push({ inner: coneIn, outer: coneOut, baseScale: scl });
+    });
+
+    // ── 7. Manejo de Interacción y Cámaras ──────────────────────────────────
+    let isIgnited = false;
+    let isRotating = true;
+
+    const btnIgnite = document.getElementById('btn-ignite');
+    btnIgnite.addEventListener('click', () => {
+      isIgnited = !isIgnited;
+      flameGroup.visible = isIgnited;
+      btnIgnite.classList.toggle('active', isIgnited);
+      btnIgnite.innerHTML = isIgnited ? '🔥 Motores Encendidos' : '🔥 Encender Motores Rocketdyne';
+      engineLight.intensity = isIgnited ? 4.5 : 0;
+    });
+
+    const btnRotate = document.getElementById('btn-rotate');
+    btnRotate.classList.add('active');
+    btnRotate.addEventListener('click', () => {
+      isRotating = !isRotating;
+      btnRotate.classList.toggle('active', isRotating);
+    });
+
+    const camViews = {
+      global:  { pos: [20, 2, 24],   target: [0, 1.0, 0] },
+      agena:   { pos: [5, 11, 7],    target: [0, 10.5, 0] },
+      atlas:   { pos: [10, -1, 12],  target: [0, -1.5, 0] },
+      engines: { pos: [6, -10, 8],   target: [0, -9.5, 0] }
+    };
+
+    let targetCamPos = camera.position.clone();
+    let targetLookAt = controls.target.clone();
+    let isTransitioning = false;
+
+    document.querySelectorAll('.cam-btn').forEach(btn => {
+      btn.addEventListener('click', () => {
+        document.querySelectorAll('.cam-btn').forEach(b => b.classList.remove('active'));
+        btn.classList.add('active');
+        const v = camViews[btn.getAttribute('data-cam')];
+        if (v) {
+          targetCamPos.set(...v.pos);
+          targetLookAt.set(...v.target);
+          isTransitioning = true;
+        }
+      });
+    });
+
+    // ── 8. Bucle de Animación y Renderizado ─────────────────────────────────
+    const clock = new THREE.Clock();
+    function animate() {
+      requestAnimationFrame(animate);
+      const dt = clock.getDelta();
+      const time = clock.getElapsedTime();
+
+      if (isRotating) {
+        rocket.rotation.y += 0.09 * dt;
+      }
+
+      if (isIgnited) {
+        engineLight.intensity = 3.8 + Math.sin(time * 30.0) * 1.0;
+        flames.forEach((f, idx) => {
+          const jitter = Math.sin(time * 28.0 + idx) * 0.15;
+          f.inner.scale.set(1.0 + jitter * 0.2, 1.0 + jitter, 1.0 + jitter * 0.2);
+          f.outer.scale.set(1.0 + jitter * 0.3, 1.0 + jitter * 1.2, 1.0 + jitter * 0.3);
+        });
+      }
+
+      if (isTransitioning) {
+        camera.position.lerp(targetCamPos, 0.06);
+        controls.target.lerp(targetLookAt, 0.06);
+        if (camera.position.distanceTo(targetCamPos) < 0.1) {
+          isTransitioning = false;
+        }
+      }
+
+      controls.update();
+      renderer.render(scene, camera);
+    }
+    animate();
+
+    window.addEventListener('resize', () => {
+      camera.aspect = window.innerWidth / window.innerHeight;
+      camera.updateProjectionMatrix();
+      renderer.setSize(window.innerWidth, window.innerHeight);
+    });
+  </script>
+</body>
+</html>
