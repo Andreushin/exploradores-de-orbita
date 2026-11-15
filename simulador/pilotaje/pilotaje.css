@@ -118,6 +118,10 @@ body.pil { background: var(--pil-bg); color: var(--pil-texto); font: 14.5px/1.45
   font-size: 0.68rem; opacity: 0.82; font-family: var(--pil-mono);
 }
 .pil-tab-mision:hover { color: var(--pil-texto); background: rgba(56, 189, 248, 0.12); }
+.pil-tab-mision.bloqueada, .pil-tab-mision.bloqueada:hover { cursor: default; }
+/* Incrustado en el Nivel 3 (?embed=1): la página de fuera pone la marca y el idioma */
+body.pil-embed .pil-brand, body.pil-embed #pil-idioma { display: none; }
+.pil-nota-etapa { border-left: 3px solid var(--pil-info); padding-left: 10px; }
 .pil-tab-mision.activa {
   color: #061024; background: var(--pil-info); border-color: var(--pil-info); font-weight: 700;
   box-shadow: 0 0 12px rgba(56, 189, 248, 0.4);

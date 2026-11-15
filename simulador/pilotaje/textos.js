@@ -4,6 +4,7 @@ export const TEXTOS = {
     titulo: 'Misiones Orbitales',
     idioma: 'EN', idiomaEtiqueta: 'Cambiar idioma a inglés',
     volver: 'Volver al juego',
+    misionFijada: 'Misión de tu juego: no se puede cambiar',
     vistas: {
       orbita: '🛰️ Vista: Cohete 3D (V)',
       cabina: '🔭 Vista: Escáner (V)',
@@ -109,6 +110,8 @@ export const TEXTOS = {
       estrellas: 'Calificación', orbita: 'Órbita final', orbitaSi: 'Estable ({peri} × {apo} km)', orbitaNo: 'No alcanzada',
       lugares: 'Sitios investigados', dvUsado: 'Δv empleado', tiempo: 'Tiempo total',
       reintentar: '↺ Repetir misión',
+      continuar: 'Continuar la misión →',
+      notaEtapa: 'Esta etapa es importante para continuar la misión, pero no suma ni resta puntos.',
       siguiente: '🚀 Ir a la siguiente misión ({sig})',
       calidad: 'calidad {q} %',
       consejoChoque: 'Consejo: usa el botón «🔥 Activar Captura Automática (C)» para frenar horizontalmente sin caer hacia la superficie.',
@@ -133,6 +136,7 @@ export const TEXTOS = {
     titulo: 'Orbital Missions',
     idioma: 'ES', idiomaEtiqueta: 'Switch language to Spanish',
     volver: 'Back to the game',
+    misionFijada: 'Your game’s mission: it cannot be changed',
     vistas: {
       orbita: '🛰️ View: 3D Rocket (V)',
       cabina: '🔭 View: Scanner (V)',
@@ -238,6 +242,8 @@ export const TEXTOS = {
       estrellas: 'Rating', orbita: 'Final orbit', orbitaSi: 'Stable ({peri} × {apo} km)', orbitaNo: 'Not achieved',
       lugares: 'Sites investigated', dvUsado: 'Δv used', tiempo: 'Tiempo total',
       reintentar: '↺ Retry mission',
+      continuar: 'Continue the mission →',
+      notaEtapa: 'This stage matters to continue the mission, but it neither adds nor subtracts points.',
       siguiente: '🚀 Go to next mission ({sig})',
       calidad: 'quality {q} %',
       consejoChoque: 'Tip: use "🔥 Auto Orbit Capture (C)" to brake horizontally without dropping into the surface.',

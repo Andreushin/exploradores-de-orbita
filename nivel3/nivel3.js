@@ -1,8 +1,11 @@
 // OWNER: Andreushin — Nivel 3 · Travesía e inserción orbital (docs/niveles/nivel-3.md).
 // Lee el satélite de `eo-mision` (docs/contrato-niveles.md), simula el viaje con combustible
 // finito en kg (depende de la masa, ecuación del cohete) y escribe `journey`.
+// Antes de los asteroides: despegue en el simulador de cohetes reales (iframe) con el cohete que fijó el
+// Nivel 1 (`simulation.rocketId`). Al llegar a órbita sigue la travesía de siempre; escribe `simulation`.
 import { G0, deltaV, propellantFor, resolvePieces, dryMass, systemIsp, insertionOutcome } from '../js/physics.js';
 import { loadMission, saveMission, levelHref } from '../js/mision-store.js';
+import { SIM_DONE, SIM_LANG, PIL_DONE } from '../simulador/embed.js';
 import { TEXTOS } from './textos.js';
 import { FLIGHT_HITS, createFlight, startFlight, updateFlight, drawFlight, pointerToInput } from './vuelo.js';
 
@@ -16,6 +19,8 @@ const CRUISE_SECONDS = 9;    // duración visual del crucero
 const TCM_AT = 0.25;         // fracción del viaje donde aparece la corrección
 const EVENT_AT = 0.6;        // fracción del viaje donde aparece el evento
 const IONIC_ISP = 1500;      // para la sugerencia educativa
+const SIM_EXIT_MS = 2500;    // tras llegar a órbita, tiempo para ver el cohete antes de pasar a los asteroides
+const PILOT_ENTER_MS = 3000; // tras superar los asteroides, tiempo del cartel antes de entrar al pilotaje
 // Diseño de referencia (docs/fuentes.md) para el modo demo
 const DEMO = {
   missionId: 'moon', rocketId: 'pico',
@@ -41,6 +46,9 @@ let sat;           // { dry, isp, prop0, maxProp, hasEngine, demo }
 let run;           // estado de una travesía (se reinicia en cada intento)
 let attempts = 0;
 let flight;        // Fase 1: la nave nodriza cruza el campo de asteroides (vuelo.js)
+let launch;        // Despegue y pilotaje: { rocketId, done, result, destino, pilotDone } (sección `simulation`)
+let simTimer = 0;
+let pilotTimer = 0;
 const input = { keys: new Set(), pointer: null };
 const KEYMAP = { ArrowLeft: 'left', KeyA: 'left', ArrowRight: 'right', KeyD: 'right', ArrowUp: 'up', KeyW: 'up', ArrowDown: 'down', KeyS: 'down' };
 
@@ -235,6 +243,148 @@ function renderHud() {
 const panel = () => $('n3-panel');
 const btn = (label, cls, on) => { const b = document.createElement('button'); b.type = 'button'; b.className = `n3-btn ${cls}`; b.innerHTML = label; b.addEventListener('click', on); return b; };
 
+// --- Despegue: simulador de cohetes reales (iframe, ver simulador/embed.js) ---------
+/** Nombre del cohete para los textos (viene de data/missions.json → simRocket). */
+const rocketName = () => (launch.rocketId === mission.simRocket?.id ? tx(mission.simRocket.name) : launch.rocketId);
+
+/**
+ * El mismo iframe sirve al despegue y al pilotaje, a pantalla completa (cubre la ventana). El panel del nivel
+ * pasa a ser una barra flotante con el idioma y la acción (saltar / continuar); su texto queda para lectores de pantalla.
+ */
+function openFrame(src) {
+  const f = $('n3-sim');
+  f.src = src;
+  f.hidden = false;
+  document.body.classList.add('n3-fullsim');
+}
+
+/** Cierra el simulador del iframe (libera su WebGL) y vuelve a la página normal. */
+function closeFrame() {
+  const f = $('n3-sim');
+  f.src = 'about:blank';
+  f.hidden = true;
+  document.body.classList.remove('n3-fullsim');
+  panel().innerHTML = '';
+}
+
+/** Botones de la barra flotante: idioma (la cabecera queda tapada) y la acción, con icono y texto. */
+function floatButtons(row, label, cls, on) {
+  const l = btn(esc(t('lang')), 'n3-btn-ghost', toggleLang);
+  l.setAttribute('aria-label', t('langLabel'));
+  l.dataset.lang = '1';
+  const a = btn(`<span aria-hidden="true">⏭</span> <span class="n3-btn-txt">${label}</span>`, cls, on);
+  a.setAttribute('aria-label', label);
+  row.append(l, a);
+}
+
+/** Abre el simulador con el cohete de la misión fijado: el jugador no lo puede cambiar. */
+function startSim() {
+  run.phase = 'sim';
+  if (!sat.demo) saveMission({ simulation: { rocketId: launch.rocketId, locked: true } });
+  openFrame(`../simulador/?rocket=${encodeURIComponent(launch.rocketId)}&lock=1&embed=1`);
+  renderOverlay();
+  renderSim();
+}
+
+function renderSim() {
+  const rocket = esc(rocketName());
+  const p = panel();
+  const row = document.createElement('div'); row.className = 'n3-choices';
+  if (launch.result) {
+    p.innerHTML = `<h2 class="n3-ok">${t('simDoneTitle')}</h2>
+      <p>${t('simDoneText', { rocket, p: fmt(launch.result.perigeoKm ?? 0, 0), a: fmt(launch.result.apogeoKm ?? 0, 0) })}</p>`;
+    floatButtons(row, t('simContinue'), 'n3-btn-primary', closeSim);
+  } else {
+    p.innerHTML = `<span class="n3-tag">${t('simTag')}</span><h2>${t('simTitle', { rocket })}</h2>
+      <p>${t('simText', { rocket, dest: esc(tx(mission.name)) })}</p>`;
+    floatButtons(row, t('simSkip'), 'n3-btn-ghost', () => finishSim({ skipped: true }));
+  }
+  p.append(row);
+}
+
+/**
+ * Avisos de los simuladores (mismo origen y desde nuestro iframe):
+ * el despegue llegó a órbita (fase 'sim') o el jugador pulsó «Continuar» en el informe del pilotaje (fase 'pilot').
+ */
+function onSimMessage(e) {
+  if (e.origin !== location.origin || e.source !== $('n3-sim').contentWindow) return;
+  const d = e.data;
+  const num = (n) => (Number.isFinite(n) ? n : null);
+  if (run?.phase === 'sim' && d?.type === SIM_DONE && d.ok) {
+    finishSim({ ok: true, perigeoKm: num(d.perigeoKm), apogeoKm: num(d.apogeoKm), tiempoS: num(d.tiempoS), propRestanteKg: num(d.propRestanteKg) });
+  } else if (run?.phase === 'pilot' && d?.type === PIL_DONE) {
+    finishPilot({
+      fin: String(d.fin), orbita: Boolean(d.orbita), estrellas: num(d.estrellas) ?? 0,
+      lugares: num(d.lugares) ?? 0, dvUsado: num(d.dvUsado), tiempoS: num(d.tiempoS),
+    });
+  }
+}
+
+function finishSim(result) {
+  if (run.phase !== 'sim' || launch.done) return;
+  launch.done = true;
+  launch.result = result;
+  if (!sat.demo) saveMission({ simulation: { rocketId: launch.rocketId, locked: true, done: true, result } });
+  const rocket = rocketName();
+  if (result.skipped) {
+    log(t('logSimSkip', { rocket }));
+    closeSim();
+    return;
+  }
+  log(t('logSim', { rocket, p: fmt(result.perigeoKm ?? 0, 0), a: fmt(result.apogeoKm ?? 0, 0) }), 'n3-good');
+  renderSim();
+  simTimer = setTimeout(closeSim, SIM_EXIT_MS);
+}
+
+/** Cierra el simulador (libera su WebGL) y pasa a la pantalla del campo de asteroides. */
+function closeSim() {
+  clearTimeout(simTimer);
+  if (run.phase !== 'sim') return;
+  closeFrame();
+  run.phase = 'flight';
+  run.lastFrame = performance.now();
+  renderOverlay(true); // el foco vuelve a esta página: el teclado del juego responde
+}
+
+// --- Fase 2: pilotaje orbital (iframe con simulador/pilotaje/, tras los asteroides) ---------
+// Captura la órbita del destino con el mismo cohete. No suma ni resta puntos: no toca `journey` ni `report`.
+const pilotPending = () => Boolean(launch.destino) && !launch.pilotDone;
+
+function startPilot() {
+  run.phase = 'pilot';
+  if (!sat.demo) saveMission({ simulation: { pilot: { done: false, result: null } } });
+  openFrame(`../simulador/pilotaje/?destino=${encodeURIComponent(launch.destino)}&lock=1&embed=1`);
+  renderOverlay();
+  renderPilot();
+}
+
+function renderPilot() {
+  const dest = esc(tx(mission.name));
+  const p = panel();
+  p.innerHTML = `<span class="n3-tag">${t('pilotTag')}</span><h2>${t('pilotTitle', { dest })}</h2>
+    <p>${t('pilotText', { dest, rocket: esc(rocketName()) })}</p>`;
+  const row = document.createElement('div'); row.className = 'n3-choices';
+  floatButtons(row, t('pilotSkip'), 'n3-btn-ghost', () => finishPilot({ skipped: true }));
+  p.append(row);
+}
+
+/** Fin del pilotaje (Continuar en su informe o saltado): cierra el iframe y sigue con el presupuesto de Δv. */
+function finishPilot(result) {
+  if (run.phase !== 'pilot' || launch.pilotDone) return;
+  launch.pilotDone = true;
+  if (!sat.demo) saveMission({ simulation: { pilot: { done: true, result } } });
+  const dest = tx(mission.name);
+  if (result.skipped) log(t('logPilotSkip'));
+  else if (result.orbita) log(t('logPilotOk', { dest, n: result.estrellas, l: result.lugares }), 'n3-good');
+  else log(t('logPilotFail', { dest }), 'n3-warn');
+  closeFrame();
+  run.phase = 'brief';
+  renderOverlay();
+  renderBrief();
+  panel().querySelector('h2')?.setAttribute('tabindex', '-1');
+  panel().querySelector('h2')?.focus({ preventScroll: true }); // el foco vuelve a esta página
+}
+
 // --- Fase 1: campo de asteroides (primera persona) --------------------------------
 function renderFlightHud() {
   const pct = flight.shield * 100;
@@ -255,6 +405,7 @@ function renderOverlay(focus = false) {
   const playing = run.phase === 'flight' && flight.state === 'playing';
   $('n3-stage').classList.toggle('is-flying', playing);
   $('n3-stage').classList.toggle('is-flight-phase', run.phase === 'flight');
+  $('n3-stage').classList.toggle('is-sim-phase', run.phase === 'sim' || run.phase === 'pilot');
   resize();
   if (run.phase !== 'flight' || playing) { o.hidden = true; o.replaceChildren(); return; }
   const card = document.createElement('div');
@@ -267,10 +418,12 @@ function renderOverlay(focus = false) {
     card.innerHTML = `<h2 class="n3-bad">${t('flightCrashTitle')}</h2><p>${t('flightCrashText', { n: flight.dodged })}</p>`;
     row.append(btn(t('flightRetry'), 'n3-btn-primary', startFlightRun), btn(t('flightSkip'), 'n3-btn-ghost', () => deploy(true)));
   } else {
-    card.innerHTML = `<h2 class="n3-ok">${t('flightDoneTitle')}</h2><p>${t('flightDoneText', { n: flight.dodged, pct: fmt(flight.shield * 100, 0) })}</p>`;
-    row.append(btn(t('deploy'), 'n3-btn-primary', () => deploy(false)));
+    // Campo superado: sin botón, pasa solo (PILOT_ENTER_MS) al pilotaje o, si ya se hizo, al presupuesto
+    const next = pilotPending() ? t('flightDoneNext', { dest: esc(tx(mission.name)) }) : t('flightDoneBrief');
+    card.innerHTML = `<h2 class="n3-ok">${t('flightDoneTitle')}</h2><p>${t('flightDoneText', { n: flight.dodged, pct: fmt(flight.shield * 100, 0) })}</p>
+      <p class="n3-muted">${next}</p>`;
   }
-  card.append(row);
+  if (row.childElementCount) card.append(row);
   o.replaceChildren(card);
   o.hidden = false;
   if (focus) row.querySelector('button')?.focus({ preventScroll: true });
@@ -283,9 +436,12 @@ function startFlightRun() {
   renderOverlay();
 }
 
-/** La nave libera al CubeSat: desde aquí sigue la travesía de siempre. */
+/** La nave llega al destino: pilotaje orbital (si falta) y luego la travesía de siempre. */
 function deploy(skipped) {
+  clearTimeout(pilotTimer);
+  if (run.phase !== 'flight') return;
   log(skipped ? t('logFlightSkip') : t('logFlight', { n: flight.dodged, pct: fmt(flight.shield * 100, 0) }));
+  if (pilotPending()) { startPilot(); return; }
   run.phase = 'brief';
   renderOverlay();
   renderBrief();
@@ -509,9 +665,11 @@ function restart() {
 function frame(now) {
   const dt = Math.min(0.1, (now - (run.lastFrame || now)) / 1000);
   run.lastFrame = now;
+  if (run.phase === 'sim' || run.phase === 'pilot') { requestAnimationFrame(frame); return; } // el simulador dibuja en su iframe
   if (run.phase === 'flight') {
     const ev = updateFlight(flight, dt, input);
     if (ev === 'crashed' || ev === 'cleared') renderOverlay(true);
+    if (ev === 'cleared') { clearTimeout(pilotTimer); pilotTimer = setTimeout(() => deploy(false), PILOT_ENTER_MS); }
     drawFlight(g, W, H, flight, {
       destColor: mission.color, reduceMotion, now,
       labels: { shield: t('cockpitShield'), deploy: t('cockpitDeploy') },
@@ -564,6 +722,7 @@ function applyLang() {
   $('n3-brand-name').textContent = lang === 'en' ? 'Orbit Explorers' : 'Exploradores de Órbita';
   $('n3-menu').title = t('menu');
   $('n3-log-title').textContent = t('logTitle');
+  if (launch.rocketId) $('n3-sim').title = t('simFrame', { rocket: rocketName() });
   document.title = `${t('title')} · ${lang === 'en' ? 'Orbit Explorers' : 'Exploradores de Órbita'}`;
 }
 
@@ -588,6 +747,16 @@ async function boot() {
   };
   $('n3-demo').hidden = !demo;
   if (!saved) saveMission(DEMO); // solo si no hay nada guardado: nunca pisa datos reales
+  // Despegue: el cohete lo fijó el Nivel 1 al elegir destino; partidas sin ese dato usan el del destino.
+  // En modo demo no se lee ni se guarda (el demo no debe pisar la misión real a medias).
+  const savedSim = demo ? null : saved.simulation;
+  launch = {
+    rocketId: savedSim?.rocketId || mission.simRocket?.id || null,
+    done: Boolean(savedSim?.done),
+    result: null,
+    destino: mission.simRocket?.destino || null, // id del pilotaje (luna, marte, europa)
+    pilotDone: Boolean(savedSim?.pilot?.done),
+  };
 
   run = newRun();
   run.phase = 'flight';
@@ -595,6 +764,13 @@ async function boot() {
   applyLang();
   resize();
   renderOverlay();
+  // Si el despegue ya se hizo (recarga, vuelta desde el Taller), se va directo a los asteroides
+  if (launch.rocketId && !launch.done) startSim();
+  addEventListener('message', onSimMessage);
+  // Al cargar un simulador, el teclado va a él (lanzar con espacio, WASD, C, R…) sin clic previo
+  $('n3-sim').addEventListener('load', (e) => {
+    if (!e.target.hidden && e.target.getAttribute('src') !== 'about:blank') e.target.contentWindow?.focus();
+  });
   addEventListener('resize', resize);
   addEventListener('keydown', onKey);
   addEventListener('keyup', onKey);
@@ -605,20 +781,26 @@ async function boot() {
   canvas.addEventListener('pointerdown', steer);
   canvas.addEventListener('pointerleave', () => { input.pointer = null; });
   canvas.addEventListener('pointerup', (e) => { if (e.pointerType !== 'mouse') input.pointer = null; });
-  $('n3-lang').addEventListener('click', () => {
-    lang = lang === 'es' ? 'en' : 'es';
-    try { localStorage.setItem(LANG_KEY, lang); } catch { /* ignore */ }
-    applyLang();
-    // Re-dibuja el panel de la fase actual en el nuevo idioma
-    if (run.phase === 'flight') renderOverlay();
-    else if (run.phase === 'brief') renderBrief();
-    else if (run.phase === 'result' && run.outcome === 'no-fuel') renderNoFuel();
-    else if (run.phase === 'result') renderResult();
-    else if (run.phase === 'moi') renderMoi();
-    else if (run.phase === 'decision' && !run.tcm) renderTcm();
-    else if (run.phase === 'decision' && run.currentEvent) renderEvent(run.currentEvent);
-  });
+  $('n3-lang').addEventListener('click', toggleLang);
   requestAnimationFrame(frame);
+}
+
+/** Cambia ES/EN y re-dibuja el panel de la fase actual (y el simulador incrustado, si lo hay). */
+function toggleLang() {
+  lang = lang === 'es' ? 'en' : 'es';
+  try { localStorage.setItem(LANG_KEY, lang); } catch { /* ignore */ }
+  applyLang();
+  if (run.phase === 'sim' || run.phase === 'pilot') {
+    if (run.phase === 'sim') renderSim(); else renderPilot();
+    $('n3-sim').contentWindow?.postMessage({ type: SIM_LANG, lang }, location.origin);
+    panel().querySelector('[data-lang]')?.focus({ preventScroll: true }); // el foco sigue en el botón de idioma
+  } else if (run.phase === 'flight') renderOverlay();
+  else if (run.phase === 'brief') renderBrief();
+  else if (run.phase === 'result' && run.outcome === 'no-fuel') renderNoFuel();
+  else if (run.phase === 'result') renderResult();
+  else if (run.phase === 'moi') renderMoi();
+  else if (run.phase === 'decision' && !run.tcm) renderTcm();
+  else if (run.phase === 'decision' && run.currentEvent) renderEvent(run.currentEvent);
 }
 
 boot().catch((err) => {

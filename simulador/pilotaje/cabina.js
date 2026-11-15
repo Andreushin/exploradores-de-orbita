@@ -5,7 +5,9 @@ import * as M from './mision.js?v=9';
 import * as F from './fisica.js?v=9';
 import { DESTINOS } from './destinos.js?v=9';
 import { CUERPOS } from './cuerpos-datos.js?v=9';
-import { TEXTOS } from './textos.js?v=9';
+import { TEXTOS } from './textos.js?v=10';
+// Modo incrustado (Nivel 3, tras los asteroides): ?destino=…&lock=1&embed=1. Ver ../embed.js.
+import { leerParametrosPilotaje, mensajePilotaje, SIM_LANG } from '../embed.js';
 
 for (const k of Object.keys(DESTINOS)) {
   if (DESTINOS[k]) DESTINOS[k].jugable = true;
@@ -33,13 +35,10 @@ const tx = (o) => (o && typeof o === 'object' ? o[idioma] ?? o.es : o ?? '');
 const nombreCoheteCorto = (id) => COHETE_CORTO[id] || id || 'Cohete';
 
 // --- Estado de la cabina ---------------------------------------------------------------
-let destinoActual = (() => {
-  try {
-    const p = new URLSearchParams(location.search).get('destino');
-    if (p && DESTINOS[p]) return p;
-  } catch { /* sin URLSearchParams */ }
-  return 'luna';
+const modo = (() => {
+  try { return leerParametrosPilotaje(location.search, Object.keys(DESTINOS)); } catch { return { destino: null, lock: false, embed: false }; }
 })();
+let destinoActual = modo.destino ?? 'luna';
 let m;                 // misión activa
 let escena = null;     // vista 3D (null sin WebGL)
 let pausado = false;   // empieza en vivo desde el primer segundo (sin bloqueo modal)
@@ -49,6 +48,7 @@ let objetivo = null;   // lugar al que apunta el piloto «hacia el lugar»
 let faseAnterior = 'espera';
 let senalAnterior = true;
 let finMostrado = false;
+let giroManual = false; // el jugador ya giró la nave a mano en esta misión (deja de seguir la trayectoria sola)
 let cuadroN = 0;
 let ultimoReal = 0;
 let timerDescubrimiento = null;
@@ -122,14 +122,23 @@ function mostrarDescubrimiento(lugar, calidad) {
 function pintarSelectorMisiones() {
   const nav = $('pil-selector-misiones');
   if (!nav) return;
-  nav.replaceChildren(...ORDEN_MISIONES.map((id, idx) => {
+  // Con la misión fijada (lock) solo se ve la del juego, sin poder cambiarla
+  const ids = modo.lock ? [m.destino] : ORDEN_MISIONES;
+  nav.replaceChildren(...ids.map((id) => {
+    const idx = ORDEN_MISIONES.indexOf(id);
     const d = DESTINOS[id];
     const c = CUERPOS[d.cuerpo];
     const b = document.createElement('button');
     b.type = 'button';
     b.className = `pil-tab-mision${id === m.destino ? ' activa' : ''}`;
     b.dataset.destino = id;
-    b.innerHTML = `<span>${d.icono || '🪐'}</span><span>${idx + 1}. ${tx(c.nombre)}</span><small>🚀 ${nombreCoheteCorto(d.cohete)}</small>`;
+    b.innerHTML = `<span>${modo.lock ? '🔒' : d.icono || '🪐'}</span><span>${modo.lock ? '' : `${idx + 1}. `}${tx(c.nombre)}</span><small>🚀 ${nombreCoheteCorto(d.cohete)}</small>`;
+    if (modo.lock) {
+      b.classList.add('bloqueada');
+      b.setAttribute('aria-disabled', 'true');
+      b.title = t('misionFijada');
+      return b;
+    }
     const activar = (e) => {
       e.preventDefault();
       const ahora = performance.now();
@@ -149,32 +158,47 @@ function pintarSelectorMisiones() {
  * grande y en movimiento frente al cohete, guardando un punto de respaldo para capturar siempre sin fallos.
  */
 function prepararLlegadaVisible(mObj) {
-  const escAnt = mObj.escala;
+  // El recorrido EMPIEZA LEJOS (llegada.radiosIniciales: 3,5–4 radios), con el cuerpo completo a la vista; el cohete
+  // se acerca en una aproximación acelerada (actualizarCinematicaVuelo). Aparte se calcula, sobre una copia, el punto
+  // de respaldo cercano (~58 s antes del encendido en PE) para reponer la aproximación si el cohete se pasa del frenado.
+  const orientar = orientarPrograda;
+  const copia = { ...mObj, r: [...mObj.r], v: [...mObj.v] };
   let pasos = 0;
-  while (pasos < 600) {
-    const df = M.datosFrenado(mObj);
+  while (pasos < 3000) {
+    const df = M.datosFrenado(copia);
     if (df.yaPaso || df.tParaEncendido <= 58) break;
     const h = Math.max(1, Math.min(12, (df.tParaEncendido - 56) * 0.5));
-    const s = F.paso({ r: mObj.r, v: mObj.v }, mObj.cuerpo.mu, h);
-    mObj.r = s.r;
-    mObj.v = s.v;
-    mObj.t += h;
+    const s = F.paso({ r: copia.r, v: copia.v }, copia.cuerpo.mu, h);
+    copia.r = s.r;
+    copia.v = s.v;
+    copia.t += h;
     pasos++;
   }
-  const vUnit = F.unitario(mObj.v);
-  const haciaCuerpo = F.esc(F.unitario(mObj.r), -1);
-  const u = F.unitario(F.resta(haciaCuerpo, F.esc(vUnit, F.punto(haciaCuerpo, vUnit))));
-  mObj.fwd = vUnit;
-  mObj.up = u;
-  mObj.escala = Math.min(escAnt, 8);
+  orientar(copia);
+  orientar(mObj);
+  mObj.escala = ESCALA_LLEGADA_MIN;
   estadoLlegadaReserva = {
-    t: mObj.t,
-    r: [...mObj.r],
-    v: [...mObj.v],
-    fwd: [...mObj.fwd],
-    up: [...mObj.up],
+    t: copia.t,
+    r: [...copia.r],
+    v: [...copia.v],
+    fwd: [...copia.fwd],
+    up: [...copia.up],
   };
 }
+
+/** Nariz hacia donde va la nave (prógrado) y «arriba» hacia el cuerpo. */
+function orientarPrograda(o) {
+  const vUnit = F.unitario(o.v);
+  const haciaCuerpo = F.esc(F.unitario(o.r), -1);
+  o.fwd = vUnit;
+  o.up = F.unitario(F.resta(haciaCuerpo, F.esc(vUnit, F.punto(haciaCuerpo, vUnit))));
+}
+
+// Aproximación acelerada: el tiempo corre rápido lejos (el cuerpo crece en pantalla) y se frena al llegar.
+// escala = tiempo que falta al encendido / ESCALA_LLEGADA_DIV, entre ×8 y ×300 → ≈20 s reales desde 4 radios.
+const ESCALA_LLEGADA_MIN = 8;
+const ESCALA_LLEGADA_MAX = 300;
+const ESCALA_LLEGADA_DIV = 3;
 
 function restaurarLlegadaSiYaPaso(umbralSeg = 32) {
   const el = M.elementosActuales(m);
@@ -426,6 +450,7 @@ function alternarVista() {
 
 function cambiarMision(nuevoDestinoId, { abrirBriefing = false } = {}) {
   if (!DESTINOS[nuevoDestinoId]) return;
+  if (modo.lock && m && nuevoDestinoId !== m.destino) return; // la misión del juego no se cambia (repetir sí)
   destinoActual = nuevoDestinoId;
   cerrar($('pil-resultado'));
   if (!abrirBriefing) cerrar($('pil-briefing'));
@@ -435,6 +460,7 @@ function cambiarMision(nuevoDestinoId, { abrirBriefing = false } = {}) {
   secuenciaCaptura = { activa: false, tInicioPeri: 1, dvTotalQuema: 1, dvInicioQuema: 0, etapa: 1, progreso: 0 };
   registro = [];
   finMostrado = false;
+  giroManual = false;
   faseAnterior = 'espera';
   senalAnterior = true;
   objetivo = m.dest.lugares[0]?.id ?? null;
@@ -504,7 +530,8 @@ function controles() {
 }
 
 // --- Cinemática de 3 Fases para la Inserción Orbital Automática ----------------------------------------------
-function actualizarCinematicaVuelo() {
+/** @param {{guinada?:number, cabeceo?:number, alabeo?:number}} c controles del jugador en este cuadro */
+function actualizarCinematicaVuelo(c = {}) {
   const el = M.elementosActuales(m);
 
   // 1) Si el piloto automático de captura está activo, animamos las 3 fases con claridad total
@@ -530,7 +557,8 @@ function actualizarCinematicaVuelo() {
           pitido(660);
         }
         secuenciaCaptura.progreso = Math.max(0.06, Math.min(0.99, 1 - tEnc / Math.max(1, secuenciaCaptura.tInicioPeri)));
-        m.escala = Math.max(15, Math.min(120, Math.round(tEnc / 1.3)));
+        // Desde lejos (inicio a 3,5–4 radios) puede faltar más de una hora de misión: hasta ×300 para no hacerse eterno
+        m.escala = Math.max(15, Math.min(ESCALA_LLEGADA_MAX, Math.round(tEnc / 1.3)));
       }
     } else if (m.captura.fase === 'quemando') {
       // Fase 3/3: Quema del motor principal en el Periapsis (~2.2 segundos reales con llama 3D y vibración)
@@ -546,16 +574,20 @@ function actualizarCinematicaVuelo() {
     return;
   }
 
-  // 2) Durante la aproximación inicial sin piloto de captura, mantenemos movimiento fluido (×8)
-  // y si el usuario está explorando la cámara o leyendo los paneles y la nave se acerca demasiado al PE,
+  // 2) Durante la aproximación sin piloto de captura: rápida lejos y fluida (×8) cerca del PE.
+  // Si el usuario está explorando la cámara o leyendo los paneles y la nave se acerca demasiado al PE,
   // reponemos automáticamente la aproximación para que los botones de misión funcionen siempre
   if (!el.ligada && m.motor === 0) {
     const df = M.datosFrenado(m);
     if (df.yaPaso || df.tParaEncendido <= 32) {
       restaurarLlegadaSiYaPaso(36);
     } else if (!escalaManual) {
-      m.escala = 8;
+      m.escala = Math.round(Math.max(ESCALA_LLEGADA_MIN, Math.min(ESCALA_LLEGADA_MAX, df.tParaEncendido / ESCALA_LLEGADA_DIV)));
     }
+    // En la aproximación libre la nariz sigue la trayectoria (si no, al curvarse hacia el cuerpo la cámara miraría al vacío),
+    // hasta que el jugador gire la nave a mano: desde ahí se respeta su orientación
+    if (c.guinada || c.cabeceo || c.alabeo) giroManual = true;
+    if (m.piloto === null && !giroManual) orientarPrograda(m);
   }
 }
 
@@ -672,7 +704,7 @@ function pintarAsistente(forzar = false) {
     const sigNombre = tx(CUERPOS[DESTINOS[sigId].cuerpo].nombre);
     botonesHTML = `
       <button type="button" class="pil-btn pil-btn-sm exito" data-accion="terminar">${t('asistente.btnVerInforme')}</button>
-      <button type="button" class="pil-btn pil-btn-sm info" data-accion="cambiar-mision" data-destino="${sigId}">${t('asistente.btnSiguienteMision', { sig: sigNombre })}</button>`;
+      ${modo.lock ? '' : `<button type="button" class="pil-btn pil-btn-sm info" data-accion="cambiar-mision" data-destino="${sigId}">${t('asistente.btnSiguienteMision', { sig: sigNombre })}</button>`}`;
   }
 
   cont.className = `pil-asistente ${estadoCls}`.trim();
@@ -1051,8 +1083,8 @@ function mostrarBriefing() {
     <h2>${d.icono || '🚀'} ${tx(d.mision.nombre)} → ${tx(m.cuerpo.nombre)}</h2>
     <p class="nota">${tx(d.mision.fecha)} · ${t('briefing.coheteAsignado')}: <b>${t(`cohetes.${d.cohete}`)}</b></p>
 
-    <h3>${t('briefing.eligeMision')}</h3>
-    <div class="pil-cards-misiones">${cardsMisiones}</div>
+    ${modo.lock ? '' : `<h3>${t('briefing.eligeMision')}</h3>
+    <div class="pil-cards-misiones">${cardsMisiones}</div>`}
 
     <h3>${t('briefing.comoJugar')}</h3>
     <div class="pil-guia-grid">
@@ -1121,13 +1153,23 @@ function mostrarResultado() {
     </dl>
     <ul>${m.observados.map((o) => { const l = m.dest.lugares.find((x) => x.id === o.id); return `<li>★ <b>${tx(l.nombre)}</b> (${t('resultado.calidad', { q: nf(o.calidad * 100) })}) — ${tx(l.dato)}</li>`; }).join('')}</ul>
     ${consejo ? `<p class="nota">${consejo}</p>` : ''}
+    ${modo.embed ? `<p class="nota pil-nota-etapa">${t('resultado.notaEtapa')}</p>` : ''}
     <div class="pil-pie-dialogo">
       <button class="pil-btn" id="pil-reintentar" type="button">${t('resultado.reintentar')}</button>
-      <button class="pil-btn principal" id="pil-siguiente-mision" type="button">${t('resultado.siguiente', { sig: sigNombre })}</button>
+      ${modo.embed
+    ? `<button class="pil-btn principal" id="pil-continuar" type="button">${t('resultado.continuar')}</button>`
+    : `<button class="pil-btn principal" id="pil-siguiente-mision" type="button">${t('resultado.siguiente', { sig: sigNombre })}</button>`}
     </div>`;
   abrir(dlg);
   $('pil-reintentar').addEventListener('click', reintentar, { once: true });
-  $('pil-siguiente-mision').addEventListener('click', () => cambiarMision(sigId, { abrirBriefing: false }), { once: true });
+  if (modo.embed) {
+    // Incrustado en el Nivel 3: «Continuar» devuelve el control a la página (también tras un choque o escape)
+    $('pil-continuar').addEventListener('click', () => {
+      if (window.parent !== window) window.parent.postMessage(mensajePilotaje(ev, m.destino), location.origin);
+    }, { once: true });
+  } else {
+    $('pil-siguiente-mision').addEventListener('click', () => cambiarMision(sigId, { abrirBriefing: false }), { once: true });
+  }
 }
 
 function reintentar() {
@@ -1194,7 +1236,7 @@ function cuadro(ahora) {
       secuenciaCaptura.activa = false;
       M.fijarPiloto(m, null);
     }
-    actualizarCinematicaVuelo();
+    actualizarCinematicaVuelo(c);
     M.avanzar(m, dt, c);
     vigilarEventos();
   }
@@ -1263,7 +1305,23 @@ export const api = {
   pausado: () => pausado, registro: () => registro,
 };
 
+/** Incrustado: sin marca ni botón de idioma (los pone la página de fuera), idioma por mensaje y sin cerrar el informe con Esc. */
+function prepararIncrustado() {
+  document.body.classList.add('pil-embed');
+  addEventListener('message', (e) => {
+    if (e.source !== window.parent || e.origin !== location.origin || e.data?.type !== SIM_LANG) return;
+    idioma = e.data.lang === 'en' ? 'en' : 'es';
+    try { localStorage.setItem(LLAVE_IDIOMA, idioma); } catch { /* sin almacenamiento */ }
+    textosEstaticos();
+    if ($('pil-briefing').open) mostrarBriefing();
+    if ($('pil-resultado').open) mostrarResultado();
+  });
+  // Sin informe abierto no hay botón «Continuar»: Esc no lo cierra
+  $('pil-resultado').addEventListener('cancel', (e) => e.preventDefault());
+}
+
 async function arrancar() {
+  if (modo.embed) prepararIncrustado();
   m = M.crearMision(destinoActual);
   prepararLlegadaVisible(m);
   objetivo = m.dest.lugares[0]?.id ?? null;
@@ -1333,7 +1391,7 @@ async function arrancar() {
 
   try {
     const esNode = typeof process !== 'undefined' && Boolean(process.versions?.node);
-    const { crearEscenaPilotaje } = await import(esNode ? './cuerpos.js' : './cuerpos.js?v=9');
+    const { crearEscenaPilotaje } = await import(esNode ? './cuerpos.js' : './cuerpos.js?v=11');
     escena = crearEscenaPilotaje($('pil-canvas'), m, {
       reducirMovimiento,
       renderer: globalThis.__pilotajeRenderer ?? null,

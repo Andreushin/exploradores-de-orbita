@@ -48,7 +48,7 @@ Los modelos 3D son de JU4NMAX (`modelos/originales/`). `modelos/*.js` se generan
   - El C3 necesario sale de la **transferencia de Hohmann**: Luna ≈ −2.0; Marte ≈ 8.7 (InSight lanzó con 8.19 y MAVEN con 12.2); Júpiter directo ≈ 77.3 km²/s².
   - No se encontró el C3 publicado de Mariner 4 ni el de Europa Clipper, así que no se inventa.
 
-## Calibración contra la historia (`tests/simulador.test.mjs`, 36 pruebas)
+## Calibración contra la historia (`tests/simulador.test.mjs`, 50 pruebas)
 | | Simulado | Real | Diferencia |
 |---|---|---|---|
 | Saturno V · corte de la S-IC | 166 s | 161.63 s | +2.6 % |
@@ -71,8 +71,33 @@ Las dos capacidades **no se ajustaron a mano**: salen solas de los datos de las 
 - Three.js 0.160.0, la misma versión que los modelos originales.
 - **Vista local** a escala real (1 unidad = 1 m) con **origen flotante**: el cohete queda en el origen y la Tierra se mueve, así no tiembla por la precisión numérica.
 - **Vista global** en km, con la órbita y la salida al destino.
-- El mapa de la Tierra es **estilizado** (no es un mapa real) y no descarga imágenes.
+- La Tierra usa `texturas/tierra-color-4k.jpg` y `tierra-nubes-2k.jpg` (Blue Marble; origen del archivo **sin confirmar**, ver § Texturas). La esfera se gira para que **Cabo Cañaveral (28.5° N, 80.6° O)** quede bajo la rampa, con el este en la dirección del vuelo. **Comprobado en la imagen:** a 28.5° N hay tierra entre ~82.5° O y 80.75° O y mar desde 80.5° O, o sea que el punto cae en la costa atlántica de Florida. Mientras la imagen carga, o si falla, se ve un mapa estilizado.
+- **Suelo de la rampa:** disco curvo de 20 km que sigue la curvatura de la Tierra, más un anillo hasta 32 km que se funde con la esfera. La esfera va 30 m por debajo del nivel real, así las dos superficies nunca se cruzan (antes parpadeaban). La costa, la laguna, el pasto y las carreteras son **procedurales e ilustrativos**, no un mapa del complejo.
 - Las etapas se sueltan según la asignación de piezas de `modelos/index.js` y caen con gravedad.
+
+### Animación del despegue y de las separaciones (`cohetes.json` → `visual`)
+Estos tiempos **solo mueven la animación**: la física (`ascenso.js`) no cambia. Se miden desde el corte de motores que calcula el simulador, así la secuencia real se mantiene aunque el corte simulado esté unos segundos corrido.
+
+| Dato | Valor | Fuente |
+|---|---|---|
+| Saturno V · inicio de la secuencia de encendido | T−8.9 s | *Saturn V Flight Evaluation Report AS-506*, tabla 2-2 ([texto](https://archive.org/stream/nasa_techdoc_19900066485/19900066485_djvu.txt)) |
+| Saturno V · OECO S-IC → separación | 161.63 → 162.3 s (0.67 s) | ídem |
+| Saturno V · orden de encendido S-II → plena potencia (rampa) | 163.0 → 166.2 s (3.2 s) | ídem |
+| Saturno V · ullage de la S-II | 162.1 → 166.1 s (4.0 s) | ídem |
+| Saturno V · suelta del anillo interetapa (*second plane*) | 192.3 s = 29.3 s tras el encendido de la S-II | ídem (antes se usaban 30 s) |
+| Saturno V · OECO S-II → separación S-II/S-IVB | 548.22 → 549.0 s (0.78 s) | ídem |
+| Saturno V · ullage S-IVB → encendido S-IVB | 548.9 → 552.2 s | ídem |
+| S-IC: 8 retrocohetes sólidos, 0.6 s | | Press kit del Apolo 13, reproducido por [Spaceflight Now](https://spaceflightnow.com/apollo13/retro/09/saturn5.html) (vehículo casi idéntico al del Apolo 11) |
+| S-II: 4 motores de ullage; 4 retrocohetes en la interetapa S-II/S-IVB | | ídem. **Ojo:** otras fuentes dicen que los primeros vuelos llevaban 8 ullage; el número exacto del AS-506 no está confirmado |
+| S-IVB: 2 motores de ullage desechables | | ídem |
+| Falcon Heavy · encendido | T−6 s | [NASA – Key milestones for today's Europa Clipper launch](https://science.nasa.gov/blogs/europa-clipper/2024/10/14/key-milestones-for-todays-europa-clipper-launch-2) (cronología planificada) |
+| Falcon Heavy · BECO → separación de laterales | 3:03 → 3:07 (4 s) | ídem |
+| Falcon Heavy · MECO → separación del núcleo | 4:02 → 4:06 (4 s) | ídem. **Ojo:** esta cronología pone la separación a 4:06; la física está calibrada a 4:11 (NASASpaceFlight/Space.com) |
+| Atlas-Agena D (Mariner 4) | sin secuencia de encendido ni retrocohetes animados | ninguna fuente consultada los da, así que no se inventan |
+
+**Ilustrativo (estética, no dato):** las ondas de telemetría que salen de la punta del cohete (no representan una frecuencia ni una estación reales); los diamantes de choque de las llamas de queroseno cerca del suelo; la escarcha que se desprende del fuselaje; el respingo al soltarse de la rampa; la cámara automática; los tamaños, colores, velocidades y tiempos de vida del humo; la nube de la trinchera; la columna de humo (hasta 12 km); la forma lineal de la rampa de empuje del despegue; la duración de los retrocohetes de la S-II (1 s); la intensidad de la sacudida (escala acústica cerca del suelo y presión dinámica normalizada con 35 kPa); el bloom; la adaptación de la exposición, y la posición de la cámara de seguimiento (3.3 km al costado de la rampa).
+
+Se quitaron los chorros que no tenían respaldo: los "retrocohetes" del faldón del Atlas y del núcleo del Falcon, y el gas frío de los laterales del Falcon. En la misión Europa Clipper el cohete fue completamente desechable, así que esos laterales no hacían maniobras de regreso.
 
 ## Valores sin fuente (declarados)
 | Valor | Efecto en el resultado |

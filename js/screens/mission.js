@@ -3,7 +3,8 @@
 // En cada paso de segmento el jugador mueve una tarjeta del banco a la misión (arrastre o clic) y el
 // fondo (js/screens/mission-scenes.js) reacciona a su elección.
 // Estado que escribe: missionId, rocketId, budget.{total,launch,space,ground,user},
-//   plan.{step,projectName,scienceTargetIdx,cards,maturity,penalty,cmlCap,validated}
+//   plan.{step,projectName,scienceTargetIdx,cards,maturity,penalty,cmlCap,validated},
+//   simulation.rocketId (cohete real del despegue en el Nivel 3, según el destino)
 // Reglas: js/budget.js · Documentación: docs/niveles/nivel-1.md
 import { SEGMENTS, STEPS, cardCatalog, requiredLevels, evaluatePlan, stepStatus, validProjectName } from '../budget.js';
 import { createScenes } from './mission-scenes.js';
@@ -207,6 +208,7 @@ function destinationGrid() {
       <ul class="stats">
         <li>${t('mission.difficulty')}: ${'★'.repeat(m.difficulty)}</li>
         <li>${t('mission.maxBudget')}: $${m.budget}M</li>
+        ${m.simRocket ? `<li>${t('mission.simRocket')}: ${tx(m.simRocket.name)}</li>` : ''}
       </ul>`;
     card.addEventListener('click', () => selectMission(m));
     grid.append(card);
@@ -760,7 +762,13 @@ function validateAndContinue() {
 function selectMission(m) {
   if (m.id === ctx.state.missionId) return; // re-elegir el mismo destino no borra el progreso
   // Las tarjetas se conservan: se re-evalúan contra el nuevo destino (puede que ya no sirvan).
-  ctx.update({ missionId: m.id, budget: { total: m.budget }, plan: { scienceTargetIdx: null } });
+  // El cohete real del despegue (Nivel 3) depende del destino: se guarda ya y se reinicia su resultado.
+  ctx.update({
+    missionId: m.id,
+    budget: { total: m.budget },
+    plan: { scienceTargetIdx: null },
+    simulation: { rocketId: m.simRocket?.id ?? null, locked: false, done: false, result: null, pilot: { done: false, result: null } },
+  });
   renderStage();
   renderLive(null, true);
 }

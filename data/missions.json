@@ -27,7 +27,15 @@
       "es": "Destino de entrenamiento: viaje corto, mucha luz solar y comunicaciones fáciles.",
       "en": "Training destination: short trip, plenty of sunlight and easy communications."
     },
-    "budget": 100
+    "budget": 100,
+    "simRocket": {
+      "id": "saturno-v",
+      "destino": "luna",
+      "name": {
+        "es": "Saturno V",
+        "en": "Saturn V"
+      }
+    }
   },
   {
     "id": "mars",
@@ -57,7 +65,15 @@
       "es": "Siete meses de viaje. La luz solar cae a ~43% de la terrestre.",
       "en": "Seven-month cruise. Sunlight drops to ~43% of Earth's."
     },
-    "budget": 160
+    "budget": 160,
+    "simRocket": {
+      "id": "atlas-agena-d",
+      "destino": "marte",
+      "name": {
+        "es": "Atlas-Agena D",
+        "en": "Atlas-Agena D"
+      }
+    }
   },
   {
     "id": "europa",
@@ -87,6 +103,14 @@
       "es": "Luna helada de Júpiter. Solo ~4% de luz solar y radiación intensa.",
       "en": "Jupiter's icy moon. Only ~4% sunlight and intense radiation."
     },
-    "budget": 230
+    "budget": 230,
+    "simRocket": {
+      "id": "falcon-heavy",
+      "destino": "europa",
+      "name": {
+        "es": "Falcon Heavy",
+        "en": "Falcon Heavy"
+      }
+    }
   }
 ]

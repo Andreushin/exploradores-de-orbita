@@ -101,7 +101,7 @@
               "nombre": "Interetapa S-IC/S-II",
               "masa": 5206,
               "suelta": {
-                "trasEncender": 30
+                "trasEncender": 29.3
               }
             },
             {
@@ -159,7 +159,41 @@
         "as506-fer",
         "a11-press",
         "a11-mor"
-      ]
+      ],
+      "visual": {
+        "_nota": "Tiempos de la animación (no cambian la física). Fuentes en FUENTES.md § Animación.",
+        "encendidoPrevio": 8.9,
+        "rampas": {
+          "s-ii": 3.2
+        },
+        "separaciones": {
+          "s-ic": {
+            "retardo": 0.67,
+            "retros": {
+              "n": 8,
+              "dur": 0.6
+            },
+            "retrosAbajo": true,
+            "ullage": {
+              "n": 4,
+              "dur": 4.0,
+              "en": "inter-1"
+            }
+          },
+          "s-ii": {
+            "retardo": 0.78,
+            "retros": {
+              "n": 4
+            },
+            "ullage": {
+              "n": 2,
+              "en": "s-ivb",
+              "hastaEncendido": true
+            }
+          }
+        },
+        "sinFuente": "Duración del encendido de los 4 retrocohetes de la S-II (se usa 1 s) y la curva de la rampa de empuje del despegue (lineal)."
+      }
     },
     {
       "id": "atlas-agena-d",
@@ -262,7 +296,11 @@
         "astronautix-atlas-agena",
         "astronautix-agena-d",
         "wiki-ma2"
-      ]
+      ],
+      "visual": {
+        "_nota": "Sin datos de secuencia de encendido ni de retrocohetes para el Mariner 4 en las fuentes consultadas: no se anima ninguno.",
+        "encendidoPrevio": 0
+      }
     },
     {
       "id": "falcon-heavy",
@@ -391,7 +429,19 @@
         "nsf-clipper",
         "wiki-f9",
         "wiki-fh"
-      ]
+      ],
+      "visual": {
+        "_nota": "Tiempos de la animación (no cambian la física). Fuentes en FUENTES.md § Animación.",
+        "encendidoPrevio": 6,
+        "separaciones": {
+          "laterales": {
+            "retardo": 4
+          },
+          "central": {
+            "retardo": 4
+          }
+        }
+      }
     }
   ]
 }

@@ -4,7 +4,7 @@
 export const STORE_KEY = 'eo-mision';
 export const STORE_VERSION = 1;
 /** Secciones del estado que viajan entre niveles (misma forma que js/state.js). */
-export const SECTIONS = ['missionId', 'rocketId', 'budget', 'plan', 'satellite', 'journey', 'report'];
+export const SECTIONS = ['missionId', 'rocketId', 'budget', 'plan', 'simulation', 'satellite', 'journey', 'report'];
 
 const isObj = (v) => v && typeof v === 'object' && !Array.isArray(v);
 

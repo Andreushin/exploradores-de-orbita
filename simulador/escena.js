@@ -7,10 +7,31 @@
 //  - Global (1 unidad = 1 km): la Tierra entera, la trayectoria, la órbita y el camino al destino.
 import * as THREE from 'three';
 import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
+import { EffectComposer } from 'three/addons/postprocessing/EffectComposer.js';
+import { RenderPass } from 'three/addons/postprocessing/RenderPass.js';
+import { UnrealBloomPass } from 'three/addons/postprocessing/UnrealBloomPass.js';
+import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
 import { armarCohete, SUELTAS, INFO_ETAPAS } from './modelos/index.js';
 import { atmosfera, propagarOrbita } from './ascenso.js';
 
 const R = 6378137;
+
+/**
+ * Giro de la esfera de la Tierra para que Cabo Cañaveral (28.5° N, 80.6° O) quede bajo la rampa
+ * (+y del grupo `tierra`), con el este hacia +x (la dirección del vuelo) y el norte hacia −z.
+ * En la SphereGeometry de Three (textura equirectangular, longitud 0 al centro) un punto es
+ * (cos φ·cos λ, sin φ, −cos φ·sin λ). Comprobado: en la imagen, ese punto cae en la costa de Florida.
+ */
+export const CABO = { lat: 28.5, lon: -80.6 };
+export const QUAT_CABO = (() => {
+  const f = (CABO.lat * Math.PI) / 180;
+  const l = (CABO.lon * Math.PI) / 180;
+  const arriba = new THREE.Vector3(Math.cos(f) * Math.cos(l), Math.sin(f), -Math.cos(f) * Math.sin(l));
+  const este = new THREE.Vector3(-Math.sin(l), 0, -Math.cos(l));
+  const norte = new THREE.Vector3().crossVectors(arriba, este); // completa una base derecha
+  const desde = new THREE.Matrix4().makeBasis(este, arriba, norte.clone().negate());
+  return new THREE.Quaternion().setFromRotationMatrix(desde.invert());
+})();
 const MU = 3.986004418e14;
 const CIELO_ALTO = 0x040714;
 const Y_SUELO = -5.6; // El suelo queda 5.6 m por debajo de las toberas (y = 0) para alojar la rampa y la trinchera
@@ -243,6 +264,96 @@ const texturaCosta = () => lienzo(2048, 2048, (ctx, w, h) => {
   ctx.stroke();
 });
 
+/**
+ * Detalle de pasto y matorral costero (gris neutro, media ≈ 0.5 en lineal): se repite cada ~40 m y
+ * se multiplica sobre la textura grande de la costa solo donde esta es vegetación (ver `sueloCurvo`).
+ */
+const texturaPasto = () => {
+  const tex = lienzo(512, 512, (ctx, w, h) => {
+    let s = 29;
+    const rnd = () => ((s = (s * 16807) % 2147483647) / 2147483647);
+    ctx.fillStyle = '#bcbcb4';
+    ctx.fillRect(0, 0, w, h);
+    // Manchas de matas y suelo arenoso
+    for (let i = 0; i < 260; i++) {
+      const v = 150 + Math.floor(rnd() * 80);
+      ctx.fillStyle = `rgba(${v},${v + 6},${v - 10},0.35)`;
+      ctx.beginPath();
+      ctx.ellipse(rnd() * w, rnd() * h, 6 + rnd() * 26, 4 + rnd() * 16, rnd() * 3, 0, Math.PI * 2);
+      ctx.fill();
+    }
+    // Briznas
+    for (let i = 0; i < 9000; i++) {
+      const v = 120 + Math.floor(rnd() * 130);
+      ctx.strokeStyle = `rgba(${v},${v + 8},${v - 14},0.55)`;
+      ctx.lineWidth = 1;
+      const x = rnd() * w;
+      const y = rnd() * h;
+      ctx.beginPath();
+      ctx.moveTo(x, y);
+      ctx.lineTo(x + (rnd() - 0.5) * 4, y - 2 - rnd() * 5);
+      ctx.stroke();
+    }
+  });
+  tex.wrapS = tex.wrapT = THREE.RepeatWrapping;
+  tex.anisotropy = 8;
+  return tex;
+};
+
+/**
+ * Suelo de la zona de la rampa que sigue la curvatura de la Tierra: y = Y_SUELO − r²/(2R).
+ * Coordenadas locales pequeñas (sin problemas de precisión) y siempre por encima de la esfera de la
+ * Tierra, que se dibuja 30 m más abajo. `rIni..rFin` permite un disco opaco y un anillo que se funde.
+ */
+function sueloCurvo(rIni, rFin, extension, segRad) {
+  const geo = new THREE.RingGeometry(Math.max(rIni, 0.01), rFin, 256, segRad);
+  geo.rotateX(-Math.PI / 2);
+  const pos = geo.attributes.position;
+  const uv = geo.attributes.uv;
+  const alfa = new Float32Array(pos.count * 4);
+  for (let i = 0; i < pos.count; i++) {
+    const x = pos.getX(i);
+    const z = pos.getZ(i);
+    const r2 = x * x + z * z;
+    pos.setY(i, Y_SUELO - r2 / (2 * R));
+    // Mar al este (+x) como en Cabo Cañaveral; la textura cubre `extension` metros
+    uv.setXY(i, 0.5 + x / extension, 0.5 - z / extension);
+    const f = rIni > 1 ? 1 - (Math.sqrt(r2) - rIni) / (rFin - rIni) : 1;
+    alfa.set([1, 1, 1, Math.max(0, Math.min(1, f))], i * 4);
+  }
+  geo.setAttribute('color', new THREE.BufferAttribute(alfa, 4));
+  geo.computeVertexNormals();
+  return geo;
+}
+
+function materialSuelo(texturas, transparente) {
+  const m = new THREE.MeshStandardMaterial({
+    map: texturas.costa,
+    roughness: 0.95,
+    vertexColors: transparente,
+    transparent: transparente,
+    depthWrite: !transparente,
+  });
+  m.onBeforeCompile = (sh) => {
+    sh.uniforms.mapaPasto = { value: texturas.pasto };
+    sh.fragmentShader = sh.fragmentShader
+      .replace('#include <map_pars_fragment>', '#include <map_pars_fragment>\nuniform sampler2D mapaPasto;')
+      .replace(
+        '#include <map_fragment>',
+        `#ifdef USE_MAP
+          vec4 sampledDiffuseColor = texture2D( map, vMapUv );
+          vec3 base = sampledDiffuseColor.rgb;
+          // Solo la vegetación (verde por encima del rojo y del azul) recibe el detalle del pasto
+          float verde = smoothstep( 0.005, 0.03, base.g - max( base.r, base.b ) );
+          vec3 detalle = texture2D( mapaPasto, vMapUv * 1500.0 ).rgb * 2.0;
+          sampledDiffuseColor.rgb = mix( base, base * detalle, verde );
+          diffuseColor *= sampledDiffuseColor;
+        #endif`,
+      );
+  };
+  return m;
+}
+
 const texturaConcreto = () => lienzo(512, 512, (ctx, w, h) => {
   ctx.fillStyle = '#92989e';
   ctx.fillRect(0, 0, w, h);
@@ -296,6 +407,17 @@ const texturaHumo = () => lienzo(128, 128, (ctx, w, h) => {
   g.addColorStop(0, 'rgba(255,255,255,0.88)');
   g.addColorStop(0.45, 'rgba(235,232,226,0.45)');
   g.addColorStop(1, 'rgba(220,216,210,0)');
+  ctx.fillStyle = g;
+  ctx.fillRect(0, 0, w, h);
+});
+
+/** Anillo suave para las ondas de telemetría (borde brillante que se difumina hacia adentro). */
+const texturaOnda = () => lienzo(256, 256, (ctx, w, h) => {
+  const g = ctx.createRadialGradient(w / 2, h / 2, w * 0.3, w / 2, h / 2, w * 0.48);
+  g.addColorStop(0, 'rgba(79,195,247,0)');
+  g.addColorStop(0.75, 'rgba(79,195,247,0.55)');
+  g.addColorStop(0.9, 'rgba(200,240,255,1)');
+  g.addColorStop(1, 'rgba(79,195,247,0)');
   ctx.fillStyle = g;
   ctx.fillRect(0, 0, w, h);
 });
@@ -566,21 +688,13 @@ function rampa(alto, cajas, texturas) {
   const semiAnchoX = Math.max(4.5, (maxXBase - minXBase) * 0.5);
   const semiAnchoZ = Math.max(3.8, alto * 0.052);
 
-  // 1. Terreno costero en Y_SUELO (-5.6 m) sin planos superpuestos que causen z-fighting
-  const suelo = new THREE.Mesh(
-    new THREE.PlaneGeometry(80000, 80000),
-    new THREE.MeshStandardMaterial({
-      map: texturas.costa,
-      roughness: 0.9,
-      polygonOffset: true,
-      polygonOffsetFactor: 1,
-      polygonOffsetUnits: 1,
-    }),
-  );
-  suelo.rotation.x = -Math.PI / 2;
-  suelo.rotation.z = -Math.PI / 2;
-  suelo.position.y = Y_SUELO;
-  g.add(suelo);
+  // 1. Terreno costero curvo (sigue la Tierra): disco opaco de 20 km y anillo que se funde con la
+  //    esfera hasta 32 km. Una sola capa de suelo: la esfera de la Tierra queda 30 m más abajo.
+  const EXT_COSTA = 60000;
+  const suelo = new THREE.Mesh(sueloCurvo(0, 20000, EXT_COSTA, 140), materialSuelo(texturas, false));
+  const bordeSuelo = new THREE.Mesh(sueloCurvo(20000, 32000, EXT_COSTA, 24), materialSuelo(texturas, true));
+  bordeSuelo.renderOrder = -1;
+  g.add(suelo, bordeSuelo);
 
   const matConcreto = new THREE.MeshStandardMaterial({ map: texturas.pad, roughness: 0.9 });
   const matOscuro = new THREE.MeshStandardMaterial({ color: 0x22262c, roughness: 0.96 });
@@ -771,8 +885,8 @@ function rampa(alto, cajas, texturas) {
 // --- Sistema de plumas de motor (100% conos hacia -y; jamás cubren el cohete) -----
 function crearPenacho(radio, colorNucleo = 0xfff5e0, colorManto = 0xff9436, colorExterno = 0xff521b) {
   const g = new THREE.Group();
-  // Cada cono tiene altura `h` y está centrado en `-h / 2`, por lo que su ápice queda en y = 0
-  // y toda su geometría se extiende estrictamente hacia abajo (y <= 0).
+  // Cada cono tiene altura `h` y su ápice en y = 0: toda la geometría se extiende hacia abajo (y <= 0).
+  // Al variar la escala vertical de una capa se reubica para que el ápice quede siempre en la tobera.
   const capa = (r, h, color, op) => {
     const m = new THREE.Mesh(
       new THREE.ConeGeometry(r, h, 24, 1, true),
@@ -788,6 +902,7 @@ function crearPenacho(radio, colorNucleo = 0xfff5e0, colorManto = 0xff9436, colo
     );
     m.rotation.x = Math.PI;
     m.position.y = -h * 0.5;
+    m.userData = { h, op };
     return m;
   };
   const ext = capa(radio * 0.5, 1.0, colorExterno, 0.45);
@@ -795,7 +910,22 @@ function crearPenacho(radio, colorNucleo = 0xfff5e0, colorManto = 0xff9436, colo
   const nucleo = capa(radio * 0.18, 0.58, colorNucleo, 0.95);
   const ondaInterna = capa(radio * 0.11, 0.36, 0xffffff, 0.9);
   g.add(ext, manto, nucleo, ondaInterna);
-  g.userData = { ext, manto, nucleo, ondaInterna };
+
+  // Diamantes de choque (discos de Mach): lentes brillantes dentro del núcleo, solo cerca del suelo
+  // en motores de queroseno. Forma y espaciado ilustrativos.
+  const diamantes = [];
+  for (let i = 0; i < 4; i++) {
+    const d = new THREE.Mesh(
+      new THREE.SphereGeometry(1, 14, 8),
+      new THREE.MeshBasicMaterial({ color: 0xfff1c4, transparent: true, opacity: 0, blending: THREE.AdditiveBlending, depthWrite: false, fog: false }),
+    );
+    d.scale.set(radio * (0.13 - i * 0.018), 0.022, radio * (0.13 - i * 0.018));
+    d.position.y = -0.07 - i * 0.075;
+    d.visible = false;
+    g.add(d);
+    diamantes.push(d);
+  }
+  g.userData = { ext, manto, nucleo, ondaInterna, diamantes, capas: [ext, manto, nucleo, ondaInterna], fase: Math.random() * 10 };
   return g;
 }
 
@@ -808,6 +938,14 @@ function crearLlama(diam) {
   const pNorte = crearPenacho(rPen * 0.82);
   const pSur = crearPenacho(rPen * 0.82);
   g.add(pCentral, pIzq, pDer, pNorte, pSur);
+  // Brillo en la salida de cada tobera (sprite aparte: dentro del penacho se deformaría con su escala)
+  const texBrillo = texturaDestello();
+  for (const pen of [pCentral, pIzq, pDer, pNorte, pSur]) {
+    const b = new THREE.Sprite(new THREE.SpriteMaterial({ map: texBrillo, color: 0xffe6b0, transparent: true, blending: THREE.AdditiveBlending, depthWrite: false, fog: false }));
+    b.scale.setScalar(rPen * 1.3);
+    g.add(b);
+    pen.userData.brillo = b;
+  }
   g.userData = { pCentral, pIzq, pDer, pNorte, pSur };
   return g;
 }
@@ -836,17 +974,14 @@ function crearAnilloMach(radioCuerpo, altura) {
   return m;
 }
 
-/** Crea chorros de retrocohetes / propulsores de gas frío en coordenadas locales de la etapa (centrada en 0,0,0 en metros). */
-function crearChorroSeparacion(idEtapa, cajaEtapa, lado) {
+/** Chorro del motor de desprendimiento de la torre de escape (LES), en coordenadas de la torre (metros). */
+function crearChorroSeparacion(cajaEtapa) {
   const g = new THREE.Group();
-  const esEscape = idEtapa === 'les';
-  const color = esEscape ? 0xff9f43 : 0xe0f2fe;
-  const largo = esEscape ? Math.max(6, cajaEtapa.alto * 0.9) : Math.max(2.5, cajaEtapa.ancho * 0.65);
-  const radio = esEscape ? 0.9 : Math.max(0.35, cajaEtapa.ancho * 0.12);
+  const largo = Math.max(6, cajaEtapa.alto * 0.9);
   const cono = new THREE.Mesh(
-    new THREE.ConeGeometry(radio, largo, 14, 1, true),
+    new THREE.ConeGeometry(0.9, largo, 14, 1, true),
     new THREE.MeshBasicMaterial({
-      color,
+      color: 0xff9f43,
       transparent: true,
       opacity: 0.85,
       blending: THREE.AdditiveBlending,
@@ -855,19 +990,9 @@ function crearChorroSeparacion(idEtapa, cajaEtapa, lado) {
       side: THREE.DoubleSide,
     }),
   );
-
-  if (esEscape) {
-    // El motor de eyección de la torre LES apunta hacia abajo desde la base de la torre
-    cono.rotation.x = Math.PI;
-    cono.position.set(0, -cajaEtapa.alto * 0.5 - largo * 0.35, 0);
-  } else if (idEtapa.startsWith('lateral-')) {
-    // Propulsores de nitrógeno frío en el cono superior de los boosters del Falcon Heavy
-    cono.rotation.z = lado < 0 ? -Math.PI / 2 : Math.PI / 2;
-    cono.position.set(-lado * (cajaEtapa.ancho * 0.5 + largo * 0.45), cajaEtapa.alto * 0.36, 0);
-  } else {
-    // Retrocohetes de frenado apuntando hacia adelante (+y) en el borde superior de la etapa soltada
-    cono.position.set(0, cajaEtapa.alto * 0.5 + largo * 0.35, 0);
-  }
+  // El motor apunta hacia abajo desde la base de la torre
+  cono.rotation.x = Math.PI;
+  cono.position.set(0, -cajaEtapa.alto * 0.5 - largo * 0.35, 0);
   g.add(cono);
   return g;
 }
@@ -882,8 +1007,9 @@ export function crearEscena(canvas, { reducirMovimiento = false, renderer: rende
   const texTierra = texturaTierra();
   const texNubes = texturaNubes();
   const texturas = {
-    costa: texturaCosta(),
+    costa: Object.assign(texturaCosta(), { anisotropy: 8 }),
     pad: texturaConcreto(),
+    pasto: texturaPasto(),
     vab: texturaVAB(),
     cieloPorPanorama: Object.fromEntries(Object.entries(PANORAMAS).map(([k, v]) => [k, texturaCielo(v)])),
   };
@@ -934,17 +1060,16 @@ export function crearEscena(canvas, { reducirMovimiento = false, renderer: rende
   local.add(cieloEstrellas);
 
   const tierra = new THREE.Group();
-  const esfera = new THREE.Mesh(
-    new THREE.SphereGeometry(R, 192, 96),
-    new THREE.MeshStandardMaterial({ map: texTierra, roughness: 0.85 }),
-  );
-  esfera.rotation.x = Math.PI / 2;
-  const nubes = new THREE.Mesh(
-    new THREE.SphereGeometry(R * 1.004, 128, 64),
-    new THREE.MeshStandardMaterial({ map: texNubes, transparent: true, depthWrite: false, roughness: 1 }),
-  );
-  nubes.rotation.x = Math.PI / 2;
-  tierra.add(esfera, nubes, brillo(R * 1.012, 0x67b8ff, 0.14), brillo(R * 1.024, 0x2b6cb0, 0.12));
+  // La esfera va 30 m por debajo del nivel real: cerca de la rampa manda el suelo curvo de `rampa()`
+  // y así nunca se cruzan (con 384 segmentos las caras quedan como mucho ~210 m bajo la superficie).
+  const matTierra = new THREE.MeshStandardMaterial({ map: texTierra, roughness: 0.85 });
+  const esfera = new THREE.Mesh(new THREE.SphereGeometry(R - 30, 384, 192), matTierra);
+  const matNubes = new THREE.MeshStandardMaterial({ map: texNubes, transparent: true, depthWrite: false, roughness: 1 });
+  const nubes = new THREE.Mesh(new THREE.SphereGeometry(R * 1.004, 128, 64), matNubes);
+  const globo = new THREE.Group();
+  globo.quaternion.copy(QUAT_CABO);
+  globo.add(esfera, nubes);
+  tierra.add(globo, brillo(R * 1.012, 0x67b8ff, 0.14), brillo(R * 1.024, 0x2b6cb0, 0.12));
   local.add(tierra);
 
   // Nubes 3D lejanas alrededor del complejo (a > 650 m del eje de lanzamiento para no tapar nunca el cohete)
@@ -970,12 +1095,10 @@ export function crearEscena(canvas, { reducirMovimiento = false, renderer: rende
 
   const cohete = new THREE.Group();
   local.add(cohete);
-  const estela = new THREE.Line(
-    new THREE.BufferGeometry(),
-    new THREE.LineBasicMaterial({ color: 0xffffff, transparent: true, opacity: 0.55, fog: false }),
-  );
-  estela.frustumCulled = false;
-  local.add(estela);
+  // Ondas de telemetría: anillos tenues que salen de la punta del cohete (efecto ilustrativo)
+  const texOnda = texturaOnda();
+  const ondas = [];
+  let proxOnda = 0;
 
   const controles = new OrbitControls(camLocal, canvas);
   controles.enableDamping = !reducirMovimiento;
@@ -993,8 +1116,15 @@ export function crearEscena(canvas, { reducirMovimiento = false, renderer: rende
     depthWrite: false,
   });
   const humo = [];
+  const MAX_HUMO = 600; // nube en tierra, chorro en vuelo y venteos
+  const columna = [];
+  const MAX_COLUMNA = 480; // columna de escape que queda fija en el cielo
   const anillosSep = [];
   const chispasSep = [];
+  const emisores = []; // retrocohetes y motores de ullage (chorros de partículas)
+  const pendientesSep = []; // separaciones con retardo real entre el corte y la suelta
+  const apagadas = new Set(); // grupos de motores ya cortados aunque la etapa siga unida
+  const shakeOff = new THREE.Vector3();
   const vAux = new THREE.Vector3();
   const ejeZ = new THREE.Vector3(0, 0, 1);
   const ejeY = new THREE.Vector3(0, 1, 0);
@@ -1009,17 +1139,34 @@ export function crearEscena(canvas, { reducirMovimiento = false, renderer: rende
   const estrellasG = estrellas(4e6, 4600);
   estrellasG.material.opacity = 1;
   global.add(solG, estrellasG);
-  const tierraG = new THREE.Mesh(
-    new THREE.SphereGeometry(R / 1000, 128, 64),
-    new THREE.MeshStandardMaterial({ map: texTierra, roughness: 0.85 }),
-  );
-  tierraG.rotation.x = Math.PI / 2;
-  const nubesG = new THREE.Mesh(
-    new THREE.SphereGeometry((R / 1000) * 1.006, 96, 48),
-    new THREE.MeshStandardMaterial({ map: texNubes, transparent: true, depthWrite: false, roughness: 1 }),
-  );
-  nubesG.rotation.x = Math.PI / 2;
-  global.add(tierraG, nubesG, brillo((R / 1000) * 1.035, 0x4fa3ff, 0.22));
+  const tierraG = new THREE.Mesh(new THREE.SphereGeometry(R / 1000, 128, 64), matTierra);
+  const nubesG = new THREE.Mesh(new THREE.SphereGeometry((R / 1000) * 1.006, 96, 48), matNubes);
+  const globoG = new THREE.Group();
+  globoG.quaternion.copy(QUAT_CABO);
+  globoG.add(tierraG, nubesG);
+  global.add(globoG, brillo((R / 1000) * 1.035, 0x4fa3ff, 0.22));
+
+  // Texturas reales de la Tierra (Blue Marble; ver FUENTES.md). Mientras cargan, o si fallan,
+  // queda el mapa estilizado.
+  try {
+    const cargador = new THREE.TextureLoader();
+    cargador.load('texturas/tierra-color-4k.jpg', (tx) => {
+      tx.colorSpace = THREE.SRGBColorSpace;
+      tx.anisotropy = 8;
+      matTierra.map = tx;
+      matTierra.needsUpdate = true;
+    }, undefined, () => {});
+    cargador.load('texturas/tierra-nubes-2k.jpg', (tx) => {
+      // La imagen de nubes es blanca sobre negro: se usa como canal alfa
+      matNubes.map = null;
+      matNubes.alphaMap = tx;
+      matNubes.color.set(0xffffff);
+      matNubes.opacity = 0.6;
+      matNubes.needsUpdate = true;
+    }, undefined, () => {});
+  } catch {
+    /* sin cargador de imágenes (pruebas en Node) */
+  }
   const linea = (color, op = 1) => {
     const l = new THREE.Line(
       new THREE.BufferGeometry(),
@@ -1053,6 +1200,27 @@ export function crearEscena(canvas, { reducirMovimiento = false, renderer: rende
   controlesG.enabled = false;
   controlesG.enableDamping = !reducirMovimiento;
 
+  // ---------- Posproceso: bloom solo en lo muy brillante (llamas, chispas, destellos) ----------
+  // Con un renderer inyectado (pruebas en Node) no hay WebGL: se dibuja directo, sin compositor.
+  let composer = null;
+  let pasoRender = null;
+  let pasoBloom = null;
+  if (!rendererInyectado) {
+    try {
+      composer = new EffectComposer(renderer);
+      pasoRender = new RenderPass(local, camLocal);
+      pasoBloom = new UnrealBloomPass(new THREE.Vector2(512, 512), 0.55, 0.45, 0.82);
+      composer.addPass(pasoRender);
+      composer.addPass(pasoBloom);
+      composer.addPass(new OutputPass());
+    } catch {
+      composer = null;
+    }
+  }
+  // Si los cuadros tardan > 33 ms durante ~2 s seguidos, se apaga el bloom para no trabar el juego
+  let tLento = 0;
+  const EXPOSICION_BASE = 1.12;
+
   // ---------- Estado ----------
   let actual = null; // { id, grupo, etapas, cajas, alasSolares, altura, fuego, anilloMach, diam }
   let modo = 'persecucion';
@@ -1068,7 +1236,12 @@ export function crearEscena(canvas, { reducirMovimiento = false, renderer: rende
   let reloj = 0;
   let proxVapor = 0;
   let etapaEncendidaId = '';
-  let tEncendidoReal = 0;
+  let tEncendidoSim = 0;
+  let encAnterior = false;
+  let tUltimoEncendido = -1e9; // reloj real del último encendido (adaptación de exposición)
+  let visual = {}; // tiempos visuales con fuente del cohete actual (cohetes.json → visual)
+  let ultimaColumna = null; // último punto (en `tierra`) donde se dejó humo de la columna
+  let ancla = null; // punto fijo en tierra de la cámara de seguimiento
   let alSeleccionar = null;
   let seleccionada = null;
   const brillosOriginales = new Map();
@@ -1095,22 +1268,36 @@ export function crearEscena(canvas, { reducirMovimiento = false, renderer: rende
     if (ultimo) ponerEstado(ultimo);
   }
 
-  function cargarCohete(id, latitud = 28.5) {
+  function cargarCohete(id, latitud = 28.5, datosVisuales = {}) {
     cohete.clear();
     for (const r of restos) local.remove(r.obj);
     for (const a of anillosSep) local.remove(a.mesh);
     for (const c of chispasSep) local.remove(c.s);
     for (const sp of humo) tierra.remove(sp.s);
+    for (const sp of columna) tierra.remove(sp.s);
+    for (const o of ondas) o.s.visible = false;
+    proxOnda = 0;
+    for (const em of emisores) for (const p of em.particulas) local.remove(p.s);
     restos = [];
     anillosSep.length = 0;
     chispasSep.length = 0;
     rastro = [];
     humo.length = 0;
+    columna.length = 0;
+    emisores.length = 0;
+    pendientesSep.length = 0;
+    apagadas.clear();
+    visual = datosVisuales || {};
     lanzado = false;
     cofiaSoltada = false;
     progSolar = 0;
     etapaEncendidaId = '';
-    tEncendidoReal = 0;
+    tEncendidoSim = 0;
+    encAnterior = false;
+    tUltimoEncendido = -1e9;
+    ultimaColumna = null;
+    ancla = null;
+    renderer.toneMappingExposure = EXPOSICION_BASE;
     ultimo = null;
     usuarioMovio = false;
     quitarSeleccion();
@@ -1130,19 +1317,24 @@ export function crearEscena(canvas, { reducirMovimiento = false, renderer: rende
     sitio = rampa(altura, cajas, texturas);
     sitio.grupo.position.set(0, R, 0);
     tierra.add(sitio.grupo);
+    // Cámara de seguimiento: fija en tierra, de costado a la trayectoria (que va hacia +x, el este)
+    ancla = new THREE.Vector3(-700, R + 25, 3200);
     setPanorama(panoramaActual);
 
     for (const l of [trayG, orbitaG, salidaG]) l.geometry.setFromPoints([]);
     luna.visible = false;
     ponerEstado({ t: 0, x: 0, y: R, pitch: Math.PI / 2, empuje: 0, h: 0, vr: 0, vt: 0, vRel: 0, masa: 0 });
-    setCamara(modo === 'global' ? 'persecucion' : modo, true);
+    autoAbordoHasta = -1;
+    if (autoActivo) aplicarCamara(camaraAuto(null), true);
+    else setCamara(modo === 'global' ? 'persecucion' : modo, true);
   }
 
   /** Actualiza la posición y forma de las plumas de escape para la etapa activa (siempre hacia -y). */
   function actualizarPlumas(e, pAtm) {
     const { id, etapas, cajas, fuego, diam, altura } = actual;
     const { pCentral, pIzq, pDer, pNorte, pSur } = fuego.userData;
-    const unida = (k) => etapas[k]?.parent === actual.grupo.children[0];
+    // Una etapa cuenta como activa si sigue unida y sus motores no se cortaron (retardo corte → suelta)
+    const unida = (k) => etapas[k]?.parent === actual.grupo.children[0] && !apagadas.has(k);
     const exp = 1 + 1.55 * (1 - pAtm);
     const pulsoOnda = reducirMovimiento ? 1 : 0.92 + 0.08 * Math.sin(reloj * 42) + (Math.random() - 0.5) * 0.08;
 
@@ -1215,23 +1407,48 @@ export function crearEscena(canvas, { reducirMovimiento = false, renderer: rende
       }
     }
 
-    // Rampa de encendido suave (0.25 -> 1.0 en 0.7 s reales) cuando arranca una nueva etapa
-    if (claveEtapa !== etapaEncendidaId) {
+    // Rampa de empuje en tiempo de misión desde que la etapa enciende. Si hay dato (p. ej. S-II del
+    // AS-506: orden de encendido 163.0 s → plena potencia 166.2 s) se usa; si no, 0.7 s ilustrativos.
+    // Solo un encendido real reinicia la rampa (no el paso booster → sustentador ni el fin de los laterales)
+    if (!encAnterior) {
       etapaEncendidaId = claveEtapa;
-      tEncendidoReal = reloj;
+      tEncendidoSim = e.t;
+      tUltimoEncendido = reloj;
     }
-    const kIgnicion = Math.min(1, 0.25 + (reloj - tEncendidoReal) / 0.7);
+    const rampa = e.t < 0 ? Math.max(0.7, visual.encendidoPrevio ?? 0.7) : visual.rampas?.[claveEtapa] ?? 0.7;
+    const kIgnicion = Math.min(1, 0.2 + (0.8 * (e.t - tEncendidoSim)) / rampa);
     const largoBase = Math.max(diam * 1.9, altura * (0.24 + 0.72 * (1 - pAtm))) * pulsoOnda * kIgnicion;
 
     fuego.position.set(0, yBase, 0);
     // Vectorización sutil de empuje (TVC gimbal) en las plumas durante el ascenso
     fuego.rotation.z = reducirMovimiento ? 0 : Math.sin(reloj * 11) * 0.018;
+    const queroseno = ['s-ic', 'atlas-b', 'atlas-s', 'fh-3', 'fh-1'].includes(claveEtapa);
+    const kDiamantes = queroseno ? Math.max(0, (pAtm - 0.35) / 0.65) : 0;
     for (const pen of [pCentral, pIzq, pDer, pNorte, pSur]) {
+      const u = pen.userData;
+      u.brillo.visible = pen.visible;
       if (!pen.visible) continue;
       pen.scale.set(exp * kIgnicion, largoBase, exp * kIgnicion);
-      pen.userData.manto.material.color.setHex(colorManto);
-      pen.userData.ext.material.color.setHex(colorExt);
+      u.manto.material.color.setHex(colorManto);
+      u.ext.material.color.setHex(colorExt);
+      // Parpadeo propio de cada capa y de cada penacho (fases distintas, sin saltos bruscos)
+      u.capas.forEach((m, i) => {
+        const w = reloj + u.fase + i * 1.3;
+        const sy = reducirMovimiento ? 1 : 1 + 0.07 * Math.sin(w * (23 + i * 7)) + 0.04 * Math.sin(w * (57 + i * 11));
+        m.scale.y = sy;
+        m.position.y = -m.userData.h * 0.5 * sy;
+        // En el vacío la pluma se abre y se vuelve más tenue
+        m.material.opacity = m.userData.op * (0.5 + 0.5 * pAtm) * (reducirMovimiento ? 1 : 0.92 + 0.08 * Math.sin(w * 41));
+      });
+      u.diamantes.forEach((d, i) => {
+        d.visible = kDiamantes > 0;
+        d.material.opacity = kDiamantes * (0.75 - i * 0.14) * (reducirMovimiento ? 1 : 0.85 + 0.15 * Math.sin(reloj * 37 + i));
+      });
+      u.brillo.position.copy(pen.position);
+      u.brillo.scale.setScalar(Math.min(diam * 0.55, 5.2) * (1.1 + 0.25 * kIgnicion) * exp);
+      u.brillo.material.opacity = 0.75 * kIgnicion;
     }
+    for (const pen of [pCentral, pIzq, pDer, pNorte, pSur]) if (!pen.visible) pen.userData.brillo.visible = false;
     return { yBase, largoBase };
   }
 
@@ -1240,7 +1457,8 @@ export function crearEscena(canvas, { reducirMovimiento = false, renderer: rende
     ultimo = e;
     lanzado = lanzado || e.empuje > 0 || e.t > 0;
     tierra.position.set(-e.x, -e.y, 0);
-    tierra.rotation.z = -omegaSuelo * e.t;
+    // Antes del despegue (t < 0) el cohete está sujeto a la rampa: la Tierra no debe girar respecto de él
+    tierra.rotation.z = -omegaSuelo * Math.max(0, e.t);
     const r = Math.hypot(e.x, e.y);
     const ux = e.x / r;
     const uy = e.y / r;
@@ -1251,8 +1469,14 @@ export function crearEscena(canvas, { reducirMovimiento = false, renderer: rende
     cohete.rotation.z = Math.atan2(dy, dx) - Math.PI / 2;
 
     // Retracción animada hacia afuera de los brazos umbilicales y mástiles de cola al despegar
+    // Respingo al soltarse de los brazos de sujeción (solo visual, unos centímetros, se amortigua en ~1 s)
+    cohete.position.y = !reducirMovimiento && e.t > 0 && e.t < 1.2 ? 0.18 * Math.sin(e.t * 18) * Math.exp(-e.t * 4) : 0;
+
+    // Separaciones que esperaban su tiempo real tras el corte de motores
+    while (pendientesSep.length && pendientesSep[0].t <= e.t) soltarAhora(pendientesSep.shift().clave, e);
+
     if (sitio) {
-      const kRetract = lanzado ? Math.min(1, e.t / 2.8) : 0;
+      const kRetract = lanzado ? Math.min(1, Math.max(0, e.t) / 2.8) : 0;
       for (const b of sitio.brazos) b.rotation.y = -kRetract * 1.25;
       for (const s of sitio.sujeciones) s.pivote.rotation.z = -s.dir * kRetract * 0.52;
     }
@@ -1268,9 +1492,14 @@ export function crearEscena(canvas, { reducirMovimiento = false, renderer: rende
       yBaseLlama = yBase;
       vAux.set(0, yBase - largoBase * 0.25, 0).applyAxisAngle(ejeZ, cohete.rotation.z);
       luzMotor.position.copy(vAux);
-      luzMotor.intensity = (3.4 + (reducirMovimiento ? 0 : Math.random() * 1.6)) * actual.altura * 0.42;
+      // Cerca del suelo la llama ilumina con fuerza la torre y la rampa; la luz cae con la altura
+      const cercaSuelo = 1 + 1.6 * Math.max(0, 1 - Math.max(0, e.h) / 400);
+      luzMotor.intensity = (3.4 + (reducirMovimiento ? 0 : Math.random() * 1.6)) * actual.altura * 0.42 * cercaSuelo;
+      if (!reducirMovimiento && e.t < 6) desprenderHielo();
       if (!reducirMovimiento && e.h < 2600) emitirHumo(yBase, largoBase);
+      if (!reducirMovimiento && e.h > 30 && e.h < 12000) dejarColumna(yBase, largoBase);
     }
+    encAnterior = enc;
 
     // Anillo exterior sutil en Mach 1 (con perforación central para no tapar jamás el cohete)
     const vRel = e.vRel ?? Math.hypot(e.vr ?? 0, e.vt ?? 0);
@@ -1297,18 +1526,22 @@ export function crearEscena(canvas, { reducirMovimiento = false, renderer: rende
     cieloEstrellas.material.opacity = Math.max(cfgPano.estrellasBase * (1 - k), opEstrellasAscenso);
     cieloEstrellas.position.copy(camLocal.position);
 
-    // Estela
-    if (!rastro.length || e.t - rastro.at(-1).t > 0.5) rastro.push({ t: e.t, x: e.x, y: e.y });
+    // Trayectoria (solo para la vista global; en la local la reemplazan las ondas de telemetría)
+    if (e.t >= 0 && (!rastro.length || e.t - rastro.at(-1).t > 0.5)) rastro.push({ t: e.t, x: e.x, y: e.y });
     if (rastro.length > 4000) rastro.shift();
-    estela.geometry.setFromPoints(rastro.map((p) => new THREE.Vector3(p.x - e.x, p.y - e.y, 0)));
-    estela.material.color.set(e.h < 50000 ? 0xffffff : 0xff9f43);
 
     // Vista global
     marcador.position.set(e.x / 1000, e.y / 1000, 0);
     trayG.geometry.setFromPoints(rastro.map((p) => new THREE.Vector3(p.x / 1000, p.y / 1000, 0)));
 
     // Seguimiento de cámara según el modo elegido
-    if (modo !== 'global') {
+    if (autoActivo) {
+      const deseada = camaraAuto(e);
+      if (deseada !== modo) aplicarCamara(deseada, true);
+    }
+    if (modo === 'seguimiento') {
+      apuntarSeguimiento();
+    } else if (modo !== 'global') {
       if (modo === 'onboard') {
         const yCam = Math.max(yBaseLlama + actual.altura * 0.26, actual.altura * 0.52);
         const posCuerpo = new THREE.Vector3(actual.diam * 0.72, yCam, actual.diam * 0.35).applyAxisAngle(ejeZ, cohete.rotation.z);
@@ -1321,39 +1554,111 @@ export function crearEscena(canvas, { reducirMovimiento = false, renderer: rende
         controles.target.add(vAux);
         camLocal.position.add(vAux);
       }
-      if (!reducirMovimiento && enc && e.h < 1200) {
-        const sac = (1 - e.h / 1200) * actual.diam * 0.03;
-        camLocal.position.x += (Math.random() - 0.5) * sac;
-        camLocal.position.y += (Math.random() - 0.5) * sac;
-      }
     }
+    calcularSacudida(e, enc, vRel);
   }
 
-  /** Emite humo en la trinchera subterránea durante el despegue y detrás del chorro en vuelo. */
+  /**
+   * Sacudida de cámara con ruido suave (suma de senos, no saltos al azar). Tiene dos fuentes:
+   * el ruido acústico del escape que rebota en el suelo (máximo en la rampa, se apaga hacia ~1.5 km)
+   * y la presión dinámica q = ½·ρ·v² (máxima en Max Q, nula en el vacío). Las escalas son ilustrativas.
+   * El desplazamiento se suma solo al dibujar, así no se acumula en la posición de la cámara.
+   */
+  function calcularSacudida(e, enc, vRel) {
+    shakeOff.set(0, 0, 0);
+    if (reducirMovimiento || !enc || modo === 'global') return;
+    const acustico = Math.max(0, 1 - Math.max(0, e.h) / 1500) * (e.t < 0 ? 0.6 : 1);
+    const q = 0.5 * atmosfera(Math.max(0, e.h)).rho * vRel * vRel;
+    const aero = Math.min(1, q / 35000);
+    const k = Math.min(1.2, acustico + aero * 0.8);
+    if (k <= 0.001) return;
+    // En la cámara de seguimiento (teleobjetivo) la sacudida se nota como temblor angular, no de metros
+    const escala = modo === 'seguimiento'
+      ? camLocal.position.length() * Math.tan(THREE.MathUtils.degToRad(camLocal.fov) / 2) * 0.012 // ~1 % del cuadro
+      : actual.diam * 0.05;
+    const w = reloj;
+    shakeOff.set(
+      Math.sin(w * 37.1) * 0.5 + Math.sin(w * 61.7 + 1.3) * 0.3 + Math.sin(w * 13.3 + 0.4) * 0.2,
+      Math.sin(w * 41.9 + 2.1) * 0.5 + Math.sin(w * 73.1 + 0.7) * 0.3 + Math.sin(w * 11.1 + 2.9) * 0.2,
+      Math.sin(w * 29.3 + 4.2) * 0.4 + Math.sin(w * 53.9 + 1.9) * 0.3,
+    ).multiplyScalar(k * escala);
+  }
+
+  /** Cámara fija en tierra con teleobjetivo: gira y cierra el campo de visión para seguir al cohete. */
+  function apuntarSeguimiento() {
+    if (!actual || !ancla) return;
+    tierra.updateMatrixWorld(true);
+    camLocal.position.copy(ancla);
+    tierra.localToWorld(camLocal.position);
+    vAux.set(0, actual.altura * 0.4, 0).applyAxisAngle(ejeZ, cohete.rotation.z);
+    controles.target.copy(vAux);
+    const d = camLocal.position.distanceTo(vAux);
+    // Encuadre: el cohete ocupa ~1/3 del alto de la imagen hasta que el zoom llega a su límite (0.4°)
+    const fov = THREE.MathUtils.radToDeg(2 * Math.atan((actual.altura * 1.6) / d));
+    camLocal.fov = Math.min(30, Math.max(0.4, fov));
+    camLocal.updateProjectionMatrix();
+    camLocal.lookAt(vAux);
+  }
+
+  /**
+   * Toma un sprite del pool: uno libre, uno nuevo si queda cupo o, con el pool lleno, el más viejo
+   * (la nube no se corta de golpe: se renueva por la cola).
+   */
+  function tomarSprite(pool, max, padre) {
+    let sp = pool.find((x) => !x.s.visible);
+    if (!sp && pool.length < max) {
+      sp = { s: new THREE.Sprite(matHumo.clone()), v: new THREE.Vector3(), vida: 0, dur: 1, tam: 1, crece: 2.1, op: 0.48, sube: 0, tinte: 0 };
+      padre.add(sp.s);
+      pool.push(sp);
+    }
+    if (!sp) {
+      sp = pool.reduce((a, b) => (b.vida / b.dur > a.vida / a.dur ? b : a));
+    }
+    sp.s.material.map = matHumo.map;
+    sp.s.material.color.setHex(0xffffff);
+    sp.crece = 2.1;
+    sp.op = 0.48;
+    sp.sube = 0;
+    sp.tinte = 0;
+    return sp;
+  }
+
+  /**
+   * Humo del despegue. En la rampa, el escape baja por el deflector, sale por los dos extremos de la
+   * trinchera y se extiende al ras del suelo como una nube de vapor y humo que dura decenas de segundos.
+   * En vuelo (hasta ~2.6 km) nace detrás de la punta de la pluma. Tamaños y tiempos de vida son ilustrativos.
+   */
   function emitirHumo(yBase = 0, largoBase = 15) {
     tierra.updateMatrixWorld(true);
     const e = ultimo;
-    const enSuelo = e.h < 140;
-    for (let i = 0; i < 2; i++) {
-      let sp = humo.find((x) => !x.s.visible);
-      if (!sp && humo.length < 160) {
-        sp = { s: new THREE.Sprite(matHumo.clone()), v: new THREE.Vector3(), vida: 0, dur: 1, tam: 1 };
-        tierra.add(sp.s);
-        humo.push(sp);
+    const enSuelo = e.h < 300;
+    // Durante la secuencia de encendido y los primeros 5 s la trinchera escupe más chispas y vapor
+    const inicio = e.t < 5;
+    const n = enSuelo ? (inicio ? 6 : 4) : 2;
+    for (let i = 0; i < n; i++) {
+      const sp = tomarSprite(humo, MAX_HUMO, tierra);
+      const esChispa = enSuelo && e.t < 4.0 && i % 3 === 1;
+      if (esChispa) {
+        sp.s.material.map = matChispa.map;
+        sp.s.material.color.setHex(0xffb74d);
       }
-      if (!sp) return;
-      const esChispa = enSuelo && e.t < 4.0 && i === 1;
-      sp.s.material.map = esChispa ? matChispa.map : matHumo.map;
-      sp.s.material.color.setHex(esChispa ? 0xffb74d : 0xffffff);
 
       if (enSuelo) {
-        // Nace dentro de la trinchera (y = -3.2 m) y sale disparado horizontalmente por el canal (jamás hacia arriba)
+        // Nace en la trinchera (y = -3.2 m) y sale disparado por el canal, hacia uno u otro extremo
         const dirTrinchera = i % 2 === 0 ? 1 : -1;
-        vAux.set((Math.random() - 0.5) * actual.diam * 0.6, -3.2, dirTrinchera * (6 + Math.random() * 8));
+        vAux.set((Math.random() - 0.5) * actual.diam * 0.8, -3.2, dirTrinchera * (6 + Math.random() * 10));
+        // Durante la secuencia de encendido el cohete está quieto en la rampa: la posición local es la del suelo
         tierra.worldToLocal(sp.s.position.copy(vAux));
+        const rapido = esChispa ? 45 + Math.random() * 30 : 34 + Math.random() * 30;
         sp.v
-          .set((Math.random() - 0.4) * 0.5, 0.02, dirTrinchera * (0.85 + Math.random() * 0.4))
-          .multiplyScalar(esChispa ? 45 + Math.random() * 30 : 32 + Math.random() * 26);
+          .set((Math.random() - 0.5) * 0.9, 0.05 + Math.random() * 0.12, dirTrinchera * (0.8 + Math.random() * 0.45))
+          .multiplyScalar(rapido);
+        sp.dur = esChispa ? 0.6 + Math.random() * 0.35 : 20 + Math.random() * 20;
+        sp.tam = actual.diam * (esChispa ? 0.55 : 2.0 + Math.random() * 1.2);
+        sp.crece = esChispa ? 1.2 : 5.5;
+        sp.op = esChispa ? 0.9 : 0.55;
+        sp.sube = esChispa ? 0 : 1.6 + Math.random() * 1.6; // la nube caliente sube despacio
+        sp.tinte = esChispa ? 0 : 1;
       } else {
         // En vuelo nace detrás de la punta de la pluma para no envolver nunca el cuerpo del cohete
         vAux
@@ -1368,10 +1673,66 @@ export function crearEscena(canvas, { reducirMovimiento = false, renderer: rende
         sp.v
           .set(Math.cos(lado) * 0.35, -0.8 - Math.random() * 0.5, Math.sin(lado) * 0.35)
           .multiplyScalar(actual.diam * 1.4);
+        sp.dur = 6 + Math.random() * 6;
+        sp.tam = actual.diam * 1.1;
+        sp.crece = 4;
+        sp.op = 0.42;
+        sp.tinte = 0.6;
       }
       sp.vida = 0;
-      sp.dur = esChispa ? 0.6 + Math.random() * 0.35 : enSuelo ? 4.2 + Math.random() * 3 : 1.4 + Math.random() * 0.8;
-      sp.tam = actual.diam * (esChispa ? 0.55 : enSuelo ? 1.8 : 0.95);
+      sp.s.visible = true;
+    }
+  }
+
+  /**
+   * Columna de escape: cada ~1.2 diámetros recorridos (más espaciado con la altura) deja una bocanada fija al terreno, que queda
+   * colgada en el cielo y se disipa en minutos (como la estela de humo de un despegue de día).
+   */
+  function dejarColumna(yBase, largoBase) {
+    tierra.updateMatrixWorld(true);
+    vAux.set(0, yBase - largoBase * 0.9, 0).applyAxisAngle(ejeZ, cohete.rotation.z);
+    const pLocal = tierra.worldToLocal(vAux.clone());
+    const paso = Math.max(actual.diam * 1.2, Math.max(0, ultimo.h) * 0.006);
+    if (ultimaColumna && ultimaColumna.distanceTo(pLocal) < paso) return;
+    // Rellena el tramo recorrido desde la última bocanada (a alta velocidad de reproducción hay saltos)
+    const desde = ultimaColumna ?? pLocal;
+    const tramos = Math.min(6, Math.max(1, Math.round(desde.distanceTo(pLocal) / paso)));
+    for (let k = 1; k <= tramos; k++) {
+      const sp = tomarSprite(columna, MAX_COLUMNA, tierra);
+      sp.s.position.lerpVectors(desde, pLocal, k / tramos);
+      sp.v.set((Math.random() - 0.5) * 2, (Math.random() - 0.5) * 2, (Math.random() - 0.5) * 2);
+      sp.vida = 0;
+      sp.dur = 120 + Math.random() * 90;
+      // Más ancha con la altura: el escape se expande más en aire poco denso
+      sp.tam = actual.diam * (2 + Math.max(0, ultimo.h) / 2000);
+      sp.crece = 3;
+      sp.op = 0.34;
+      sp.s.material.color.setHex(0xf1f1ee);
+      sp.s.visible = true;
+    }
+    ultimaColumna = pLocal;
+  }
+
+  /**
+   * Escarcha y condensación que se desprenden del fuselaje (tanques criogénicos) al encender y en los
+   * primeros segundos de vuelo. Quedan fijas al terreno, así el cohete las deja atrás. Ilustrativo.
+   */
+  function desprenderHielo() {
+    tierra.updateMatrixWorld(true);
+    for (let i = 0; i < 2; i++) {
+      const sp = tomarSprite(humo, MAX_HUMO, tierra);
+      sp.s.material.color.setHex(0xeef6ff);
+      const ang = Math.random() * Math.PI * 2;
+      const r = actual.diam * 0.45;
+      vAux.set(Math.cos(ang) * r, actual.altura * (0.15 + Math.random() * 0.55), Math.sin(ang) * r)
+        .applyAxisAngle(ejeZ, cohete.rotation.z);
+      tierra.worldToLocal(sp.s.position.copy(vAux));
+      sp.v.set(Math.cos(ang) * 1.5, -4 - Math.random() * 4, Math.sin(ang) * 1.5);
+      sp.vida = 0;
+      sp.dur = 1.8 + Math.random() * 1.2;
+      sp.tam = Math.min(actual.diam * 0.35, 3);
+      sp.crece = 2.5;
+      sp.op = 0.4;
       sp.s.visible = true;
     }
   }
@@ -1380,14 +1741,7 @@ export function crearEscena(canvas, { reducirMovimiento = false, renderer: rende
   function emitirVaporCriogenico() {
     if (!actual || lanzado || reducirMovimiento) return;
     tierra.updateMatrixWorld(true);
-    let sp = humo.find((x) => !x.s.visible);
-    if (!sp && humo.length < 160) {
-      sp = { s: new THREE.Sprite(matHumo.clone()), v: new THREE.Vector3(), vida: 0, dur: 1, tam: 1 };
-      tierra.add(sp.s);
-      humo.push(sp);
-    }
-    if (!sp) return;
-    sp.s.material.map = matHumo.map;
+    const sp = tomarSprite(humo, MAX_HUMO, tierra);
     sp.s.material.color.setHex(0xe2f1ff);
     const yVent = actual.altura * (0.28 + Math.random() * 0.45);
     vAux.set(-actual.diam * 0.52, yVent, (Math.random() - 0.5) * 1.5);
@@ -1399,8 +1753,15 @@ export function crearEscena(canvas, { reducirMovimiento = false, renderer: rende
     sp.s.visible = true;
   }
 
-  function avanzarHumo(dt) {
-    for (const sp of humo) {
+  const colTinte = new THREE.Color();
+  const colBlanco = new THREE.Color(0xffffff);
+  const colFuego = new THREE.Color(0xffa65c);
+  const vMundo = new THREE.Vector3();
+
+  function avanzarPool(pool, dt, conTinte) {
+    const luz = luzMotor.intensity > 0 && actual ? luzMotor.position : null;
+    const alcance = actual ? actual.altura * 1.4 : 1;
+    for (const sp of pool) {
       if (!sp.s.visible) continue;
       sp.vida += dt;
       if (sp.vida >= sp.dur) {
@@ -1410,9 +1771,66 @@ export function crearEscena(canvas, { reducirMovimiento = false, renderer: rende
       const f = sp.vida / sp.dur;
       sp.s.position.addScaledVector(sp.v, dt);
       sp.v.multiplyScalar(Math.max(0, 1 - 0.55 * dt));
-      sp.s.scale.setScalar(sp.tam * (0.6 + f * 2.1));
-      sp.s.material.opacity = 0.48 * (1 - f);
+      if (sp.sube) sp.s.position.y += sp.sube * dt; // `tierra` tiene +y hacia arriba en la rampa
+      // Crece rápido al principio y luego se va abriendo despacio
+      sp.s.scale.setScalar(sp.tam * (0.6 + sp.crece * Math.sqrt(f)));
+      // Aparece en 5 % de su vida y se desvanece de a poco
+      sp.s.material.opacity = sp.op * Math.min(1, f / 0.05) * (1 - f) ** 1.4;
+      // La llama ilumina de naranja el humo que tiene cerca
+      if (conTinte && sp.tinte) {
+        let k = 0;
+        if (luz) {
+          sp.s.getWorldPosition(vMundo);
+          k = Math.max(0, 1 - vMundo.distanceTo(luz) / alcance) * sp.tinte;
+        }
+        sp.s.material.color.copy(colTinte.copy(colBlanco).lerp(colFuego, Math.min(0.85, k)));
+      }
     }
+  }
+
+  /**
+   * Ondas de telemetría: un anillo tenue sale de la punta del cohete cada ~1.2 s (más espaciado en el
+   * vacío), crece y se desvanece. Ilustrativo: no representa una frecuencia ni una estación reales.
+   */
+  let alOnda = null;
+  function avanzarOndas(dt) {
+    const enVuelo = actual && ultimo && ultimo.t > 0 && !reducirMovimiento && modo !== 'global';
+    if (enVuelo && reloj >= proxOnda) {
+      proxOnda = reloj + (ultimo.h > 100000 ? 2.0 : 1.2);
+      let o = ondas.find((x) => !x.s.visible);
+      if (!o && ondas.length < 3) {
+        o = {
+          s: new THREE.Sprite(new THREE.SpriteMaterial({ map: texOnda, color: 0xbfe9ff, transparent: true, depthWrite: false, fog: false })),
+          vida: 0,
+        };
+        local.add(o.s);
+        ondas.push(o);
+      }
+      if (o) {
+        o.vida = 0;
+        o.s.visible = true;
+        alOnda?.();
+      }
+    }
+    for (const o of ondas) {
+      if (!o.s.visible) continue;
+      o.vida += dt;
+      const f = o.vida / 2.5;
+      if (f >= 1 || !enVuelo) {
+        o.s.visible = false;
+        continue;
+      }
+      // Sigue la punta del cohete (marco que viaja con él)
+      o.s.position.set(0, actual.altura * 0.96, 0).applyAxisAngle(ejeZ, cohete.rotation.z);
+      o.s.scale.setScalar(actual.altura * (0.15 + 1.05 * f));
+      o.s.material.opacity = 0.35 * (1 - f) * Math.min(1, f / 0.08);
+    }
+  }
+
+  function avanzarHumo(dt) {
+    avanzarPool(humo, dt, true);
+    avanzarPool(columna, dt, false);
+    avanzarEmisores(dt);
     for (let i = anillosSep.length - 1; i >= 0; i--) {
       const a = anillosSep[i];
       a.vida += dt;
@@ -1501,7 +1919,23 @@ export function crearEscena(canvas, { reducirMovimiento = false, renderer: rende
   function soltar(claveEvento, e) {
     const ids = SUELTAS[actual.id]?.[claveEvento] || [];
     if (!ids.length) return;
+    // Entre el corte de motores y la separación real pasa un tiempo medido (p. ej. AS-506:
+    // OECO de la S-IC 161.63 s → separación 162.3 s). Mientras, la etapa sigue unida pero apagada.
+    const retardo = visual.separaciones?.[claveEvento]?.retardo ?? 0;
+    if (retardo > 0 && !reducirMovimiento) {
+      for (const id of ids) apagadas.add(id);
+      pendientesSep.push({ t: e.t + retardo, clave: claveEvento });
+      pendientesSep.sort((a, b) => a.t - b.t);
+      return;
+    }
+    soltarAhora(claveEvento, e);
+  }
+
+  function soltarAhora(claveEvento, e) {
+    const ids = SUELTAS[actual.id]?.[claveEvento] || [];
     if (claveEvento === 'cofia') cofiaSoltada = true;
+    const sep = visual.separaciones?.[claveEvento] || {};
+    if (autoActivo && !reducirMovimiento && claveEvento !== 'les') autoAbordoHasta = reloj + 5;
 
     // Eje longitudinal del cohete `(dx, dy)` (+Y_local) y eje derecho `(rx, ry)` (+X_local)
     const r = Math.hypot(e.x, e.y) || R;
@@ -1577,10 +2011,12 @@ export function crearEscena(canvas, { reducirMovimiento = false, renderer: rende
         }
       }
 
-      // 2. Chorro de retrocohete / motor de escape / propulsor de nitrógeno frío en coords centradas (metros)
+      // 2. Chorro del motor de desprendimiento de la torre de escape
       let chorro = null;
-      if (!reducirMovimiento && (esLES || esLateral || id === 's-ic' || id === 's-ii' || id === 'booster' || id === 'central')) {
-        chorro = crearChorroSeparacion(id, cajaEtapa, lado);
+      // Solo la torre de escape lleva cono propio; retrocohetes y ullage son chorros de partículas
+      // (ver `encenderMotoresSeparacion`) y solo donde una fuente dice que existían.
+      if (!reducirMovimiento && esLES) {
+        chorro = crearChorroSeparacion(cajaEtapa);
         obj.add(chorro);
       }
 
@@ -1631,6 +2067,110 @@ export function crearEscena(canvas, { reducirMovimiento = false, renderer: rende
         wz,
         vida: 0,
       });
+      if (sep.retros && !reducirMovimiento) encenderRetros(restos.at(-1), cajaEtapa, sep.retros, sep.retrosAbajo);
+    }
+    if (sep.ullage && !reducirMovimiento) encenderUllage(sep.ullage, e);
+  }
+
+  /**
+   * Retrocohetes sólidos de la etapa soltada: escape hacia adelante (+y de la etapa) para frenarla y
+   * alejarla. `abajo` = montados en la base (S-IC: carenados de los F-1); si no, en el borde superior.
+   */
+  function encenderRetros(resto, caja, { n, dur }, abajo = false) {
+    const puntos = [];
+    const r = caja.ancho * 0.5;
+    const y = abajo ? -caja.alto * 0.5 + caja.alto * 0.07 : caja.alto * 0.5;
+    for (let i = 0; i < n; i++) {
+      const a = (i / n) * Math.PI * 2 + Math.PI / n;
+      const radial = new THREE.Vector3(Math.cos(a), 0, Math.sin(a));
+      puntos.push({ pos: radial.clone().multiplyScalar(r * 0.95).setY(y), dir: radial.multiplyScalar(0.35).setY(1).normalize() });
+    }
+    emisores.push({
+      padre: resto.obj, resto, puntos, restante: dur ?? 1, color: 0xffc58a,
+      vel: 60, tam: Math.max(1.2, caja.ancho * 0.22), particulas: [],
+    });
+  }
+
+  /**
+   * Motores de ullage de la etapa que sigue: empujan hacia adelante para asentar el propelente en el
+   * fondo de los tanques antes de encender; su escape sale hacia atrás (−y del cohete).
+   */
+  function encenderUllage({ n, dur, en, hastaEncendido }, e) {
+    const caja = actual.cajas?.[en];
+    if (!caja) return;
+    const puntos = [];
+    const r = caja.ancho * 0.52;
+    for (let i = 0; i < n; i++) {
+      const a = (i / n) * Math.PI * 2;
+      const radial = new THREE.Vector3(Math.cos(a), 0, Math.sin(a));
+      puntos.push({
+        pos: radial.clone().multiplyScalar(r).add(new THREE.Vector3(caja.cx, caja.minY + caja.alto * 0.15, 0)),
+        dir: radial.multiplyScalar(0.12).setY(-1).normalize(),
+      });
+    }
+    emisores.push({
+      padre: cohete, resto: null, puntos, restante: dur ?? 0, hastaEncendido: !!hastaEncendido, tInicio: e.t,
+      color: 0xffd9a8, vel: 45, tam: Math.max(0.9, caja.ancho * 0.16), particulas: [],
+    });
+  }
+
+  let dtSimActual = 0;
+  function avanzarEmisores(dt) {
+    const aCohete = Math.min(10, Math.max(0, (ultimo?.a || 0) * 9.81));
+    const encendido = (ultimo?.empuje ?? 0) > 0;
+    for (let i = emisores.length - 1; i >= 0; i--) {
+      const em = emisores[i];
+      // Vida en tiempo de misión: dura lo que dice la fuente aunque se acelere la reproducción
+      if (em.hastaEncendido) {
+        if (encendido && ultimo.t > em.tInicio) em.restante = 0;
+        else em.restante = 1;
+      } else {
+        em.restante -= dtSimActual;
+      }
+      const activo = em.restante > 0 && em.padre.parent;
+      if (activo) {
+        em.padre.updateMatrixWorld(true);
+        const q = em.padre.getWorldQuaternion(new THREE.Quaternion());
+        for (const p of em.puntos) {
+          const s = new THREE.Sprite(matChispa.clone());
+          s.material.color.setHex(em.color);
+          s.position.copy(p.pos);
+          em.padre.localToWorld(s.position);
+          const v = p.dir.clone().applyQuaternion(q).multiplyScalar(em.vel * (0.8 + Math.random() * 0.4));
+          if (em.resto) { v.x += em.resto.vx; v.y += em.resto.vy; }
+          local.add(s);
+          em.particulas.push({ s, v, vida: 0, dur: 0.5 + Math.random() * 0.3 });
+          // Humo gris que queda detrás del chorro
+          const h = new THREE.Sprite(matHumo.clone());
+          h.position.copy(s.position);
+          h.material.color.setHex(0xd8d4cc);
+          local.add(h);
+          em.particulas.push({ s: h, v: v.clone().multiplyScalar(0.55), vida: 0, dur: 1.6 + Math.random() * 0.8, humo: true });
+        }
+      }
+      // Las partículas quedan atrás del cohete, que sigue acelerando (marco que viaja con él)
+      const r = Math.hypot(ultimo?.x ?? 0, ultimo?.y ?? R) || R;
+      const ux = (ultimo?.x ?? 0) / r;
+      const uy = (ultimo?.y ?? R) / r;
+      const pitch = ultimo?.pitch ?? Math.PI / 2;
+      const ddx = Math.cos(pitch) * uy + Math.sin(pitch) * ux;
+      const ddy = Math.cos(pitch) * -ux + Math.sin(pitch) * uy;
+      for (let k = em.particulas.length - 1; k >= 0; k--) {
+        const p = em.particulas[k];
+        p.vida += dt;
+        if (p.vida >= p.dur) {
+          local.remove(p.s);
+          em.particulas.splice(k, 1);
+          continue;
+        }
+        p.v.x -= aCohete * ddx * dt;
+        p.v.y -= aCohete * ddy * dt;
+        p.s.position.addScaledVector(p.v, dt);
+        const f = p.vida / p.dur;
+        p.s.scale.setScalar(em.tam * (p.humo ? 1 + f * 3.5 : 1 - f * 0.5));
+        p.s.material.opacity = (p.humo ? 0.45 : 0.95) * (1 - f);
+      }
+      if (!activo && !em.particulas.length) emisores.splice(i, 1);
     }
   }
 
@@ -1733,10 +2273,39 @@ export function crearEscena(canvas, { reducirMovimiento = false, renderer: rende
   });
 
   // ---------- Cámaras y ángulos panorámicos ----------
+  /**
+   * Cámara automática, como una transmisión: contrapicado al encender y despegar, torre, seguimiento
+   * desde tierra, persecución, y a bordo unos segundos en cada separación.
+   */
+  let autoActivo = true;
+  let autoAbordoHasta = -1;
+  function camaraAuto(e) {
+    if (reloj < autoAbordoHasta) return 'onboard';
+    if (!e || !lanzado) return 'persecucion';
+    if (e.t < 8) return 'heroica';
+    if (e.t < 15) return 'torre';
+    if (e.t < 60) return 'seguimiento';
+    return 'persecucion';
+  }
+
   function setCamara(m, inmediato = false) {
+    autoActivo = m === 'auto';
+    aplicarCamara(autoActivo ? camaraAuto(ultimo) : m, inmediato);
+  }
+
+  function aplicarCamara(m, inmediato = false) {
     modo = m;
-    controles.enabled = m !== 'global';
+    controles.enabled = m !== 'global' && m !== 'seguimiento';
     controlesG.enabled = m === 'global';
+    if (m !== 'seguimiento' && camLocal.fov !== 48) {
+      camLocal.fov = 48;
+      camLocal.updateProjectionMatrix();
+    }
+    if (m === 'seguimiento') {
+      apuntarSeguimiento();
+      usuarioMovio = false;
+      return;
+    }
     const alt = actual?.altura ?? 50;
     if (m === 'global') {
       const d = luna.visible ? 900000 : 26000;
@@ -1785,6 +2354,10 @@ export function crearEscena(canvas, { reducirMovimiento = false, renderer: rende
     const w = canvas.clientWidth || 800;
     const h = canvas.clientHeight || 500;
     renderer.setSize(w, h, false);
+    if (composer) {
+      composer.setPixelRatio(Math.min(globalThis.devicePixelRatio ?? 1, 2));
+      composer.setSize(w, h);
+    }
     for (const c of [camLocal, camGlobal]) {
       c.aspect = w / h;
       c.updateProjectionMatrix();
@@ -1793,6 +2366,7 @@ export function crearEscena(canvas, { reducirMovimiento = false, renderer: rende
 
   function dibujar(dtSim = 0, dtReal = 0.016) {
     reloj += dtReal;
+    dtSimActual = dtSim;
     const dtVis = dtSim > 0 ? Math.min(dtSim, dtReal * 2.2) : 0;
     if (ultimo && dtVis) avanzarRestos(dtVis);
     if (!lanzado && reloj >= proxVapor) {
@@ -1800,6 +2374,7 @@ export function crearEscena(canvas, { reducirMovimiento = false, renderer: rende
       proxVapor = reloj + 0.22;
     }
     avanzarHumo(dtReal);
+    avanzarOndas(dtReal);
     nubes.rotation.y = reloj * 0.0004;
     nubesG.rotation.y = reloj * 0.004;
 
@@ -1808,15 +2383,43 @@ export function crearEscena(canvas, { reducirMovimiento = false, renderer: rende
       for (const b of sitio.balizas) b.scale.setScalar(0.85 + pulso * 0.35);
     }
 
-    if (!lanzado && !usuarioMovio && !reducirMovimiento && modo !== 'global' && modo !== 'onboard' && actual) {
+    if (!lanzado && !usuarioMovio && !reducirMovimiento && modo !== 'global' && modo !== 'onboard' && modo !== 'seguimiento' && actual) {
       camLocal.position.sub(controles.target).applyAxisAngle(ejeY, dtReal * 0.07).add(controles.target);
     }
+
+    // Adaptación de exposición: al encender, el destello de la llama "encandila" y la cámara
+    // cierra un poco el diafragma; luego vuelve en unos segundos (efecto ilustrativo).
+    const dtEnc = reloj - tUltimoEncendido;
+    const encandilado = !reducirMovimiento && (ultimo?.h ?? 0) < 20000 && dtEnc >= 0 && dtEnc < 6 ? Math.exp(-dtEnc / 1.8) : 0;
+    renderer.toneMappingExposure = EXPOSICION_BASE * (1 - 0.22 * encandilado);
+
+    // Bloom: se apaga solo si el equipo no da abasto
+    if (composer && pasoBloom.enabled) {
+      tLento = dtReal > 0.033 ? tLento + dtReal : Math.max(0, tLento - dtReal * 0.5);
+      if (tLento > 2) pasoBloom.enabled = false;
+    }
+
     if (modo === 'global') {
       controlesG.update();
-      renderer.render(global, camGlobal);
+      if (composer) {
+        pasoRender.scene = global;
+        pasoRender.camera = camGlobal;
+        composer.render(dtReal);
+      } else {
+        renderer.render(global, camGlobal);
+      }
     } else {
-      controles.update();
-      renderer.render(local, camLocal);
+      if (modo === 'seguimiento') apuntarSeguimiento();
+      else controles.update();
+      camLocal.position.add(shakeOff);
+      if (composer) {
+        pasoRender.scene = local;
+        pasoRender.camera = camLocal;
+        composer.render(dtReal);
+      } else {
+        renderer.render(local, camLocal);
+      }
+      camLocal.position.sub(shakeOff);
     }
   }
 
@@ -1833,8 +2436,26 @@ export function crearEscena(canvas, { reducirMovimiento = false, renderer: rende
     dibujar,
     avanzarRestos,
     setSeleccion(cb) { alSeleccionar = cb; },
+    setAlOnda(cb) { alOnda = cb; },
     deseleccionar() { quitarSeleccion(); alSeleccionar?.(null, null); },
     etapaSeleccionada: () => seleccionada,
     panoramaActual: () => panoramaActual,
+    camaraActual: () => ({ modo, auto: autoActivo }),
+    /** Conteos internos para las pruebas (sin WebGL). */
+    estadisticas: () => ({
+      humo: humo.filter((x) => x.s.visible).length,
+      columna: columna.filter((x) => x.s.visible).length,
+      emisores: emisores.length,
+      ondas: ondas.filter((o) => o.s.visible).length,
+      distRampa: sitio ? sitio.grupo.getWorldPosition(new THREE.Vector3()).length() : null,
+      particulas: emisores.reduce((s, em) => s + em.particulas.length, 0),
+      restos: restos.length,
+      pendientes: pendientesSep.length,
+      apagadas: [...apagadas],
+      fov: camLocal.fov,
+      sacudida: shakeOff.length(),
+      exposicion: renderer.toneMappingExposure,
+      bloom: !!composer,
+    }),
   };
 }

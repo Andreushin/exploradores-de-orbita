@@ -1,19 +1,28 @@
 // OWNER: Rol 3 (@JU4NMAX) — Simulador de cohetes reales · interfaz.
 // La física está en ascenso.js (probada en Node) y la vista 3D en escena.js.
-// Si el navegador no tiene WebGL, todo sigue funcionando sin la vista 3D (bitácora, HUD y resultado).
+// Si el navegador no tiene WebGL, todo sigue funcionando sin la vista 3D (avisos, panel ⓘ y resultado).
+// Pantalla completa: el 3D ocupa la ventana; HUD mínimo, avisos que se desvanecen, ⚙ ajustes e ⓘ información.
+// Modo incrustado (?rocket=…&lock=1&embed=1): lo usa el Nivel 3 con el cohete de la misión. Ver embed.js.
 import { simular, cargaMaxima } from './ascenso.js';
 import { t as L, tr, getLang, setLang } from './textos.js';
+import { leerParametros, mensajeFin, SIM_LANG } from './embed.js';
 
 const $ = (id) => document.getElementById(id);
 const nf = (n, d = 0) => Number(n).toLocaleString(getLang() === 'en' ? 'en-US' : 'es-MX', { minimumFractionDigits: d, maximumFractionDigits: d });
-const reloj = (t) => `T+${Math.floor(t / 60)}:${String(Math.floor(t % 60)).padStart(2, '0')}`;
+const reloj = (t) => {
+  const a = Math.abs(t);
+  if (t < 0) return `T−${Math.floor(a / 60)}:${String(Math.ceil(a % 60)).padStart(2, '0')}`;
+  return `T+${Math.floor(a / 60)}:${String(Math.floor(a % 60)).padStart(2, '0')}`;
+};
 const reducir = matchMedia('(prefers-reduced-motion: reduce)').matches;
+const nombreCorto = (c) => tr(c.nombre).replace(/ \(.*\)$/, '');
 
 let datos;
+let modo = { rocketId: null, lock: false, embed: false }; // parámetros de la URL (embed.js)
 let cohete;          // el elegido (de cohetes.json)
 let escena = null;   // null si no hay WebGL
 let sim = null;      // resultado de simular()
-let t = 0;           // tiempo de reproducción (s simulados)
+let t = 0;           // tiempo de reproducción (s simulados; negativo durante la secuencia de encendido)
 let corriendo = false;
 let pendientes = []; // eventos aún no mostrados
 let ultimoReal = 0;
@@ -21,24 +30,31 @@ let etapaActual = '';
 let frenoSep = 0;    // ventana (s reales) de cámara lenta automática al desprender piezas
 // Estado para volver a pintar todo al cambiar de idioma (los textos se traducen al mostrarlos, no al guardarlos)
 let bitacora = [];   // eventos ya mostrados
-let fase = 'espera'; // qué muestra «Resultado»: espera | orbita | salida
+let fase = 'espera'; // espera | orbita
 let ultimoHud = null;
 let fichaEtapa = null;
-let cargaMax = null; // { directo, asistido } de la salida ya calculada
+let cargaMax = null; // { directo, asistido }; se calcula al abrir ⓘ tras el vuelo
 let enPausa = false;
 
 // --- Pestañas y ficha -------------------------------------------------------------
 function pintarPestanas() {
   const tabs = $('sim-tabs');
   tabs.replaceChildren();
-  for (const c of datos.cohetes) {
+  // Con el cohete fijado (lock) solo se muestra el de la misión, sin poder cambiarlo
+  for (const c of modo.lock ? [cohete] : datos.cohetes) {
     const b = document.createElement('button');
     b.type = 'button';
     b.className = 'sim-tab';
     b.setAttribute('role', 'tab');
     b.setAttribute('aria-selected', String(c.id === cohete.id));
-    b.innerHTML = `${tr(c.nombre)}<small>${tr(c.mision.nombre)} → ${tr(datos.destinos[c.mision.destino].nombre)}</small>`;
-    b.addEventListener('click', () => elegir(c.id));
+    b.innerHTML = `<b>${modo.lock ? '🔒 ' : ''}${nombreCorto(c)}</b><small>${tr(c.mision.nombre)} → ${tr(datos.destinos[c.mision.destino].nombre)}</small>`;
+    if (modo.lock) {
+      b.classList.add('is-locked');
+      b.setAttribute('aria-disabled', 'true');
+      b.title = L('lockedRocket');
+    } else {
+      b.addEventListener('click', () => elegir(c.id));
+    }
     tabs.append(b);
   }
 }
@@ -53,7 +69,7 @@ function pintarFicha() {
     <div><dt>${L('fDest')}</dt><dd>${tr(datos.destinos[c.mision.destino].nombre)}</dd></div>
     <div><dt>${L('fSite')}</dt><dd>${tr(c.mision.sitio)}</dd></div>
     <div><dt>${L('fMass')}</dt><dd>${nf(masaTotal / 1000, 1)} t</dd></div>
-    <div><dt>${L('fPayload')}</dt><dd>${tr(c.mision.nave)} · ${nf(c.mision.masaNave)} kg</dd></div>
+    <div class="sim-wide"><dt>${L('fPayload')}</dt><dd>${tr(c.mision.nave)} · ${nf(c.mision.masaNave)} kg</dd></div>
     <div class="sim-wide"><dt>${L('fStages')}</dt><dd>${motores}</dd></div>
     ${c.mision.rutaReal ? `<div class="sim-wide"><dt>${L('fRoute')}</dt><dd>${tr(c.mision.rutaReal)}</dd></div>` : ''}`;
 }
@@ -74,6 +90,7 @@ function pintarCarga() {
 }
 
 function elegir(id) {
+  if (modo.lock && id !== cohete.id) return; // el cohete de la misión no se cambia
   cohete = datos.cohetes.find((c) => c.id === id);
   detener();
   pintarPestanas();
@@ -82,7 +99,7 @@ function elegir(id) {
   reiniciarVista();
 }
 
-// --- HUD, bitácora, inspección 3D y resultado ----------------------------------------
+// --- HUD, avisos, bitácora, inspección 3D y resultado ------------------------------
 function capaAtmosferica(e) {
   const h = e.h ?? 0;
   const vRel = e.vRel ?? Math.hypot(e.vr ?? 0, e.vt ?? 0);
@@ -95,17 +112,45 @@ function capaAtmosferica(e) {
   return L('layer.space');
 }
 
+/** HUD mínimo (tiempo, altitud, velocidad) creado una vez; el resto de los datos va al panel ⓘ. */
+let hudNodos = null;
+function armarHud() {
+  $('sim-hud').innerHTML = `
+    <div class="sim-hud-tiempo" id="hud-t">T+0:00</div>
+    <div class="sim-hud-fila">
+      <div class="sim-hud-dato"><b id="hud-h">0</b><span id="hud-h-u"></span></div>
+      <div class="sim-hud-dato"><b id="hud-v">0</b><span id="hud-v-u"></span></div>
+    </div>
+    <div class="sim-hud-etapa" id="hud-etapa"></div>
+    <div class="sim-telemetria" id="hud-tele" hidden><i></i><span></span></div>`;
+  hudNodos = { t: $('hud-t'), h: $('hud-h'), hu: $('hud-h-u'), v: $('hud-v'), vu: $('hud-v-u'), etapa: $('hud-etapa'), tele: $('hud-tele') };
+}
+
 function hud(e) {
   ultimoHud = e;
-  $('sim-hud').innerHTML = `
-    <span>${L('hTime')}</span><b>${reloj(e.t)}</b>
-    <span>${L('hAlt')}</span><b>${nf(e.h / 1000, 1)} km</b>
-    <span>${L('hSpeed')}</span><b>${nf(Math.hypot(e.vr ?? 0, e.vt ?? 0) / 1000, 2)} km/s</b>
-    <span>${L('hAcc')}</span><b>${nf(e.a ?? 0, 1)} g</b>
-    <span>${L('hMass')}</span><b>${nf(e.masa / 1000, 1)} t</b>
-    <span>${L('hThrust')}</span><b>${nf((e.empuje ?? 0) / 1000)} kN</b>
-    <span class="sim-hud-capa">${capaAtmosferica(e)}</span>
-    ${etapaActual ? `<span class="sim-hud-etapa">${tr(etapaActual)}</span>` : `<span class="sim-hud-hint">${L('hHint')}</span>`}`;
+  if (!hudNodos) armarHud();
+  hudNodos.t.textContent = reloj(e.t);
+  hudNodos.h.textContent = nf(Math.max(0, e.h) / 1000, 1);
+  hudNodos.hu.textContent = L('hAltUnit');
+  hudNodos.v.textContent = nf(Math.hypot(e.vr ?? 0, e.vt ?? 0) / 1000, 2);
+  hudNodos.vu.textContent = L('hSpeedUnit');
+  hudNodos.etapa.textContent = etapaActual ? tr(etapaActual) : '';
+  hudNodos.tele.hidden = !sim || e.t <= 0;
+  hudNodos.tele.querySelector('span').textContent = L('telemetry', { cohete: nombreCorto(cohete) });
+  $('sim-hud-extra').innerHTML = `
+    <div><dt>${L('hAcc')}</dt><dd>${nf(e.a ?? 0, 1)} g</dd></div>
+    <div><dt>${L('hMass')}</dt><dd>${nf(e.masa / 1000, 1)} t</dd></div>
+    <div><dt>${L('hThrust')}</dt><dd>${nf((e.empuje ?? 0) / 1000)} kN</dd></div>
+    <div><dt>${L('hAlt')}</dt><dd>${capaAtmosferica(e)}</dd></div>`;
+}
+
+/** Pulso del rótulo de telemetría con cada onda que sale del cohete. */
+function pulsoTelemetria() {
+  const el = hudNodos?.tele;
+  if (!el || el.hidden) return;
+  el.classList.remove('is-pulso');
+  void el.offsetWidth;
+  el.classList.add('is-pulso');
 }
 
 function mostrarFichaEtapa(id, info) {
@@ -140,6 +185,9 @@ function mostrarFichaEtapa(id, info) {
   $('sim-etapa-enfocar')?.addEventListener('click', () => escena?.enfocarEtapa(id));
 }
 
+/** Texto de un evento: los de la interfaz llevan `clave`; los de la simulación, `texto` en español. */
+const textoEvento = (e) => (e.clave ? L(e.clave) : tr(e.texto));
+
 function lineaBitacora(e) {
   const li = document.createElement('li');
   let extra = '';
@@ -147,16 +195,26 @@ function lineaBitacora(e) {
     const d = (100 * (e.t - e.historico)) / e.historico;
     extra = `<small class="${Math.abs(d) <= 15 ? 'is-ok' : 'is-warn'}">${L('logReal', { t: reloj(e.historico), d: `${d >= 0 ? '+' : ''}${nf(d, 1)}` })}</small>`;
   }
-  li.innerHTML = `<time>${reloj(e.t)}</time><span>${tr(e.texto)}${extra}</span>`;
+  li.innerHTML = `<time>${reloj(e.t)}</time><span>${textoEvento(e)}${extra}</span>`;
   return li;
 }
 
 function registrar(e) {
   bitacora.push(e);
-  const li = lineaBitacora(e);
-  $('sim-log').append(li);
-  li.scrollIntoView?.({ block: 'nearest' });
+  $('sim-log').append(lineaBitacora(e));
+  avisar(e);
   if (e.tipo === 'encendido') etapaActual = e.texto.replace('Encendido: ', '');
+}
+
+/** Aviso breve sobre el 3D: como máximo 3 a la vez, se desvanece a los ~5 s. */
+function avisar(e) {
+  const lista = $('sim-avisos');
+  const li = document.createElement('li');
+  li.innerHTML = `<time>${reloj(e.t)}</time><span>${textoEvento(e)}</span>`;
+  lista.append(li);
+  while (lista.children.length > 3) lista.firstElementChild.remove();
+  setTimeout(() => li.classList.add('is-sale'), 4200);
+  setTimeout(() => li.remove(), 5000);
 }
 
 function medidor(etiqueta, valor, meta, escalaMax, nivel) {
@@ -167,83 +225,92 @@ function medidor(etiqueta, valor, meta, escalaMax, nivel) {
   </div>`;
 }
 
-/** Pinta el recuadro «Resultado» según la fase (se vuelve a llamar al cambiar de idioma). */
-function pintarResultado() {
+const botonCerrarResultado = () => `<button class="sim-icono" type="button" data-cerrar="sim-resultado" aria-label="${L('closeResult')}">✕</button>`;
+
+/**
+ * Fin del vuelo: el cohete se queda donde terminó (sin botón ni cambio de vista). Arriba aparece un
+ * cartel breve y el detalle (órbita, energía para el destino, carga máxima) queda en el panel ⓘ.
+ * Se vuelve a llamar al cambiar de idioma.
+ */
+function pintarResultado(conCartel = false) {
+  const info = $('sim-info-resultado');
   const box = $('sim-resultado');
-  const cabecera = `<h2>${L('resultTitle')}</h2>`;
   if (fase === 'espera' || !sim) {
-    box.innerHTML = `${cabecera}<p class="sim-muted">${L('resultIdle')}</p>`;
+    info.innerHTML = `<p class="sim-muted">${L('resultIdle')}</p>`;
+    box.hidden = true;
     return;
   }
-  const destino = tr(datos.destinos[cohete.mision.destino].nombre);
-  if (fase === 'orbita') {
-    const i = sim.insercion;
-    if (!sim.ok) {
-      box.innerHTML = `${cabecera}<p class="sim-veredicto sim-bad">❌ ${tr(sim.motivo)}.</p>
-        <p class="sim-muted">${L('failTitle')}</p>`;
-      return;
-    }
-    box.innerHTML = `${cabecera}
-      <p class="sim-veredicto sim-ok">${L('orbitOk', { p: nf(i.perigeoKm), a: nf(i.apogeoKm), t: reloj(i.t) })}</p>
-      <dl class="sim-datos">
-        <div><dt>${L('vOrbital')}</dt><dd>${nf(i.v / 1000, 2)} km/s</dd></div>
-        <div><dt>${L('mOrbit')}</dt><dd>${nf(i.masa)} kg</dd></div>
-        <div><dt>${L('propLeft')}</dt><dd>${nf(sim.salida.propRestante)} kg</dd></div>
-      </dl>
-      <button class="sim-btn sim-btn-primary" id="sim-salida" type="button">${L('burn', { dest: destino })}</button>`;
-    $('sim-salida').addEventListener('click', encenderSalida);
+  if (conCartel) box.hidden = false;
+  if (!sim.ok) {
+    box.className = 'sim-resultado sim-bad';
+    box.innerHTML = `<b>${L('bannerFail')}</b><span>${L('bannerFailHelp', { motivo: tr(sim.motivo) })}</span>${botonCerrarResultado()}`;
+    info.innerHTML = `<p class="sim-veredicto sim-bad">❌ ${tr(sim.motivo)}.</p><p class="sim-muted">${L('failTitle')}</p>`;
     return;
   }
+  const i = sim.insercion;
   const s = sim.salida;
-  const tope = Math.max(s.c3, s.c3Requerido, 10) * 1.15;
+  box.className = 'sim-resultado sim-ok';
+  box.innerHTML = `<b>${L('bannerOk')}</b><span>${nf(i.perigeoKm)} × ${nf(i.apogeoKm)} km · ${reloj(i.t)}</span>${botonCerrarResultado()}`;
+  const destino = tr(datos.destinos[cohete.mision.destino].nombre);
   const v = { dest: destino, c3: nf(s.c3, 1), req: nf(s.c3Requerido, 1), ruta: tr(cohete.mision.rutaReal) };
   let veredicto;
-  if (s.llegaDirecto) veredicto = `<p class="sim-veredicto sim-ok">${L('vDirect', v)}</p>`;
+  if (s.llegaDirecto) veredicto = `<p class="sim-veredicto sim-ok">${L('vWould', v)}</p>`;
   else if (s.llegaAsistido) veredicto = `<p class="sim-veredicto sim-warn">${L('vAssisted', v)}</p>`;
-  else veredicto = `<p class="sim-veredicto sim-bad">${L('vFail', v)}</p>`;
-  const dur = s.duracionRequerida != null ? `${nf(s.duracionRequerida)} s` : '—';
-  const hist = sim.eventos.find((e) => e.tipo === 'salida')?.historicoDuracion;
+  else veredicto = `<p class="sim-veredicto sim-bad">${L('vWouldFail', v)}</p>`;
+  const tope = Math.max(s.c3, s.c3Requerido, 10) * 1.15;
   const max = cargaMax
     ? `${L('maxDirect', { n: nf(cargaMax.directo) })}${cargaMax.asistido != null ? L('maxAssist', { n: nf(cargaMax.asistido) }) : ''}`
-    : L('calculating');
-  box.innerHTML = `${cabecera}${veredicto}
-    ${medidor(L('mC3', { dest: destino }), s.c3, s.c3Requerido, tope, s.llegaDirecto ? 'sim-ok' : 'sim-bad')}
-    ${s.c3RutaAsistida != null ? medidor(L('mC3Assist'), s.c3, s.c3RutaAsistida, tope, s.llegaAsistido ? 'sim-ok' : 'sim-bad') : ''}
+    : cargaMax === null && calculandoMax ? L('calculating') : L('maxOnOpen');
+  info.innerHTML = `
+    <p class="sim-veredicto sim-ok">${L('orbitOk', { p: nf(i.perigeoKm), a: nf(i.apogeoKm), t: reloj(i.t) })}</p>
     <dl class="sim-datos">
-      <div><dt>${L('dDv')}</dt><dd>${nf(s.dv)} m/s</dd></div>
-      <div><dt>${L('dDvReq')}</dt><dd>${nf(s.dvRequerido)} m/s</dd></div>
-      <div><dt>${L('dBurn')}</dt><dd>${dur}${hist ? ` ${L('dHist', { n: nf(hist) })}` : ''}</dd></div>
-      <div><dt>${L('dMax')}</dt><dd id="sim-max">${max}</dd></div>
-    </dl>`;
+      <div><dt>${L('vOrbital')}</dt><dd>${nf(i.v / 1000, 2)} km/s</dd></div>
+      <div><dt>${L('mOrbit')}</dt><dd>${nf(i.masa)} kg</dd></div>
+      <div><dt>${L('propLeft')}</dt><dd>${nf(s.propRestante)} kg</dd></div>
+      <div><dt>${L('dvAvail')}</dt><dd>${nf(s.dv)} m/s</dd></div>
+    </dl>
+    ${veredicto}
+    ${medidor(L('mC3', { dest: destino }), s.c3, s.c3Requerido, tope, s.llegaDirecto ? 'sim-ok' : 'sim-bad')}
+    <dl class="sim-datos"><div class="sim-wide"><dt>${L('dMax')}</dt><dd id="sim-max">${max}</dd></div></dl>`;
 }
 
-function mostrarOrbita() {
-  fase = 'orbita';
+/** La carga máxima repite la simulación varias veces: solo se calcula si se abre ⓘ tras el vuelo. */
+let calculandoMax = false;
+function calcularCargaMaxima() {
+  if (cargaMax || calculandoMax || fase !== 'orbita' || !sim?.ok) return;
+  calculandoMax = true;
   pintarResultado();
-}
-
-function encenderSalida() {
-  escena?.dibujarSalida(sim, cohete.mision.destino);
-  escena?.setCamara('global');
-  $('sim-camara').value = 'global';
-  registrar(sim.eventos.find((e) => e.tipo === 'salida'));
-  fase = 'salida';
-  cargaMax = null;
-  pintarResultado();
-  // La carga máxima repite la simulación varias veces: se calcula después de pintar
   const simActual = sim;
   setTimeout(() => {
+    calculandoMax = false;
     if (sim !== simActual) return; // el jugador reinició mientras tanto
     const directo = cargaMaxima(cohete, datos, { directo: true });
     const asistido = cohete.mision.rutaReal ? cargaMaxima(cohete, datos, { directo: false }) : null;
     cargaMax = { directo, asistido };
-    if (fase === 'salida') pintarResultado();
+    pintarResultado();
   }, 50);
+}
+
+function mostrarOrbita() {
+  fase = 'orbita';
+  pintarResultado(true);
+  if (!$('sim-info').hidden) calcularCargaMaxima();
+}
+
+/**
+ * Incrustado: avisa a la página que lo contiene (Nivel 3) que el cohete llegó a órbita.
+ * Si no llegó, no avisa: el jugador reinicia (o baja la carga en ⚙) y vuelve a lanzar.
+ */
+function avisarFin() {
+  if (!modo.embed || !sim?.ok || window.parent === window) return;
+  window.parent.postMessage(mensajeFin(sim, cohete), location.origin);
 }
 
 // --- Reproducción ---------------------------------------------------------------------
 function estadoEn(tt) {
   const S = sim.serie;
+  // Secuencia de encendido (t < 0): motores encendidos y el cohete todavía sujeto en la rampa
+  if (tt < 0) return { ...S[0], t: tt, h: 0, vr: 0, vt: 0, vRel: 0, a: 0, empuje: S[0].empuje || 1 };
   if (tt <= S[0].t) return S[0];
   if (tt >= S.at(-1).t) return S.at(-1);
   let i = Math.min(S.length - 2, Math.floor(tt / (S[1].t - S[0].t)));
@@ -262,22 +329,28 @@ function estadoEn(tt) {
 function lanzar() {
   sim = simular(cohete, datos, { masaNave: Number($('sim-carga').value), muestreo: 0.25 });
   reiniciarVista();
+  // Los motores encienden antes del despegue (dato con fuente en cohetes.json → visual.encendidoPrevio)
+  t = reducir ? 0 : -(cohete.visual?.encendidoPrevio ?? 0);
+  if (t < 0) registrar({ t, clave: 'preIgnition', tipo: 'previo' });
   pendientes = [...sim.eventos.filter((e) => e.tipo !== 'salida')];
   corriendo = true;
-  $('sim-lanzar').disabled = true;
-  $('sim-pausa').disabled = false;
-  $('sim-reiniciar').disabled = false;
+  enPausa = false;
+  pintarPausa();
+  $('sim-lanzar').hidden = true;
+  $('sim-pausa').hidden = false;
+  $('sim-reiniciar').hidden = false;
   $('sim-carga').disabled = true;
+  cerrarPaneles();
 }
 
 function detener() {
   corriendo = false;
   sim = null;
-  $('sim-lanzar').disabled = false;
-  $('sim-pausa').disabled = true;
   enPausa = false;
-  $('sim-pausa').textContent = L('pause');
-  $('sim-reiniciar').disabled = true;
+  pintarPausa();
+  $('sim-lanzar').hidden = false;
+  $('sim-pausa').hidden = true;
+  $('sim-reiniciar').hidden = true;
   $('sim-carga').disabled = false;
 }
 
@@ -286,13 +359,14 @@ function reiniciarVista() {
   frenoSep = 0;
   etapaActual = '';
   $('sim-log').replaceChildren();
+  $('sim-avisos').replaceChildren();
   bitacora = [];
   fase = 'espera';
   cargaMax = null;
+  calculandoMax = false;
   pintarResultado();
-  escena?.cargarCohete(cohete.id, cohete.mision.latitud);
-  escena?.setCamara($('sim-camara').value === 'global' ? 'persecucion' : $('sim-camara').value);
-  if ($('sim-camara').value === 'global') $('sim-camara').value = 'persecucion';
+  escena?.cargarCohete(cohete.id, cohete.mision.latitud, cohete.visual);
+  ponerCamara($('sim-camara').value === 'global' ? 'auto' : $('sim-camara').value);
   const masaInicial = cohete.fases.reduce((s, f) => s + f.seco + f.propelente + (f.extra || []).reduce((e, x) => e + x.masa, 0), 0)
     + cohete.masasFijas.reduce((s, m) => s + m.masa, 0) + Number($('sim-carga').value || cohete.mision.masaNave);
   hud({ t: 0, h: 0, vr: 0, vt: 0, vRel: 0, masa: masaInicial, a: 0, empuje: 0 });
@@ -304,7 +378,8 @@ function cuadro(ahora) {
   let dtSim = 0;
   if (corriendo && sim) {
     const velUsuario = Number($('sim-velocidad').value);
-    const velEfectiva = frenoSep > 0 ? Math.min(velUsuario, 2.5) : velUsuario;
+    // La secuencia de encendido se ve a ritmo real (×1); las separaciones, a ×2.5 como máximo
+    const velEfectiva = t < 0 ? 1 : frenoSep > 0 ? Math.min(velUsuario, 2.5) : velUsuario;
     frenoSep = Math.max(0, frenoSep - dtReal);
     dtSim = dtReal * velEfectiva;
     t = Math.min(t + dtSim, sim.serie.at(-1).t);
@@ -324,12 +399,40 @@ function cuadro(ahora) {
     hud(e);
     if (t >= sim.serie.at(-1).t) {
       corriendo = false;
-      $('sim-pausa').disabled = true;
+      $('sim-pausa').hidden = true;
       mostrarOrbita();
+      avisarFin();
     }
   }
   escena?.dibujar(dtSim, dtReal);
   requestAnimationFrame(cuadro);
+}
+
+// --- Cámara y paneles ----------------------------------------------------------------
+const CICLO_CAMARAS = ['auto', 'persecucion', 'seguimiento', 'onboard', 'global'];
+function ponerCamara(m) {
+  $('sim-camara').value = m;
+  $('sim-b-camara-txt').textContent = L(`camShort.${m}`);
+  escena?.setCamara(m);
+}
+function siguienteCamara() {
+  const i = CICLO_CAMARAS.indexOf($('sim-camara').value);
+  ponerCamara(CICLO_CAMARAS[(i + 1) % CICLO_CAMARAS.length]);
+}
+
+function cerrarPaneles(excepto = null) {
+  for (const id of ['sim-ajustes', 'sim-info']) {
+    if (id === excepto) continue;
+    $(id).hidden = true;
+    document.querySelector(`[aria-controls="${id}"]`)?.setAttribute('aria-expanded', 'false');
+  }
+}
+function alternarPanel(id) {
+  const abrir = $(id).hidden;
+  cerrarPaneles(id);
+  $(id).hidden = !abrir;
+  document.querySelector(`[aria-controls="${id}"]`)?.setAttribute('aria-expanded', String(abrir));
+  if (abrir && id === 'sim-info') calcularCargaMaxima();
 }
 
 // --- Idioma ---------------------------------------------------------------------------
@@ -351,12 +454,12 @@ function aplicarIdioma(repintar = true) {
   b.setAttribute('aria-label', L('langLabel'));
   b.lang = lang === 'es' ? 'en' : 'es'; // el botón muestra el nombre del OTRO idioma
   pintarPausa();
+  $('sim-b-camara-txt').textContent = L(`camShort.${$('sim-camara').value}`);
   if (!repintar || !cohete) return;
   pintarPestanas();
   pintarFicha();
   pintarCarga();
-  const log = $('sim-log');
-  log.replaceChildren(...bitacora.map(lineaBitacora));
+  $('sim-log').replaceChildren(...bitacora.map(lineaBitacora));
   pintarResultado();
   if (ultimoHud) hud(ultimoHud);
   if (fichaEtapa) mostrarFichaEtapa(fichaEtapa.id, fichaEtapa.info);
@@ -373,11 +476,22 @@ function abrirModelo(vista = 'modelo') {
 // --- Arranque ----------------------------------------------------------------------
 async function arrancar() {
   datos = await fetch('cohetes.json').then((r) => r.json());
-  cohete = datos.cohetes[0];
+  modo = leerParametros(location.search, datos.cohetes);
+  cohete = datos.cohetes.find((c) => c.id === modo.rocketId) ?? datos.cohetes[0];
+  if (modo.embed) {
+    document.body.classList.add('sim-embed');
+    // El idioma lo manda la página que lo contiene (su botón ES/EN)
+    addEventListener('message', (e) => {
+      if (e.source !== window.parent || e.origin !== location.origin || e.data?.type !== SIM_LANG) return;
+      setLang(e.data.lang);
+      aplicarIdioma();
+    });
+  }
   try {
     const { crearEscena } = await import('./escena.js');
     escena = crearEscena($('sim-canvas'), { reducirMovimiento: reducir });
     escena.setSeleccion(mostrarFichaEtapa);
+    escena.setAlOnda?.(pulsoTelemetria);
     addEventListener('resize', () => escena.tamano());
   } catch (err) {
     console.warn('Sin vista 3D:', err);
@@ -390,13 +504,33 @@ async function arrancar() {
 
   $('sim-lanzar').addEventListener('click', lanzar);
   $('sim-pausa').addEventListener('click', () => {
+    if (!sim || t >= sim.serie.at(-1).t) return;
     corriendo = !corriendo;
     enPausa = !corriendo;
     pintarPausa();
   });
   $('sim-lang').addEventListener('click', () => { setLang(getLang() === 'es' ? 'en' : 'es'); aplicarIdioma(); });
   $('sim-reiniciar').addEventListener('click', () => { detener(); reiniciarVista(); });
-  $('sim-camara').addEventListener('change', (e) => escena?.setCamara(e.target.value));
+  $('sim-camara').addEventListener('change', (e) => ponerCamara(e.target.value));
+  $('sim-b-camara').addEventListener('click', siguienteCamara);
+  $('sim-b-ajustes').addEventListener('click', () => alternarPanel('sim-ajustes'));
+  $('sim-b-info').addEventListener('click', () => alternarPanel('sim-info'));
+  document.addEventListener('click', (e) => {
+    const id = e.target.closest?.('[data-cerrar]')?.dataset.cerrar;
+    if (!id) return;
+    if (id === 'sim-resultado') $(id).hidden = true;
+    else cerrarPaneles();
+  });
+  addEventListener('keydown', (e) => {
+    if (e.target.closest?.('input, select, textarea, button, a') && e.key !== 'Escape') return;
+    if (e.key === 'Escape') cerrarPaneles();
+    if (e.key === 'c' || e.key === 'C') siguienteCamara();
+    if (e.key === ' ' && !$('sim-dialog').open) {
+      e.preventDefault();
+      if (!sim) lanzar();
+      else $('sim-pausa').click();
+    }
+  });
   $('sim-panorama')?.addEventListener('change', (e) => escena?.setPanorama(e.target.value));
   $('sim-carga').addEventListener('input', pintarCarga);
   $('sim-modelo').addEventListener('click', () => abrirModelo('modelo'));
@@ -407,5 +541,8 @@ async function arrancar() {
 
 arrancar().catch((err) => {
   console.error(err);
-  $('sim-resultado').innerHTML = `<h2>${L('resultTitle')}</h2><p class="sim-veredicto sim-bad">${L('loadErr', { msg: err.message })}</p>`;
+  const box = $('sim-resultado');
+  box.hidden = false;
+  box.className = 'sim-resultado sim-bad';
+  box.innerHTML = `<span>${L('loadErr', { msg: err.message })}</span>`;
 });
