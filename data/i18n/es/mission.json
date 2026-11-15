@@ -27,6 +27,7 @@
   "dock": { "collapse": "Colapsar" },
   "difficulty": "Dificultad",
   "maxBudget": "Presupuesto máximo",
+  "simRocket": "Despega en",
   "targetTitle": "Elige el objetivo científico:",
   "reqTitle": "Lo que exige {dest}",
   "reqShort": "Lo que exige {dest}:",

@@ -34,6 +34,16 @@ location.href = levelUrl(4);           // ../nivel4/  (funciona desde la raíz o
     "maturity": 100, "penalty": 0, "cmlCap": 4, "validated": true
   },
 
+  // ── Despegue en el simulador de cohetes reales (simulador/) ────────
+  // Nivel 1 fija el cohete al elegir destino (data/missions.json → simRocket.id) y reinicia el resto.
+  // Nivel 3 lo abre antes de los asteroides (iframe con ?rocket=…&lock=1&embed=1, ver simulador/embed.js).
+  "simulation": {
+    "rocketId": "saturno-v",                 // id de simulador/cohetes.json (Luna → saturno-v, Marte → atlas-agena-d, Europa → falcon-heavy)
+    "locked": true,                          // Nivel 3: el simulador ya se abrió; el cohete no se cambia
+    "done": true,                            // Nivel 3: llegó a órbita (o se saltó): al volver al Nivel 3 va directo a los asteroides
+    "result": { "ok": true, "perigeoKm": 171, "apogeoKm": 185, "tiempoS": 701, "propRestanteKg": 67518 } // o { "skipped": true }
+  },
+
   // ── Nivel 2 · Taller del CubeSat (nivel2/) ─────────────────────────
   "satellite": {
     "formFactor": "struct-6u",               // id de pieza "structure" en data/pieces.json
@@ -83,9 +93,9 @@ Cuando publiques tu carpeta, **agrega tu número a `FOLDER_LEVELS`** en `js/misi
 
 | Nivel | Lee | Escribe | Al terminar va a |
 |---|---|---|---|
-| 1 · Misión (app principal) | — | `missionId`, `rocketId`, `budget`, `plan` (se guarda solo, en cada cambio) | `nivel2/` |
+| 1 · Misión (app principal) | — | `missionId`, `rocketId`, `budget`, `plan`, `simulation.rocketId` (se guarda solo, en cada cambio; cambiar de destino reinicia `simulation`) | `nivel2/` |
 | 2 · Taller (`nivel2/`) | `missionId`, `rocketId`, `budget`, `plan` | `satellite` (con el resumen calculado) | `nivel3/` |
-| 3 · Travesía (`nivel3/`) | `missionId`, `satellite` | `journey` | `nivel4/` |
+| 3 · Travesía (`nivel3/`) | `missionId`, `satellite`, `simulation` | `simulation.{locked,done,result}`, `journey` | `nivel4/` |
 | 4 · Reporte (`nivel4/`) | todo | `report` | menú / nueva misión (`clearMission()` + `levelUrl(1)`) |
 
 ## Reglas

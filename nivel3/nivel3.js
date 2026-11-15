@@ -1,8 +1,11 @@
 // OWNER: Andreushin — Nivel 3 · Travesía e inserción orbital (docs/niveles/nivel-3.md).
 // Lee el satélite de `eo-mision` (docs/contrato-niveles.md), simula el viaje con combustible
 // finito en kg (depende de la masa, ecuación del cohete) y escribe `journey`.
+// Antes de los asteroides: despegue en el simulador de cohetes reales (iframe) con el cohete que fijó el
+// Nivel 1 (`simulation.rocketId`). Al llegar a órbita sigue la travesía de siempre; escribe `simulation`.
 import { G0, deltaV, propellantFor, resolvePieces, dryMass, systemIsp, insertionOutcome } from '../js/physics.js';
 import { loadMission, saveMission, levelHref } from '../js/mision-store.js';
+import { SIM_DONE, SIM_LANG } from '../simulador/embed.js';
 import { TEXTOS } from './textos.js';
 import { FLIGHT_HITS, createFlight, startFlight, updateFlight, drawFlight, pointerToInput } from './vuelo.js';
 
@@ -16,6 +19,7 @@ const CRUISE_SECONDS = 9;    // duración visual del crucero
 const TCM_AT = 0.25;         // fracción del viaje donde aparece la corrección
 const EVENT_AT = 0.6;        // fracción del viaje donde aparece el evento
 const IONIC_ISP = 1500;      // para la sugerencia educativa
+const SIM_EXIT_MS = 2500;    // tras llegar a órbita, tiempo para ver el cohete antes de pasar a los asteroides
 // Diseño de referencia (docs/fuentes.md) para el modo demo
 const DEMO = {
   missionId: 'moon', rocketId: 'pico',
@@ -41,6 +45,8 @@ let sat;           // { dry, isp, prop0, maxProp, hasEngine, demo }
 let run;           // estado de una travesía (se reinicia en cada intento)
 let attempts = 0;
 let flight;        // Fase 1: la nave nodriza cruza el campo de asteroides (vuelo.js)
+let launch;        // Despegue: { rocketId, done, result } (sección `simulation` del contrato)
+let simTimer = 0;
 const input = { keys: new Set(), pointer: null };
 const KEYMAP = { ArrowLeft: 'left', KeyA: 'left', ArrowRight: 'right', KeyD: 'right', ArrowUp: 'up', KeyW: 'up', ArrowDown: 'down', KeyS: 'down' };
 
@@ -235,6 +241,75 @@ function renderHud() {
 const panel = () => $('n3-panel');
 const btn = (label, cls, on) => { const b = document.createElement('button'); b.type = 'button'; b.className = `n3-btn ${cls}`; b.innerHTML = label; b.addEventListener('click', on); return b; };
 
+// --- Despegue: simulador de cohetes reales (iframe, ver simulador/embed.js) ---------
+/** Nombre del cohete para los textos (viene de data/missions.json → simRocket). */
+const rocketName = () => (launch.rocketId === mission.simRocket?.id ? tx(mission.simRocket.name) : launch.rocketId);
+
+/** Abre el simulador con el cohete de la misión fijado: el jugador no lo puede cambiar. */
+function startSim() {
+  run.phase = 'sim';
+  if (!sat.demo) saveMission({ simulation: { rocketId: launch.rocketId, locked: true } });
+  const f = $('n3-sim');
+  f.src = `../simulador/?rocket=${encodeURIComponent(launch.rocketId)}&lock=1&embed=1`;
+  f.hidden = false;
+  renderOverlay();
+  renderSim();
+}
+
+function renderSim() {
+  const rocket = esc(rocketName());
+  const p = panel();
+  const row = document.createElement('div'); row.className = 'n3-choices';
+  if (launch.result) {
+    p.innerHTML = `<h2 class="n3-ok">${t('simDoneTitle')}</h2>
+      <p>${t('simDoneText', { rocket, p: fmt(launch.result.perigeoKm ?? 0, 0), a: fmt(launch.result.apogeoKm ?? 0, 0) })}</p>`;
+    row.append(btn(t('simContinue'), 'n3-btn-primary', closeSim));
+  } else {
+    p.innerHTML = `<span class="n3-tag">${t('simTag')}</span><h2>${t('simTitle', { rocket })}</h2>
+      <p>${t('simText', { rocket, dest: esc(tx(mission.name)) })}</p>`;
+    row.append(btn(t('simSkip'), 'n3-btn-ghost', () => finishSim({ skipped: true })));
+  }
+  p.append(row);
+}
+
+/** Aviso del simulador (mismo origen y desde nuestro iframe): el cohete llegó a órbita. */
+function onSimMessage(e) {
+  if (run?.phase !== 'sim' || e.origin !== location.origin || e.source !== $('n3-sim').contentWindow) return;
+  const d = e.data;
+  if (d?.type !== SIM_DONE || !d.ok) return;
+  const num = (n) => (Number.isFinite(n) ? n : null);
+  finishSim({ ok: true, perigeoKm: num(d.perigeoKm), apogeoKm: num(d.apogeoKm), tiempoS: num(d.tiempoS), propRestanteKg: num(d.propRestanteKg) });
+}
+
+function finishSim(result) {
+  if (run.phase !== 'sim' || launch.done) return;
+  launch.done = true;
+  launch.result = result;
+  if (!sat.demo) saveMission({ simulation: { rocketId: launch.rocketId, locked: true, done: true, result } });
+  const rocket = rocketName();
+  if (result.skipped) {
+    log(t('logSimSkip', { rocket }));
+    closeSim();
+    return;
+  }
+  log(t('logSim', { rocket, p: fmt(result.perigeoKm ?? 0, 0), a: fmt(result.apogeoKm ?? 0, 0) }), 'n3-good');
+  renderSim();
+  simTimer = setTimeout(closeSim, SIM_EXIT_MS);
+}
+
+/** Cierra el simulador (libera su WebGL) y pasa a la pantalla del campo de asteroides. */
+function closeSim() {
+  clearTimeout(simTimer);
+  if (run.phase !== 'sim') return;
+  const f = $('n3-sim');
+  f.src = 'about:blank';
+  f.hidden = true;
+  panel().innerHTML = '';
+  run.phase = 'flight';
+  run.lastFrame = performance.now();
+  renderOverlay(true); // el foco vuelve a esta página: el teclado del juego responde
+}
+
 // --- Fase 1: campo de asteroides (primera persona) --------------------------------
 function renderFlightHud() {
   const pct = flight.shield * 100;
@@ -255,6 +330,7 @@ function renderOverlay(focus = false) {
   const playing = run.phase === 'flight' && flight.state === 'playing';
   $('n3-stage').classList.toggle('is-flying', playing);
   $('n3-stage').classList.toggle('is-flight-phase', run.phase === 'flight');
+  $('n3-stage').classList.toggle('is-sim-phase', run.phase === 'sim');
   resize();
   if (run.phase !== 'flight' || playing) { o.hidden = true; o.replaceChildren(); return; }
   const card = document.createElement('div');
@@ -509,6 +585,7 @@ function restart() {
 function frame(now) {
   const dt = Math.min(0.1, (now - (run.lastFrame || now)) / 1000);
   run.lastFrame = now;
+  if (run.phase === 'sim') { requestAnimationFrame(frame); return; } // el simulador dibuja en su iframe
   if (run.phase === 'flight') {
     const ev = updateFlight(flight, dt, input);
     if (ev === 'crashed' || ev === 'cleared') renderOverlay(true);
@@ -564,6 +641,7 @@ function applyLang() {
   $('n3-brand-name').textContent = lang === 'en' ? 'Orbit Explorers' : 'Exploradores de Órbita';
   $('n3-menu').title = t('menu');
   $('n3-log-title').textContent = t('logTitle');
+  if (launch.rocketId) $('n3-sim').title = t('simFrame', { rocket: rocketName() });
   document.title = `${t('title')} · ${lang === 'en' ? 'Orbit Explorers' : 'Exploradores de Órbita'}`;
 }
 
@@ -588,6 +666,10 @@ async function boot() {
   };
   $('n3-demo').hidden = !demo;
   if (!saved) saveMission(DEMO); // solo si no hay nada guardado: nunca pisa datos reales
+  // Despegue: el cohete lo fijó el Nivel 1 al elegir destino; partidas sin ese dato usan el del destino.
+  // En modo demo no se lee ni se guarda (el demo no debe pisar la misión real a medias).
+  const savedSim = demo ? null : saved.simulation;
+  launch = { rocketId: savedSim?.rocketId || mission.simRocket?.id || null, done: Boolean(savedSim?.done), result: null };
 
   run = newRun();
   run.phase = 'flight';
@@ -595,6 +677,9 @@ async function boot() {
   applyLang();
   resize();
   renderOverlay();
+  // Si el despegue ya se hizo (recarga, vuelta desde el Taller), se va directo a los asteroides
+  if (launch.rocketId && !launch.done) startSim();
+  addEventListener('message', onSimMessage);
   addEventListener('resize', resize);
   addEventListener('keydown', onKey);
   addEventListener('keyup', onKey);
@@ -610,7 +695,10 @@ async function boot() {
     try { localStorage.setItem(LANG_KEY, lang); } catch { /* ignore */ }
     applyLang();
     // Re-dibuja el panel de la fase actual en el nuevo idioma
-    if (run.phase === 'flight') renderOverlay();
+    if (run.phase === 'sim') {
+      renderSim();
+      $('n3-sim').contentWindow?.postMessage({ type: SIM_LANG, lang }, location.origin);
+    } else if (run.phase === 'flight') renderOverlay();
     else if (run.phase === 'brief') renderBrief();
     else if (run.phase === 'result' && run.outcome === 'no-fuel') renderNoFuel();
     else if (run.phase === 'result') renderResult();

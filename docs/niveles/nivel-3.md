@@ -33,12 +33,13 @@ Simulación del viaje al destino y de la inserción orbital.
 | `nivel3/vuelo.js` | Fase 1: minijuego en primera persona de la nave nodriza en el campo de asteroides (lógica y dibujo) |
 | `nivel3/textos.js` | Textos ES/EN (`{ es, en }`, con interpolación `{nombre}`) |
 
-Reutiliza, importándolos: `js/physics.js` (`deltaV`, `propellantFor`, `insertionOutcome`, masas, Isp), `js/mision-store.js` y `data/{missions,pieces,events}.json`.
+Reutiliza, importándolos: `js/physics.js` (`deltaV`, `propellantFor`, `insertionOutcome`, masas, Isp), `js/mision-store.js`, `simulador/embed.js` (mensajes con el simulador) y `data/{missions,pieces,events}.json`.
 
 ## 2. Entrada y salida (contrato)
 
-- **Lee** de `eo-mision`: `missionId` y `satellite` (`formFactor`, `pieces`, `propellantKg`). La masa seca y el Isp se recalculan con las piezas.
-- **Modo demo:** si no hay satélite, usa el diseño de referencia de la Luna (`docs/fuentes.md`) y muestra un aviso. Solo escribe ese demo en `eo-mision` si no había nada guardado.
+- **Lee** de `eo-mision`: `missionId`, `satellite` (`formFactor`, `pieces`, `propellantKg`) y `simulation` (`rocketId`, `done`). La masa seca y el Isp se recalculan con las piezas. Si no hay `simulation.rocketId` (partida anterior a este campo), usa el del destino (`missions[].simRocket.id`).
+- **Modo demo:** si no hay satélite, usa el diseño de referencia de la Luna (`docs/fuentes.md`) y muestra un aviso. Solo escribe ese demo en `eo-mision` si no había nada guardado. En modo demo el despegue usa el Saturno V y no lee ni escribe `simulation`.
+- **Escribe** `simulation`: `locked: true` al abrir el simulador y `done: true` + `result` al llegar a órbita (`{ ok, perigeoKm, apogeoKm, tiempoS, propRestanteKg }`) o al saltarlo (`{ skipped: true }`).
 - **Escribe** `journey`: `dvAvailable`, `dvUsed`, `propellantStartKg`, `propellantUsedKg`, `tcm` (`early` | `late` | `skip`), `events[]` (`{ id, choice, hit, dv, science }`), `insertionRatio`, `outcome` (`orbit` | `eccentric` | `flyby` | `crash` | `no-fuel`), `science` y `attempts`.
 - **Navega** con `levelHref(n)`: "Ver reporte" va al Nivel 4 y "Volver al Taller" al Nivel 2.
 
@@ -56,6 +57,7 @@ kg = m · (1 − e^(−Δv / (Isp · g₀)))
 
 ## 4. Fases y decisiones
 
+- **Despegue (simulador de cohetes reales):** lo primero al entrar. Un iframe abre `../simulador/?rocket=<simulation.rocketId>&lock=1&embed=1`: el cohete es el que fijó el Nivel 1 según el destino (Luna → Saturno V, Marte → Atlas-Agena D, Europa → Falcon Heavy) y **no se puede cambiar** (sin pestañas de otros cohetes). El jugador pulsa ▶ Lanzar; cuando el cohete llega a órbita, el simulador manda `eo:sim-done` por `postMessage` (mismo origen) y, tras 2,5 s (`SIM_EXIT_MS`), el iframe se cierra (libera su WebGL) y aparece el campo de asteroides. Si el lanzamiento falla, no avisa: se reinicia dentro del simulador. "Saltar el despegue" pasa directo a los asteroides. Con `simulation.done` ya en `true` (recarga, vuelta desde el Taller) se salta. El botón ES/EN de la página también cambia el idioma del simulador (`eo:sim-lang`).
 0. **Campo de asteroides (nave nodriza, primera persona):** antes del presupuesto, el jugador pilota desde la cabina la nave que lleva el CubeSat hasta el punto de despliegue (25 s). Se maneja con flechas/WASD o moviendo el ratón o el dedo sobre el canvas; la retícula marca el tamaño de la nave y el radar marca en rojo las rocas que vienen hacia ella. El escudo aguanta 5 impactos: si se agota, se puede reintentar o saltar al despliegue. Al superarlo, "Desplegar CubeSat" pasa al presupuesto. **No gasta propelente del satélite ni cambia `journey`**; solo deja una línea en la bitácora. "Reintentar travesía" vuelve al presupuesto, no a los asteroides.
 1. **Presupuesto de Δv** (antes de volar, estilo GMAT): masa seca, propelente, Isp, Δv disponible y una tabla con la corrección temprana y la inserción, los kg estimados y el margen.
 2. **Corrección de trayectoria (TCM)** al 25 % del viaje:

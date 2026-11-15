@@ -45,6 +45,9 @@ body.sim { overflow: hidden; background: #02040c; color: var(--sim-text); font: 
 .sim-tab:hover { background: rgba(255, 255, 255, 0.05); }
 .sim-tab[aria-selected="true"] { background: linear-gradient(135deg, rgba(255, 107, 53, 0.28), rgba(255, 107, 53, 0.08)); border-color: rgba(255, 107, 53, 0.65); }
 .sim-tab[aria-selected="true"] small { color: #ffc9b3; }
+.sim-tab.is-locked { cursor: default; flex-grow: 0; }
+/* Incrustado en el Nivel 3 (?embed=1): la página de fuera pone la marca y el idioma */
+body.sim-embed .sim-brand, body.sim-embed #sim-lang { display: none; }
 .sim-top-acciones { display: flex; gap: 6px; }
 .sim-icono { font: 600 1.05rem var(--sim-font); color: var(--sim-text); background: rgba(255, 255, 255, 0.06); border: 1px solid var(--sim-vidrio-borde); border-radius: 12px; width: 40px; height: 40px; cursor: pointer; display: inline-flex; align-items: center; justify-content: center; }
 .sim-icono:hover, .sim-icono[aria-expanded="true"] { background: rgba(79, 195, 247, 0.18); border-color: rgba(79, 195, 247, 0.5); }
@@ -76,6 +79,7 @@ body.sim { overflow: hidden; background: #02040c; color: var(--sim-text); font: 
 .sim-barra-lado { display: flex; gap: 8px; backdrop-filter: none !important; }
 .sim-barra-centro { display: flex; gap: 8px; align-items: center; backdrop-filter: none !important; }
 .sim-chip { font: 600 0.88rem var(--sim-font); color: var(--sim-text); background: var(--sim-vidrio); border: 1px solid var(--sim-vidrio-borde); border-radius: 999px; padding: 9px 16px; cursor: pointer; display: inline-flex; align-items: center; gap: 6px; backdrop-filter: blur(10px); }
+.sim-chip[hidden] { display: none; } /* Pausa y Reiniciar solo existen durante el vuelo */
 .sim-chip:hover:not(:disabled) { background: rgba(22, 32, 74, 0.85); }
 .sim-chip-select select { font: 600 0.88rem var(--sim-mono); color: var(--sim-text); background: transparent; border: 0; cursor: pointer; }
 .sim-chip-select select option { background: var(--sim-surface); }

@@ -123,6 +123,7 @@ Cada tarjeta tiene un **nivel** (1–3). El destino exige un mínimo, y se toler
 |---|---|---|
 | `missionId` | Destino | Todos los niveles |
 | `rocketId` | Igual a `plan.cards.launch` | Taller (carga útil en `validateDesign`) |
+| `simulation.rocketId` | Cohete real del despegue según el destino (`missions[].simRocket.id`); cambiar de destino reinicia `simulation` | Nivel 3 (simulador de cohetes, sin poder cambiarlo) |
 | `budget.total` | Presupuesto máximo del destino | Encabezado |
 | `budget.{launch,space,ground,user}` | Costo de cada tarjeta | Taller (`budget.space` = dinero para piezas), `scienceScore` |
 | `plan.step` | Paso actual (0–5) | Volver al mismo paso al regresar al nivel |

@@ -2,8 +2,10 @@
 // La física está en ascenso.js (probada en Node) y la vista 3D en escena.js.
 // Si el navegador no tiene WebGL, todo sigue funcionando sin la vista 3D (avisos, panel ⓘ y resultado).
 // Pantalla completa: el 3D ocupa la ventana; HUD mínimo, avisos que se desvanecen, ⚙ ajustes e ⓘ información.
+// Modo incrustado (?rocket=…&lock=1&embed=1): lo usa el Nivel 3 con el cohete de la misión. Ver embed.js.
 import { simular, cargaMaxima } from './ascenso.js';
 import { t as L, tr, getLang, setLang } from './textos.js';
+import { leerParametros, mensajeFin, SIM_LANG } from './embed.js';
 
 const $ = (id) => document.getElementById(id);
 const nf = (n, d = 0) => Number(n).toLocaleString(getLang() === 'en' ? 'en-US' : 'es-MX', { minimumFractionDigits: d, maximumFractionDigits: d });
@@ -16,6 +18,7 @@ const reducir = matchMedia('(prefers-reduced-motion: reduce)').matches;
 const nombreCorto = (c) => tr(c.nombre).replace(/ \(.*\)$/, '');
 
 let datos;
+let modo = { rocketId: null, lock: false, embed: false }; // parámetros de la URL (embed.js)
 let cohete;          // el elegido (de cohetes.json)
 let escena = null;   // null si no hay WebGL
 let sim = null;      // resultado de simular()
@@ -37,14 +40,21 @@ let enPausa = false;
 function pintarPestanas() {
   const tabs = $('sim-tabs');
   tabs.replaceChildren();
-  for (const c of datos.cohetes) {
+  // Con el cohete fijado (lock) solo se muestra el de la misión, sin poder cambiarlo
+  for (const c of modo.lock ? [cohete] : datos.cohetes) {
     const b = document.createElement('button');
     b.type = 'button';
     b.className = 'sim-tab';
     b.setAttribute('role', 'tab');
     b.setAttribute('aria-selected', String(c.id === cohete.id));
-    b.innerHTML = `<b>${nombreCorto(c)}</b><small>${tr(c.mision.nombre)} → ${tr(datos.destinos[c.mision.destino].nombre)}</small>`;
-    b.addEventListener('click', () => elegir(c.id));
+    b.innerHTML = `<b>${modo.lock ? '🔒 ' : ''}${nombreCorto(c)}</b><small>${tr(c.mision.nombre)} → ${tr(datos.destinos[c.mision.destino].nombre)}</small>`;
+    if (modo.lock) {
+      b.classList.add('is-locked');
+      b.setAttribute('aria-disabled', 'true');
+      b.title = L('lockedRocket');
+    } else {
+      b.addEventListener('click', () => elegir(c.id));
+    }
     tabs.append(b);
   }
 }
@@ -80,6 +90,7 @@ function pintarCarga() {
 }
 
 function elegir(id) {
+  if (modo.lock && id !== cohete.id) return; // el cohete de la misión no se cambia
   cohete = datos.cohetes.find((c) => c.id === id);
   detener();
   pintarPestanas();
@@ -286,6 +297,15 @@ function mostrarOrbita() {
   if (!$('sim-info').hidden) calcularCargaMaxima();
 }
 
+/**
+ * Incrustado: avisa a la página que lo contiene (Nivel 3) que el cohete llegó a órbita.
+ * Si no llegó, no avisa: el jugador reinicia (o baja la carga en ⚙) y vuelve a lanzar.
+ */
+function avisarFin() {
+  if (!modo.embed || !sim?.ok || window.parent === window) return;
+  window.parent.postMessage(mensajeFin(sim, cohete), location.origin);
+}
+
 // --- Reproducción ---------------------------------------------------------------------
 function estadoEn(tt) {
   const S = sim.serie;
@@ -381,6 +401,7 @@ function cuadro(ahora) {
       corriendo = false;
       $('sim-pausa').hidden = true;
       mostrarOrbita();
+      avisarFin();
     }
   }
   escena?.dibujar(dtSim, dtReal);
@@ -455,7 +476,17 @@ function abrirModelo(vista = 'modelo') {
 // --- Arranque ----------------------------------------------------------------------
 async function arrancar() {
   datos = await fetch('cohetes.json').then((r) => r.json());
-  cohete = datos.cohetes[0];
+  modo = leerParametros(location.search, datos.cohetes);
+  cohete = datos.cohetes.find((c) => c.id === modo.rocketId) ?? datos.cohetes[0];
+  if (modo.embed) {
+    document.body.classList.add('sim-embed');
+    // El idioma lo manda la página que lo contiene (su botón ES/EN)
+    addEventListener('message', (e) => {
+      if (e.source !== window.parent || e.origin !== location.origin || e.data?.type !== SIM_LANG) return;
+      setLang(e.data.lang);
+      aplicarIdioma();
+    });
+  }
   try {
     const { crearEscena } = await import('./escena.js');
     escena = crearEscena($('sim-canvas'), { reducirMovimiento: reducir });

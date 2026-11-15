@@ -63,6 +63,11 @@ body.n3 {
 .n3-canvas { display: block; width: 100%; height: var(--n3-canvas-h); }
 .n3-stage.is-flying .n3-canvas { touch-action: none; cursor: crosshair; }
 
+/* Despegue: el simulador de cohetes reales ocupa el escenario (sin canvas ni HUD de la travesía) */
+.n3-sim { display: block; width: 100%; height: min(78vh, 720px); height: min(78dvh, 720px); min-height: 420px; border: 0; background: #02040c; }
+.n3-sim[hidden] { display: none; }
+.n3-stage.is-sim-phase .n3-canvas, .n3-stage.is-sim-phase .n3-hud { display: none; }
+
 /* Fase 1: tarjeta sobre el canvas (iniciar, choque, despliegue) */
 .n3-overlay {
   position: absolute;
