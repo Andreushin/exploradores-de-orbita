@@ -5,7 +5,7 @@
 <body><h1>taller-reglas.js: estados pendientes y consejos</h1><ul id="out"></ul>
 <script type="module">
 import { validateDesign, resolvePieces } from '../js/physics.js';
-import { checkState, meterData, tradeHints } from '../js/taller-reglas.js';
+import { checkState, meterData, tradeHints, HINT_ORDER, hintRank, nextSatellite, checkDetail, pieceFacts, alertingMeters } from '../js/taller-reglas.js';
 const out = document.getElementById('out');
 const check = (name, cond) => { const li = document.createElement('li'); li.className = cond ? 'ok' : 'fail'; li.textContent = (cond ? 'PASS ' : 'FAIL ') + name; out.append(li); };
 const load = (f) => fetch(`../data/${f}.json`).then((r) => r.json());
@@ -29,7 +29,7 @@ check('sin estructura: el resto pendiente (ningún falso ✔)', Object.entries(s
 const Me = meterData(empty.result.metrics, moon, 25);
 check('sin estructura: medidor de masa pendiente (no 0 / 0)', Me.mass.level === 'pending' && Me.mass.pct === 0);
 check('sin batería ni necesidad: medidor de batería pendiente', Me.battery.level === 'pending');
-check('sin estructura: no hay consejos', empty.hints.length === 0);
+check('sin estructura: un único consejo, elegir estructura (con acción de un clic)', empty.hints.length === 1 && empty.hints[0].check === 'structure' && empty.hints[0].action?.type === 'setStructure');
 check('sin estructura: ningún medidor juzga (ni costo verde ni energía roja)', Object.values(Me).every((d) => d.level === 'pending'));
 
 // --- Referencia de la Luna: todo en verde ---
@@ -66,5 +66,139 @@ check('con los kg sugeridos el Δv alcanza', withKg.result.checks.find((c) => c.
 const bare3 = design('struct-3u', ['battery', 'prop-green', 'comm-uhf', 'obc', 'inst-camera'], 0);
 check('3U sin propelente: no aconseja cargar kg que la 3U no aguanta', !bare3.hints.some((h) => h.key === 'dvMore'));
 check('3U sin propelente: explica el límite de la 3U y sugiere la 6U', bare3.hints.some((h) => h.key === 'massStructure' && h.vars.next === 'struct-6u'));
+
+// ================= Consejos priorizados y acciones de un clic =================
+const SPACE = { moon: 25, mars: 50, europa: 75 };
+const ROCKET = { moon: 'pico', mars: 'medio', europa: 'pesado' };
+const sim = (missionId, sat) => {
+  const space = SPACE[missionId];
+  const state = { missionId, rocketId: ROCKET[missionId], budget: { space }, satellite: sat };
+  const result = validateDesign(state, data);
+  const parts = resolvePieces([sat.formFactor, ...sat.pieces].filter(Boolean), pieces);
+  const mission = missions.find((m) => m.id === missionId);
+  const hints = tradeHints(result, parts, pieces, mission, space, { nameOf: (p) => p.id, max: 99 });
+  // «passing» = ✔ que ve el jugador (una verificación pendiente no cuenta como ✔)
+  return { result, hints, passing: result.checks.filter((c) => checkState(c, result.metrics) === 'ok').length };
+};
+const ok = (r, id) => r.result.checks.find((c) => c.id === id).ok;
+const sat = (formFactor, ids = [], propellantKg = 0) => ({ formFactor, pieces: ids, propellantKg });
+
+// --- Orden por dependencia lógica ---
+check('HINT_ORDER: estructura y computadora primero, ciencia al final', HINT_ORDER[0] === 'structure' && HINT_ORDER[1] === 'obc' && HINT_ORDER.at(-1) === 'science');
+const fewParts = sim('moon', sat('struct-6u', []));
+check('6U vacía: los consejos salen en orden obc → comms → propulsión → ciencia', fewParts.hints.map((h) => h.check).join() === 'obc,comms,propellant,science');
+const noObc = sim('moon', sat('struct-6u', ['battery', 'inst-camera']));
+check('sin computadora: el primer consejo es la computadora', noObc.hints[0].check === 'obc');
+const sciLast = sim('moon', sat('struct-6u', ['obc']));
+check('hay otras fallas y falta ciencia: la ciencia va al final', sciLast.hints.length > 1 && sciLast.hints.at(-1).check === 'science');
+check('el orden de la lista nunca se rompe (todos los diseños probados)', [
+  sat(null, []), sat('struct-3u', ['battery', 'prop-green', 'comm-uhf', 'obc', 'inst-camera'], 2.2), sat('struct-6u', ['solar-deploy', 'battery', 'prop-ion', 'comm-uhf', 'obc', 'inst-camera'], 1),
+  sat('struct-3u', ['battery', 'prop-green', 'comm-uhf', 'obc', 'inst-camera'], 0), sat('struct-6u', ['battery', 'prop-green', 'comm-uhf', 'obc', 'inst-camera'], 1.5),
+].every((s) => { const r = sim('moon', s).hints.map(hintRank); return r.every((v, i) => i === 0 || v >= r[i - 1]); }));
+check('el consejo de cambiar de estructura va antes que el de energía', (() => {
+  const h = sim('moon', sat('struct-3u', ['battery', 'prop-green', 'comm-uhf', 'obc', 'inst-camera'], 0)).hints;
+  return h.findIndex((x) => x.key === 'massStructure') < h.findIndex((x) => x.check === 'power');
+})());
+
+// --- Aplicar la acción del primer consejo hace avanzar la validación ---
+const starts = {
+  'sin estructura': sat(null, []),
+  '6U vacía': sat('struct-6u', []),
+  '6U sin computadora': sat('struct-6u', ['battery', 'prop-green', 'comm-uhf', 'inst-camera'], 2.5),
+  '3U con todo (no cabe)': sat('struct-3u', ['battery', 'prop-green', 'comm-uhf', 'obc', 'inst-camera'], 2.2),
+  '6U con Δv corto': sat('struct-6u', ['battery', 'prop-green', 'comm-uhf', 'obc', 'inst-camera'], 1.5),
+  '6U sin radio': sat('struct-6u', ['battery', 'prop-green', 'obc', 'inst-camera'], 2.5),
+  '6U sin ciencia': sat('struct-6u', ['battery', 'prop-green', 'comm-uhf', 'obc'], 2.5),
+  '6U sin batería': sat('struct-6u', ['prop-green', 'comm-uhf', 'obc', 'inst-camera'], 2.5),
+};
+for (const [name, s] of Object.entries(starts)) {
+  const before = sim('moon', s);
+  const first = before.hints[0];
+  const after = sim('moon', nextSatellite(s, first.action, pieces));
+  check(`aplicar el 1.º consejo (${name}): arregla «${first.check}» y avanza (${before.passing} → ${after.passing})`,
+    ok(after, first.check) && after.passing > before.passing);
+}
+
+// --- Cadena completa: aplicar siempre el primer consejo lleva a un diseño válido ---
+for (const id of ['moon', 'mars', 'europa']) {
+  let s = sat(null, []);
+  let steps = 0;
+  let monotone = true;
+  let r = sim(id, s);
+  while (!r.result.valid && r.hints.length && r.hints[0].action && steps < 14) {
+    const prev = r.passing;
+    s = nextSatellite(s, r.hints[0].action, pieces);
+    r = sim(id, s);
+    if (r.passing < prev) monotone = false;
+    steps++;
+  }
+  check(`${id}: aplicando solo el primer consejo se llega a un diseño válido (${steps} pasos)`, r.result.valid);
+  check(`${id}: ningún paso empeora el número de ✔ (${steps} pasos, ${r.passing}/11 en verde)`, monotone);
+}
+
+// --- nextSatellite ---
+const base = sat('struct-6u', ['battery', 'prop-cold', 'obc'], 1);
+check('nextSatellite: no muta el original', (() => { const c = structuredClone(base); nextSatellite(base, { type: 'add', id: 'inst-mag' }, pieces); return JSON.stringify(c) === JSON.stringify(base); })());
+check('nextSatellite: una propulsión nueva reemplaza a la anterior y recorta el propelente a su tanque', (() => {
+  const n = nextSatellite(base, { type: 'swap', remove: 'prop-cold', add: 'prop-ion', kg: 9 }, pieces);
+  return n.pieces.includes('prop-ion') && !n.pieces.includes('prop-cold') && n.propellantKg === 1.5;
+})());
+check('nextSatellite: quitar la propulsión deja el propelente en 0', nextSatellite(base, { type: 'swap', remove: 'prop-cold', add: 'comm-uhf' }, pieces).propellantKg === 0);
+check('nextSatellite: acción nula no cambia nada', nextSatellite(base, null, pieces) === base);
+
+// --- checkDetail ---
+const refRes = sim('moon', sat('struct-6u', ['battery', 'prop-green', 'comm-uhf', 'obc', 'inst-camera'], 2.5)).result;
+const dMass = checkDetail(refRes.checks.find((c) => c.id === 'mass'), refRes.metrics, moon, 25);
+check('checkDetail(masa): gramos, límite y porcentaje', dMass.unit === 'g' && dMass.value === 6600 && dMass.limit === 7980 && Math.round(dMass.pct) === 83);
+const dDv = checkDetail(refRes.checks.find((c) => c.id === 'deltaV'), refRes.metrics, moon, 25);
+check('checkDetail(Δv): contra el requerido del destino, «más es mejor»', dDv.unit === 'm/s' && dDv.limit === 850 && dDv.dir === 'higher' && dDv.value > 850);
+check('checkDetail(costo): contra el presupuesto del Nivel 1', checkDetail(refRes.checks.find((c) => c.id === 'cost'), refRes.metrics, moon, 25).limit === 25);
+
+// --- pieceFacts: usa lo ya calculado (no vuelve a validar el diseño) ---
+const byId = (id) => pieces.find((p) => p.id === id);
+const ctx = { mission: moon, metrics: refRes.metrics, budgetSpace: 25, rocket: rockets.find((r) => r.id === 'pico'), installed: true };
+const factKeys = (id) => pieceFacts(byId(id), ctx).map((f) => f.key);
+check('pieceFacts(batería): Wh usables y horas de eclipse que cubre', factKeys('battery').includes('battUsable') && factKeys('battery').includes('battEclipse'));
+check('pieceFacts(propulsor): Δv con el tanque lleno y propelente que pide el destino', ['propDv', 'propNeed', 'propBurn'].every((k) => factKeys('prop-green').includes(k)));
+check('pieceFacts(radio): alcance contra la dificultad del destino', pieceFacts(byId('comm-uhf'), ctx).find((f) => f.key === 'commsRange').level === 'ok');
+check('pieceFacts(estructura): 3U trae 4 W y no llega al mínimo lunar de 5 W', pieceFacts(byId('struct-3u'), ctx).find((f) => f.key === 'structPanels').level === 'warn');
+check('pieceFacts(estructura): el cohete Colibrí limita a 12U a 15 000 g', pieceFacts(byId('struct-12u'), ctx).find((f) => f.key === 'structCap').vars.byRocket === true);
+check('pieceFacts(paneles) en Europa rinde ~1.3 W (1/d²)', (() => {
+  const eu = missions.find((m) => m.id === 'europa');
+  const r = sim('europa', sat('struct-12u', ['obc'])).result;
+  return pieceFacts(byId('solar-deploy'), { mission: eu, metrics: r.metrics, budgetSpace: 75, installed: false }).find((f) => f.key === 'powerGen').vars.gain === 1.3;
+})());
+check('pieceFacts(RTG): 35 W fijos que siguen en el eclipse (no escala con 1/d²)', ['powerFixed', 'powerNoSun'].every((k) => factKeys('rtg-mini').includes(k)) && !factKeys('rtg-mini').includes('powerGen'));
+check('pieceFacts es determinista y no muta sus entradas', (() => { const a = JSON.stringify(pieceFacts(byId('inst-radar'), ctx)); const m0 = JSON.stringify(ctx.metrics); pieceFacts(byId('inst-radar'), ctx); return a === JSON.stringify(pieceFacts(byId('inst-radar'), ctx)) && m0 === JSON.stringify(ctx.metrics); })());
+
+// --- Viñeta roja: solo cuando el jugador se PASA de un límite ---
+const mars = missions.find((mm) => mm.id === 'mars');
+const alerts = (id, s) => { const r = sim(id, s).result; const M = meterData(r.metrics, missions.find((mm) => mm.id === id), SPACE[id]); return { M, a: alertingMeters(M, r.metrics) }; };
+const marsEmpty = alerts('mars', sat('struct-6u', []));
+check('Marte con solo la 6U: Δv y energía están en rojo en su barra…', marsEmpty.M.dv.level === 'danger' && marsEmpty.M.power.level === 'danger');
+check('…pero no hay viñeta: todavía no se pasó de nada, solo falta armar', marsEmpty.a.length === 0);
+check('estructura sola con propulsor sin propelente: sin viñeta', alerts('moon', sat('struct-6u', ['prop-green', 'obc'], 0)).a.length === 0);
+check('referencia de la Luna: sin viñeta', alerts('moon', sat('struct-6u', ['battery', 'prop-green', 'comm-uhf', 'obc', 'inst-camera'], 2.5)).a.length === 0);
+check('sin estructura: sin viñeta', alerts('moon', sat(null, [])).a.length === 0);
+check('3U con todo: se pasó de masa → viñeta', alerts('moon', sat('struct-3u', ['battery', 'prop-green', 'comm-uhf', 'obc', 'inst-camera'], 2.2)).a.includes('mass'));
+check('iónico a $33M con $25M: se pasó de costo → viñeta', alerts('moon', sat('struct-6u', ['solar-deploy', 'battery', 'prop-ion', 'comm-uhf', 'obc', 'inst-camera'], 1)).a.includes('cost'));
+check('iónico (20 W) sin paneles en Marte: gasta más de lo que genera → viñeta', alerts('mars', sat('struct-6u', ['prop-ion', 'obc'], 1)).a.includes('power'));
+check('con batería instalada pero corta: viñeta de batería', alerts('moon', sat('struct-6u', ['battery', 'prop-green', 'obc', 'inst-spectro', 'inst-radar', 'comm-uhf'], 2.5)).a.includes('battery'));
+check('sin batería todavía (solo falta agregarla): sin viñeta de batería', !alerts('moon', sat('struct-6u', ['obc', 'prop-green'], 2.5)).a.includes('battery'));
+
+// --- Estructura inicial por destino y causa de la falta de energía ---
+check('sin piezas: Luna → 6U, Marte → 12U, Europa → 12U (sin vaivén de estructura)', ['moon', 'mars', 'europa'].map((id) => sim(id, sat(null, [])).hints[0].action.id).join() === 'struct-6u,struct-12u,struct-12u');
+check('con piezas ya elegidas se mantiene «la más chica donde caben» (no se fuerza la del destino)', sim('mars', { formFactor: null, pieces: ['obc'], propellantKg: 0 }).hints[0].action.id === 'struct-3u');
+const ionSat = sat('struct-6u', ['prop-ion', 'comm-uhf', 'obc', 'inst-camera', 'battery'], 1);
+const ionMoon = sim('moon', ionSat);
+const swapHint = ionMoon.hints.find((h) => h.key === 'powerSwapProp');
+check('Luna con iónico: la energía falla y el consejo es cambiarlo por monopropelente, diciendo que gasta 20 W continuos',
+  !ok(ionMoon, 'power') && swapHint?.action.type === 'swap' && swapHint.action.remove === 'prop-ion' && swapHint.action.add === 'prop-green' && swapHint.vars.w === 20);
+check('…en lugar de agregar un generador', !ionMoon.hints.some((h) => h.key === 'powerAdd' || h.key === 'powerPartial'));
+check('aplicar ese cambio hace pasar la verificación de energía', ok(sim('moon', nextSatellite(ionSat, swapHint.action, pieces)), 'power'));
+check('Marte 6U con iónico (quitarlo no alcanza el mínimo de 8 W): sigue sugiriendo un generador', (() => {
+  const h = sim('mars', sat('struct-6u', ['prop-ion', 'obc'], 1)).hints;
+  return !h.some((x) => x.key === 'powerSwapProp') && h.some((x) => x.check === 'power' && x.action?.type === 'add');
+})());
 </script>
 </body></html>

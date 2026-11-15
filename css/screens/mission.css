@@ -118,6 +118,9 @@
   background: var(--surface); border: 1px solid var(--border); border-radius: 10px; padding: 10px 12px;
 }
 .lvl-field input:focus-visible { outline: 2px solid var(--accent-2); outline-offset: 2px; }
+.lvl-field input[aria-invalid='true'] { border-color: var(--danger, #ff6b6b); }
+.lvl-field-hint { font-weight: 400; font-size: 0.85rem; color: var(--muted); }
+.lvl-field-hint.is-error { color: var(--danger, #ff6b6b); font-weight: 600; }
 .lvl-chips { border: 0; padding: 0; margin: 16px 0 0; display: flex; flex-wrap: wrap; gap: 8px; }
 .lvl-chips legend { font-weight: 600; margin-bottom: 8px; padding: 0; }
 .chip {
@@ -149,6 +152,7 @@
   transition: transform 0.15s, border-color 0.15s, box-shadow 0.15s;
 }
 .opt:hover { transform: translateY(-2px); border-color: var(--accent-2); box-shadow: 0 8px 24px rgba(0, 0, 0, 0.35); }
+.opt.is-pickable { cursor: pointer; }
 .opt:active { cursor: grabbing; }
 .opt.is-dragging { opacity: 0.4; }
 .opt-head { display: flex; align-items: center; gap: 8px; }
@@ -166,6 +170,7 @@
 .opt-foot { display: flex; justify-content: space-between; align-items: center; gap: 8px; margin-top: 2px; }
 .opt-cost { font-variant-numeric: tabular-nums; font-size: 1.05rem; }
 .opt-move { padding: 5px 14px; font-size: 0.85rem; }
+.opt.is-pickable:focus-visible { outline: 2px solid var(--accent-2); outline-offset: 2px; }
 
 .slot { display: grid; gap: 8px; padding: 12px; border-radius: 12px; border: 2px dashed var(--border); background: rgba(5, 8, 22, 0.35); transition: border-color 0.2s; }
 .slot-head { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }

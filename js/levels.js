@@ -17,7 +17,7 @@ export const LEVELS = [
     icon: '🔧',
     resource: 'CubeSat 101',
     folder: 2, // vive en nivel2/ (página aislada, docs/niveles/nivel-2.md): goTo redirige ahí
-    done: (s) => Boolean(s.satellite?.validated), // nivel2/ guarda satellite.validated al lanzar
+    done: (s) => Boolean(s.satellite?.validated || s.satellite?.launched), // nivel2/ guarda validated (diseño válido) y launched (el jugador lanzó, aunque tenga rojos)
   },
   {
     id: 'journey',

@@ -28,6 +28,7 @@ El jugador entra al taller de ensamblaje. Según [CubeSat 101](https://www3.nasa
 8. [Cómo ajustarlo](#8-cómo-ajustarlo)
 9. [Decisiones de diseño](#9-decisiones-de-diseño)
 10. [Pendientes](#10-pendientes)
+11. [Fórmulas y qué es real](#11-fórmulas-y-qué-es-real)
 
 ---
 
@@ -37,23 +38,41 @@ El jugador entra al taller de ensamblaje. Según [CubeSat 101](https://www3.nasa
 |---|---|
 | **Qué enseña** | La ciencia elegida dicta qué instrumentos sirven, y la masa, la energía y el presupuesto limitan lo que se puede llevar. |
 | **Qué hace el jugador** | Elige estructura (3U / 6U / 12U), energía, propulsión, radio, control de actitud, computadora e instrumentos, y carga el propelente. |
-| **Cómo gana** | Pasa las 11 verificaciones de `physics.validateDesign` → **🚀 Lanzar**. |
+| **Cómo gana** | Pasa las 11 verificaciones de `physics.validateDesign` (todo en verde) → **🚀 Lanzar**. El botón siempre responde: con rojos pide confirmar. |
 | **Cómo entra** | `nivel2/`: desde el «Siguiente» del Nivel 1, desde **☰ Niveles → Nivel 2** o desde el Nivel 3 (`levelHref(2)`). Sin misión guardada abre en **modo demo**. |
-| **Cómo sale** | **🚀 Validar y lanzar** guarda `satellite` con su resumen y abre `nivel3/`. **← Nivel 1** vuelve a la app principal (`levelHref(1)`). |
+| **Cómo sale** | **🚀 Validar y lanzar** guarda `satellite` con su resumen (`validated` = diseño válido, `launched` = el jugador lanzó) y abre `nivel3/`. **← Nivel 1** vuelve a la app principal (`levelHref(1)`). |
 
 ---
 
 ## 2. Qué ve el jugador
 
 - **Pantalla de 3 columnas, sin scroll de página** (escritorio): **catálogo** a la izquierda (con scroll propio), **visor del CubeSat** al centro y **telemetría** (propelente, medidores, verificaciones, consejos y botones) a la derecha. En celular (≤ 860 px) se apilan y una barra fija abajo resume Δv, masa, energía y costo.
-- **Visor SVG del CubeSat** (`renderSVG` en `nivel2/nivel2.js`): dibuja el chasis como rejilla de unidades U (3U, 6U o 12U) y cada pieza al instalarla: las internas (batería, ADCS, computadora, instrumentos) entran en las celdas, los paneles se despliegan a los lados, la tobera con su llama sale por abajo, las antenas por arriba y el RTG por un costado. El volumen que sobra se marca en rojo parpadeante. Los colores salen solo de los tokens del nivel (`--n2-*`): **naranja** = propulsión, **azul** = el resto de piezas. Verde, amarillo y rojo se reservan para ✔ / ▲ / ✘, así que la categoría la dice el rótulo de cada pieza y no el color.
-- **↺ Reiniciar ensamblaje** (barra superior): vacía la estructura, las piezas y el propelente.
+- **↺ Reiniciar ensamblaje** (barra superior): vacía la estructura, las piezas y el propelente, y muestra «Ensamblaje reiniciado. **Deshacer**» durante 7 s. Cualquier otro cambio oculta el aviso.
 - **Objetivo científico** del Nivel 1 en el encabezado (🎯), con el aviso de que los instrumentos que no sirven aparecen en gris.
 - **Catálogo por categoría.** Cada pieza muestra masa en gramos, volumen en U, energía, costo y TRL con su significado corto («TRL 4 · en laboratorio»).
-  - **Botón ⓘ** en cada pieza: un popover nativo (mismo patrón que el «?» del Nivel 1) que explica qué es el TRL, qué significa el nivel de esa pieza y por qué lo tiene (su `desc`). Se cierra con Esc o con un clic afuera.
+  - **Botón ⓘ** en cada pieza: una sola ventana de información (popover nativo; sin soporte usa las clases `.n2-no-popover` / `.is-open`) con tres secciones, sin el párrafo genérico del TRL repetido:
+    1. **En la vida real** — referencia concreta de `data/workshop.json → pieceInfo` (BCT XACT y Iris v2 de MarCO, AF-M315E de GPIM, RainCube, BIRCHES…).
+    2. **En tu misión** — datos calculados con el diseño actual (`pieceFacts`): % de la masa límite y del presupuesto, y por categoría: kg máx. de la estructura contra el cohete; W en el destino con 1/d²; Wh útiles y horas de eclipse que cubre la batería; Δv con el tanque lleno, kg de propelente necesarios y Wh de quemado del propulsor; alcance de la radio contra el destino; puntos de ciencia (1.º y 2.º instrumento) y por qué sirve o no.
+    3. **El compromiso** — una frase de trade-off. El «¿Qué es el TRL?» queda plegado en un `<details>`, una sola vez.
   - **Estructuras:** su descripción y su masa máxima (`U × 1.33 kg`, CubeSat 101), en la fuente de los números: en Space Grotesk «15 960» se leía como «45 960».
   - **Instrumentos:** ✔ por qué sirve, o ✘ por qué no sirve, en gris y deshabilitado.
-- **Slider de propelente**, si hay propulsión.
+- **Ventanal de la estación (fondo del visor)**, CSS puro sin imágenes ni canvas (`.n2-bay` en `nivel2/index.html`, estilos en `nivel2.css`): cúpula con gradiente radial `#0a0f1c → #000`, campo de estrellas (13 capas de `radial-gradient` en `::before`), viñeta que oscurece el borde y un filtro oscuro tras el modelo para que los bloques 3D sigan siendo lo más brillante.
+  - **Destino dinámico:** `render3D` pone `is-moon`, `is-mars` o `is-europa` en `#n2-viewer` según `missionId`. Muestra un semicírculo muy abajo, cortado por el borde y al 40 % de opacidad: Luna gris con cráteres, Marte rojizo con manchas, Europa blanco/azul hielo con grietas. Un destino desconocido no pinta planeta.
+  - **Bahía de atraque:** piso en cuadrícula cian muy tenue (`perspective(500px) rotateX(60deg)`) y dos brazos mecánicos de sujeción hechos con `div` de bordes gruesos, detrás del modelo; se ocultan por debajo de 768 px.
+  - **Atmósfera:** haz de luz desde la esquina superior izquierda (`linear-gradient` al 5 %, `rotate(-45deg)`) y 3 partículas al 20 % que derivan en 46–58 s. Con `prefers-reduced-motion` no se mueven.
+  - **Capas (`z-index`):** estrellas 0 · planeta y piso 1 · haz 2 · brazos 3 · partículas 4 · viñeta 6 · **modelo 3D 10** · avisos del visor 11. `#n2-viewer` usa `isolation: isolate` y el fondo tiene `pointer-events: none`, así que el hover del modelo sigue funcionando. Todo es estático salvo la deriva de las partículas (solo `transform`): el visor se mantiene a ~60 fps.
+- **Visor 3D del CubeSat** (columna central, sin scroll): modelo en CSS 3D (`perspective: 1000px` + `preserve-3d`) que flota (`translateY` ±10 px) y gira (`rotateY` ±15°) en bucle y reacciona a cada selección:
+  - **Estructura:** la carcasa translúcida se alarga con las U (3U, 6U, 12U) y se anima el cambio de tamaño.
+  - **Paneles:** sin «Paneles desplegables» se ven paneles de cuerpo (oscuros, con líneas) a los lados; con ellos aparecen dos alas que se abren desde el costado.
+  - **Piezas:** cada pieza es un bloque de color etiquetado dentro de la carcasa, con alto proporcional a sus U. Entra deslizándose y los demás se reacomodan.
+  - **Propulsión:** cono en la base con llama animada (azul en el iónico) y un nivel de propelente que sube con el slider.
+  - **Errores:** si falla la masa o el volumen, la carcasa se tiñe de rojo con borde parpadeante; el bloque que no cabe se sale por la base, en rojo. Una línea inferior muestra `Volumen usado / U` y `Masa / límite`.
+  - **Hover bidireccional:** al pasar el ratón (o el foco) por una tarjeta del catálogo, su bloque 3D brilla en blanco; al pasar por un bloque 3D o por las alas, se resalta su tarjeta y la columna se desplaza hasta mostrarla. Misma pieza = mismo `data-id`.
+  - **Brillo solar:** con «Paneles desplegables» las alas pulsan con un `box-shadow` amarillo parpadeante (generación de energía).
+  - **Batería:** una barra vertical dentro de cada bloque de batería muestra los Wh que piden eclipses y quemados contra los Wh usables (50 % de la capacidad), con el mismo verde / amarillo / rojo del medidor. Se actualiza mientras se arrastra el propelente.
+  - **Lanzar bloqueado:** el botón usa `aria-disabled` (un `disabled` no emite `click`). Si se pulsa sin pasar las verificaciones, el visor tiembla y la viñeta roja del Nivel 1 (`inset 0 0 220px 30px` sobre los bordes de toda la página) parpadea; no navega.
+  - `prefers-reduced-motion` desactiva las animaciones (la viñeta queda como un solo destello suave).
+- **Slider de propelente**, si hay propulsión. Al agregar un motor se **precarga el propelente que pide el destino** (`suggestedPropellant`, sin pasar el tanque) y el control destella dos veces: con 0 kg el Δv quedaba en 0 y no se descubría el control.
 - **5 medidores en vivo** (`role="meter"`). Se actualizan al agregar o quitar piezas y **mientras se arrastra** el propelente:
 
 | Medidor | Muestra | Verde | Amarillo | Rojo |
@@ -65,16 +84,24 @@ El jugador entra al taller de ensamblaje. Según [CubeSat 101](https://www3.nasa
 | Costo | costo contra el segmento Espacio | < 85 % | 85–100 % | > 100 % |
 
 - **Aviso del cohete:** si la masa supera la carga útil del cohete del Nivel 1, y ese es el límite que manda, aparece "🚫 … solo lleva N g: así no podrá despegar".
+- **Rótulos claros en rojo:** si la energía es positiva pero no llega al mínimo del destino, el medidor dice «faltan 4.5 W» (no «+3.5 W» en rojo); la batería sin instalar dice «1 Wh · sin batería». Con consumo mayor que la generación se mantiene el valor negativo.
+- **Lenguaje llano y legibilidad:** el texto nunca baja de 12 px (antes el 61 % era menor). Las ventanas definen la jerga en el lugar: Δv, Isp, eclipse y quemado, y el aviso de lanzar explica qué es el CML 1. En pantallas táctiles el ⓘ mide 36 px.
 - **Antes de elegir estructura nada se juzga:** los medidores quedan en gris (`— / — g`, «Elige una estructura») y las verificaciones en ○ pendiente, en vez de mostrar ✔ porque «0 g cabe en cualquier límite». La batería sigue pendiente mientras no haga falta ni haya una. Reglas: `checkState` y `meterData` en `js/taller-reglas.js`.
-- **Lista de verificaciones** (✔ / ✘ / ○) y botones **Atrás** / **🚀 Lanzar**.
-- **💡 Consejos con números** bajo las verificaciones que fallan (hasta 2, `tradeHints` en `js/taller-reglas.js`). Orientan el *trade study* sin regalar nada: «la 3U admite 3 990 g y con el propelente de la misión pesaría unos 5 042 g: prueba la 6U», «con el monopropelente verde ($8M) el total baja a $26M», «faltan 178 m/s: carga 2.0 kg». Solo sugieren alternativas que sirven (una propulsión que llegue al Δv con su tanque, un instrumento compatible con el objetivo).
+- **Panel guía** (columna derecha): cabecera «Verificaciones 8 de 11» con barra, los consejos arriba y debajo las 11 verificaciones como filas compactas (✔ / ✘ / ○). Toda fila y todo consejo se puede pulsar y abre la misma ventana de información:
+  - **Verificación:** qué mide · fórmula · valor contra límite con barra (`checkDetail`) · cómo arreglarla (los consejos de esa verificación, con su botón).
+  - **Consejo:** el porqué con números, la barra de la verificación que ataca y un botón **Aplicar: …** que hace el cambio de un clic (`nextSatellite` → `setSatellite`), así el visor 3D reacciona al instante.
+  - **Empujón:** si el jugador no toca nada ~8 s (sin `pointerdown`, `keydown` ni `wheel`) y hay algo en rojo, la primera fila en rojo y el primer consejo laten (anillo naranja + chevron). Cualquier gesto lo apaga y se rearma tras cada cambio. Con `prefers-reduced-motion` queda un contorno fijo.
+- **Viñeta roja:** los bordes de la página parpadean con la misma viñeta del Nivel 1 (`inset 0 0 220px 30px` en `--danger`) cuando el jugador **se pasa de un límite** (`alertingMeters` en `js/taller-reglas.js`): masa o costo por encima, energía neta negativa, o batería insuficiente teniendo una instalada. Las barras que solo están incompletas (Δv sin motor o sin propelente, energía bajo el mínimo del destino, sin batería todavía) siguen rojas en su medidor pero no encienden la viñeta: mientras se arma el satélite casi todo está incompleto y una alarma permanente se ignora. Solo se anima `opacity` y `will-change: opacity` existe únicamente mientras late.
+- **🚀 Lanzar siempre responde:** en verde lanza; con rojos abre «Tu diseño aún tiene N verificaciones en rojo» (lista + consecuencia: CML 1 en el Reporte) con **Seguir corrigiendo** / **Lanzar de todos modos**; sin estructura explica qué falta y ofrece elegirla. El botón va fijo al pie de la columna de telemetría (`position: sticky`), así se ve sin scroll aunque haya 11 verificaciones y 3 consejos; en celular vuelve a ser normal porque ya existe la barra de resumen.
+- **Consejos priorizados por dependencia** (`tradeHints`, orden `HINT_ORDER`): estructura → computadora → masa → volumen → energía → batería → radio → propulsión → Δv → costo → **ciencia al final**. Cubren las 11 verificaciones; cada uno trae `{ check, key, vars, action }`. Los títulos son imperativos («Cambia a la Estructura 6U», «Agrega Batería 80 Wh», «Carga 2.0 kg de propelente»). Un cambio de estructura rankea con la masa aunque nazca del Δv; si dos consejos proponen el mismo cambio, el panel lo muestra una vez. Con 6U vacía, aplicar solo el primer consejo en cada paso llega a un diseño válido en la Luna, Marte y Europa (`tests/taller-reglas.test.html`). Sin piezas todavía, la estructura que se aconseja sale del destino (Luna 6U; Marte y Europa 12U, como los diseños de referencia), para no cambiarla cinco pasos después. Si la falta de energía la causa un motor que gasta todo el tiempo (el iónico) y quitar su consumo cierra la brecha, el consejo es cambiarlo por uno químico (`powerSwapProp`) en vez de comprar un generador.
 - **En celular (≤ 860 px)** una barra fija abajo resume Δv, masa, energía y costo con ✔ / ▲ / ✘ / ○, y **Ver detalle ↓** lleva al panel completo.
+- **Teclado:** el catálogo y el panel se reconstruyen en cada cambio, así que `render()` guarda qué elemento tenía el foco (`focusKey`) y lo restaura al terminar (`restoreFocus`): activar una pieza con Enter o espacio deja el foco en esa pieza, y tras **Aplicar** pasa al siguiente consejo.
 
 ---
 
 ## 3. Reglas: ¿puede lanzar?
 
-**🚀 Lanzar** solo se habilita si pasan las 11 verificaciones de `validateDesign` (`js/physics.js`, Rol 2):
+**🚀 Lanzar** siempre está activo. Con las 11 verificaciones de `validateDesign` (`js/physics.js`, Rol 2) en verde lanza directo; con rojos pide confirmar, porque el Reporte recalcula `validateDesign` y marca CML 1 · Concepto a un diseño inválido:
 
 | Verificación | Regla |
 |---|---|
@@ -124,7 +151,7 @@ Usa el helper `js/mision-store.js` (clave `eo-mision`, ver `docs/contrato-nivele
 | Escribe | Cuándo |
 |---|---|
 | `satellite.{formFactor, pieces, propellantKg}` + `validated: false` | en cada cambio (también si quita instrumentos incompatibles al entrar) |
-| `satellite.{dryKg, wetKg, isp, dvAvailable, maxPayloadKg}` + `validated: true` | al pulsar **🚀 Validar y lanzar** |
+| `satellite.{dryKg, wetKg, isp, dvAvailable, maxPayloadKg}` + `validated` (¿diseño válido?) + `launched: true` | al pulsar **🚀 Validar y lanzar** (o «Lanzar de todos modos»). `js/levels.js` da el Nivel 2 por hecho con `validated` o `launched` |
 
 **Modo demo:** si no hay misión, o le falta destino, cohete o `budget.space`, usa la Luna con el Colibrí, el objetivo «Hielo en cráteres polares» y el diseño de referencia. Mientras se edita no guarda nada. Al lanzar guarda la misión de ejemplo **solo si `eo-mision` está vacío**, así nunca pisa un Nivel 1 a medias.
 
@@ -135,11 +162,11 @@ Usa el helper `js/mision-store.js` (clave `eo-mision`, ver `docs/contrato-nivele
 | Archivo | Responsabilidad |
 |---|---|
 | `nivel2/index.html` | Página aislada: encabezado, botón ES/EN, catálogo y panel |
-| `nivel2/nivel2.js` | UI, modo demo y lectura/escritura del contrato. Exporta `pickMission`, `satelliteSummary` y `DEMO` para las pruebas |
+| `nivel2/nivel2.js` | UI, visor 3D (`init3D`, `render3D`, `fitView`), modo demo y lectura/escritura del contrato. Exporta `pickMission`, `satelliteSummary` y `DEMO` para las pruebas |
 | `nivel2/nivel2.css` | Estilos aislados; todas las clases llevan el prefijo `n2-` |
 | `nivel2/textos.js` | Textos ES/EN del nivel |
-| `js/taller-reglas.js` | Reglas puras, sin DOM: `limitLevel`, `dvLevel`, `meterData`, `rocketOverload`, `grams`, `instrumentStatus`, `incompatibleSelected`. |
-| `data/workshop.json` | Compatibilidad instrumento ↔ objetivo y descripción de 3U / 6U / 12U |
+| `js/taller-reglas.js` | Reglas puras, sin DOM: `limitLevel`, `dvLevel`, `meterData`, `rocketOverload`, `grams`, `instrumentStatus`, `incompatibleSelected`, `checkState`, **`tradeHints`** (consejos priorizados con acción), **`hintRank` / `HINT_ORDER`**, **`nextSatellite`** (aplica una acción), **`checkDetail`** (valor/límite de una verificación) y **`pieceFacts`** (hechos de una pieza; recibe lo ya calculado). |
+| `data/workshop.json` | Compatibilidad instrumento ↔ objetivo, descripción de 3U / 6U / 12U y `pieceInfo` (qué es en la vida real y el compromiso de cada pieza, ES/EN) |
 | `js/physics.js`, `data/pieces.json` | Piezas y reglas físicas (Rol 2), importadas sin copiar fórmulas |
 | `js/mision-store.js` | Contrato entre niveles (Rol 1) |
 
@@ -177,6 +204,9 @@ Recorrido manual sugerido (en ES y EN, escritorio y 360 px):
 | Agregar un instrumento | `pieces.json` (Rol 2) **y** su entrada en cada objetivo de `instrumentFit` |
 | Cambiar los cortes de color | `WARN_AT` y `DV_MARGIN` en `js/taller-reglas.js` |
 | Cambiar la descripción de las estructuras | `data/workshop.json → formFactors` |
+| Cambiar lo que dice el ⓘ de una pieza («en la vida real» / compromiso) | `data/workshop.json → pieceInfo[id]` (ES y EN). Los números de «En tu misión» salen de `pieceFacts`, no se escriben a mano |
+| Cambiar un consejo o su orden | `tradeHints` / `HINT_ORDER` en `js/taller-reglas.js` y `tips.<key>` (`title` + `why`) en `nivel2/textos.js` |
+| Cambiar el tiempo del empujón | `NUDGE_MS` en `nivel2/nivel2.js` |
 
 ---
 
@@ -204,6 +234,31 @@ Recorrido manual sugerido (en ES y EN, escritorio y 360 px):
 - [x] Se retiró la pantalla `js/screens/workshop.js` de la app: el Taller vive solo en `nivel2/`.
 - [ ] **E2E** (pausado en #46): cuando se reactive, los diseños de referencia deben elegir objetivo e instrumentos compatibles. Por ejemplo, Marte con cámara + magnetómetro no sirve para ningún objetivo de Marte: usar magnetómetro con «campo magnético» (sigue siendo válido: Δv 1382 m/s, 14.80 kg).
 - [ ] Prueba visual en navegador real (escritorio y celular, ES y EN).
-- [ ] #16: tooltips de CubeSat 101 por subsistema. Ya cubre instrumentos, estructuras y el TRL de cada pieza (ⓘ).
+- [x] #15: vista del CubeSat ensamblado con las U ocupadas (visor 3D en CSS, ver «Qué ve el jugador»).
+- [x] #16: tooltips de CubeSat 101 por subsistema: el ⓘ de cada pieza explica qué es en la vida real, cómo afecta a tu misión y su compromiso.
+- [ ] Esqueleto fantasma de la 6U en el visor antes de elegir estructura (hoy dice «← Elige una estructura»).
+- [ ] Acordeón de verificaciones (plegadas cuando todo está en verde). Con Lanzar fijo al pie ya no es urgente.
 - **Balanceo (revisado con `gemini-code-leve-2-fix.md`):** no hace falta rebalancear. 6U + monopropelente verde ya cumple la Luna con $20M (Δv 1027 / 850 m/s); 3U + verde es físicamente imposible (el motor ocupa 3U y la Luna pide ~5 kg contra 3.99 kg de la 3U), y es justo lo que enseña el nivel. El presupuesto mayor (ruta iónica) ya existe en el Nivel 1 con la nave interplanetaria ($50M).
-- [x] #15: vista del CubeSat ensamblado con las U ocupadas (visor SVG, §2).
+
+---
+
+## 11. Fórmulas y qué es real
+
+Lo que calcula el Taller sale de `js/physics.js` (Rol 2); el Nivel 2 solo lo muestra. Detalle de cada dato en [`fuentes.md`](../fuentes.md).
+
+| Qué | Fórmula | Qué tan real es |
+|---|---|---|
+| Masa seca / húmeda | seca = Σ masas de las piezas (con estructura); húmeda = seca + propelente | Real (suma) |
+| Límite de masa | `min(U × 1.33 kg, carga útil del cohete)` | 1.33 kg/U es la regla del CubeSat Design Spec; usarla igual en 3U/6U/12U es una simplificación |
+| Δv | `Isp · g₀ · ln(m_húmeda / m_seca)`, g₀ = 9.80665 | Tsiolkovsky exacta, con **un solo quemado impulsivo** (como GMAT, sin pérdidas por gravedad) |
+| Propelente para un Δv | `m_seca · (e^(Δv/(Isp·g₀)) − 1)` | La inversa de la anterior |
+| Volumen | Σ U de las piezas ≤ U de la estructura | Real en concepto; cada pieza con su U |
+| Energía | neto = generación − consumo; los paneles rinden `1/d²` (d en UA) | La ley 1/d² es real; el consumo es un promedio por ciclo de trabajo |
+| Batería | usable = capacidad × 0.5; necesaria = (consumo − generación sin Sol) × horas de eclipse + potencia de quemado × 2 h | 50 % de descarga es práctica de CubeSat 101. Horas de eclipse (0.6 / 0.7 / 1.0 h) y 2 h de quemado: **ludificadas** |
+| Radio | alcance ≥ dificultad del destino (1 / 2 / 3) | **Abstracto** (UHF = 1, banda X = 3): no hay presupuesto de enlace |
+| Costo | Σ costos ≤ presupuesto del segmento Espacio | **Ludificado** ($M); solo conserva el orden relativo real |
+
+**Real o de orden de magnitud real:** masas, potencias, TRL e Isp de las piezas (MarCO, BCT XACT, Iris v2, GPIM, RainCube, BIRCHES), Δv de inserción de la Luna (850 m/s) y Marte (1200 m/s), distancias al Sol, días de viaje y clases de cohete.
+**Ludificado a propósito:** el RTG de 35 W en un CubeSat (no existe), 7 kg de propelente en 3U, el Δv de Europa (1800 m/s, menor que el real), los costos, el valor científico, las horas de eclipse y de quemado, y el alcance de radio.
+**No se modela:** mecánica orbital (Hohmann, vis-viva), térmica, radiación, presupuesto de enlace ni datos; el eclipse es un número fijo de horas.
+**La altura del visor 3D** (40 px por U) es ilustrativa, no un valor físico.

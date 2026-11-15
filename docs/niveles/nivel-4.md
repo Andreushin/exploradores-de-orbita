@@ -44,18 +44,27 @@ Reporte final de éxito o fracaso, con datos científicos simulados (inspirados 
 
 En orden, de arriba abajo:
 
-1. **Título**, nombre del proyecto (si el jugador lo escribió) y resultado de la inserción: órbita, excéntrica, sobrevuelo, choque o sin propelente (`no-fuel`, del Nivel 3).
-2. **Barra CML 1–4**: cada nivel con su nombre y una explicación corta.
-   - Los niveles alcanzados se llenan en orden, con animación. Si el sistema tiene activado «reducir movimiento», aparecen sin animación.
-   - El nivel final queda resaltado (`aria-current="step"`).
-   - Los niveles que el jugador habría alcanzado pero que bloqueó el presupuesto del Nivel 1 se marcan con borde punteado y 🔒.
-3. **Qué mejorar para subir de CML**: el motivo y una lista de sugerencias (ver §4). Si llegó a CML 4, se muestra «¡Diseño puntual logrado!».
-4. **Datos científicos simulados**:
-   - puntaje científico, más el efecto de los eventos de la travesía si lo hubo;
-   - objetivos científicos del destino, con el que eligió el jugador resaltado;
-   - una gráfica por instrumento instalado (ver §5).
-5. **Resumen de ingeniería**: Δv al lanzar, Δv usado, masa lanzada, eventos enfrentados y madurez del Nivel 1 con su tope de CML.
-6. **Lo que aprendiste** y los 3 botones del pie.
+Estilo «centro de control»: tarjetas oscuras, etiquetas en monoespaciada y un color por estado (verde, amarillo o rojo según el resultado).
+
+1. **Título** y nombre del proyecto (si el jugador lo escribió).
+2. **Encabezado de transmisión** (`renderHero`), que cambia con el resultado de la inserción:
+
+   | Resultado | Insignia | Enlace | Órbita |
+   |---|---|---|---|
+   | `orbit` | Transmisión activa establecida (verde) | ONLINE 100% | Estable |
+   | `eccentric` | Transmisión intermitente (amarillo) | INTERMITENTE | Excéntrica |
+   | `flyby` / `no-fuel` | Transmisión breve (amarillo) | PARCIAL 30% (`FLYBY_WINDOW`) | Ninguna |
+   | `crash` | Señal perdida (rojo) | OFFLINE 0% | Ninguna |
+
+3. **Tarjetas CML 1–4**: cada nivel con su nombre y una explicación corta; insignia «Alcanzaste CML n» arriba a la derecha.
+   - Los niveles alcanzados (`.is-reached`) se encienden en orden y dicen «Completado ✓». Si el sistema tiene activado «reducir movimiento», aparecen sin animación.
+   - El nivel final (`.is-final`, `aria-current="step"`) lleva borde claro, la pestaña «¡Nivel alcanzado!» y «● MÁXIMO» (CML 4, con 🎯) o «● ACTUAL».
+   - Los niveles que el jugador habría alcanzado pero que bloqueó el presupuesto del Nivel 1 se marcan con borde punteado y 🔒. Los demás dicen «Pendiente».
+4. **Qué mejorar para subir de CML**: el motivo a la izquierda y las sugerencias en un recuadro a la derecha (ver §4). Si llegó a CML 4, se muestra «¡Diseño puntual logrado!».
+5. Dos columnas (una sola en celular):
+   - **Datos científicos simulados** (izquierda): puntaje científico y, si hubo, bonificación o penalización de los eventos; objetivos del destino como pastillas, con «Tu objetivo» resaltado; y por cada instrumento, su gráfica con área sombreada y rejilla, seguida de la ficha de la misión de la NASA que la inspira (ver §5). La nota de «datos simulados» va al pie de la última ficha.
+   - **Resumen de ingeniería** (derecha): Δv al lanzar, Δv usado, masa lanzada, eventos enfrentados y madurez del Nivel 1 con su tope de CML y una barra. Debajo, **Lo que aprendiste**.
+6. Los 3 botones del pie: Menú principal y Rediseñar CubeSat a la izquierda, Nueva misión a la derecha.
 
 ---
 

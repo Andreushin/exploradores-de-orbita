@@ -49,7 +49,8 @@ location.href = levelUrl(4);           // ../nivel4/  (funciona desde la raíz o
     "powerNetW": 1,                          // powerGenW − powerUseW; puede ser negativo
     "batteryWh": 80,                         // capacidad de batería (guarda energía, no la genera)
     "maxPayloadKg": 15,                      // del cohete elegido
-    "validated": true
+    "validated": true,                       // el diseño pasó las 11 verificaciones
+    "launched": true                         // el jugador pulsó Lanzar (también con verificaciones en rojo: el Reporte lo marca CML 1)
   },
 
   // ── Nivel 3 · Travesía e inserción orbital (nivel3/) ───────────────

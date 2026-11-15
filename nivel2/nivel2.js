@@ -1,9 +1,9 @@
 // OWNER: Rol 3 (@JU4NMAX) — Nivel 2 · Taller del CubeSat (docs/niveles/nivel-2.md).
 // Lee la misión del Nivel 1 de `eo-mision` (docs/contrato-niveles.md), deja armar el CubeSat bajo
 // los límites de masa, energía y presupuesto, y escribe solo la sección `satellite`.
-import { validateDesign, resolvePieces, KG_PER_U } from '../js/physics.js';
+import { validateDesign, resolvePieces, KG_PER_U, propellantFor, dryMass } from '../js/physics.js';
 import { loadMission, saveMission, levelHref } from '../js/mision-store.js';
-import { grams, meterData, rocketOverload, instrumentStatus, incompatibleSelected, powerText, signedW, checkState, tradeHints } from '../js/taller-reglas.js';
+import { grams, meterData, rocketOverload, instrumentStatus, incompatibleSelected, powerText, signedW, checkState, tradeHints, checkDetail, nextSatellite, pieceFacts, alertingMeters } from '../js/taller-reglas.js';
 import { TEXTOS } from './textos.js';
 
 const CATEGORIES = ['structure', 'power', 'propulsion', 'comms', 'adcs', 'obc', 'instrument'];
@@ -33,6 +33,7 @@ let data;
 let m;
 let demo = false;
 let removedIds = [];
+let last = null; // lo calculado en el último render: { result, dest, rocket, M, allHints, tips }
 
 export function pickMission(saved) {
   const usable = saved?.missionId && saved?.rocketId && saved?.budget?.space > 0;
@@ -57,19 +58,30 @@ export function satelliteSummary(sat, result, rocket) {
     batteryWh: result.metrics.storage.capacityWh,
     maxPayloadKg: rocket?.maxPayloadKg ?? null,
     validated: result.valid,
+    launched: true, // el jugador decidió lanzar (aunque el diseño siga con rojos): desbloquea el Nivel 3
   };
 }
 
 function persist() {
   if (demo) return;
-  saveMission({ satellite: { formFactor: m.satellite.formFactor, pieces: [...m.satellite.pieces], propellantKg: m.satellite.propellantKg, validated: false } });
+  saveMission({ satellite: { formFactor: m.satellite.formFactor, pieces: [...m.satellite.pieces], propellantKg: m.satellite.propellantKg, validated: false, launched: false } });
 }
 
 function setSatellite(patch) {
+  hideUndo(); // otro cambio vuelve obsoleto el «Deshacer» del reinicio
   m.satellite = { ...m.satellite, ...patch };
   removedIds = [];
   persist();
   render();
+}
+
+let flashProp = false;
+/** Propelente (kg, redondeado hacia arriba a 0.1) con el que el motor `p` llega al Δv del destino, sin pasar su tanque. */
+function suggestedPropellant(p, otherIds) {
+  const dest = data.missions.find((d) => d.id === m.missionId);
+  const dry = dryMass(resolvePieces([m.satellite.formFactor, ...otherIds].filter(Boolean), data.pieces)) + p.massKg;
+  const kg = Math.ceil(propellantFor(dest?.dvRequired || 0, p.isp, dry) * 10) / 10;
+  return Math.min(p.maxPropellantKg || 0, kg);
 }
 
 function togglePiece(p) {
@@ -78,405 +90,217 @@ function togglePiece(p) {
   const has = sat.pieces.includes(p.id);
   if (p.category === 'propulsion') {
     const others = sat.pieces.filter((id) => data.pieces.find((x) => x.id === id)?.category !== 'propulsion');
-    return setSatellite({ pieces: has ? others : [...others, p.id], propellantKg: has ? 0 : sat.propellantKg });
+    // Al agregar un motor se precarga el propelente que pide el destino: con 0 kg el Δv queda en 0 y el jugador
+    // no sabe que existe el control. El destello (flashProp) le muestra dónde está.
+    const kg = has ? 0 : sat.propellantKg || suggestedPropellant(p, others);
+    flashProp = !has;
+    return setSatellite({ pieces: has ? others : [...others, p.id], propellantKg: kg });
   }
   return setSatellite({ pieces: has ? sat.pieces.filter((id) => id !== p.id) : [...sat.pieces, p.id] });
 }
 
 // ═════════════════════════════════════════════════════════
-// SVG — VISOR DE ENSAMBLAJE CUBESAT 101
+// VISOR 3D — CubeSat en CSS 3D (docs/niveles/nivel-2.md)
 // ═════════════════════════════════════════════════════════
 
-const SVG_NS = 'http://www.w3.org/2000/svg';
-const U_SIZE = 72;   // px por celda U en el viewBox 480×600
-const MIN_PIECE_H = 22;
-const PIECE_GAP = 2;
-
-// Colores del visor: solo los tokens del nivel (--n2-*), leídos del CSS. Verde, amarillo y rojo quedan
-// reservados para ✔ / ▲ / ✘: la categoría de cada pieza la dice su rótulo, no el color.
-let C = {};
-function palette() {
-  const css = getComputedStyle(document.documentElement);
-  const tok = (name) => css.getPropertyValue(name).trim();
-  C = {
-    accent: tok('--n2-accent'), info: tok('--n2-info'), warn: tok('--n2-warn'), danger: tok('--n2-danger'),
-    muted: tok('--n2-muted'), border: tok('--n2-border'), surface: tok('--n2-surface'),
-  };
-}
-const pieceColor = (piece) => (piece.category === 'propulsion' ? C.accent : C.info);
-
-// Etiqueta corta para cada pieza en el SVG
+const SAT_W = 72;      // px de la sección de 1U (la carcasa mide 10×10 cm)
+const U_PX = 40;       // px de largo por cada U
+const GAP = 3;         // separación entre bloques internos
+const FLAME_H = 98;    // cono (28) + llama (70)
+const CAT_COLOR = { power: '#fbbf24', propulsion: '#ff6b35', comms: '#a78bfa', adcs: '#34d399', obc: '#60a5fa', instrument: '#4ade80' };
 const PIECE_ABBR = {
-  'battery': 'BAT 80Wh', 'battery-large': 'BAT 160Wh',
+  'solar-deploy': 'SOLAR', 'battery': 'BAT 80', 'battery-large': 'BAT 160', 'rtg-mini': 'RTG',
   'prop-cold': 'GAS FRÍO', 'prop-green': 'MONOPROP', 'prop-ion': 'ION',
-  'comm-uhf': 'UHF', 'comm-x': 'X-BAND',
-  'adcs': 'ADCS', 'obc': 'OBC',
-  'inst-camera': 'CAM', 'inst-spectro': 'ESPECT',
-  'inst-radar': 'RADAR', 'inst-mag': 'MAG',
+  'comm-uhf': 'UHF', 'comm-x': 'BANDA X', 'adcs': 'ADCS', 'obc': 'OBC',
+  'inst-camera': 'CAM', 'inst-spectro': 'ESPECTRO', 'inst-radar': 'RADAR', 'inst-mag': 'MAG',
 };
 
-// Piezas externas (no van en las celdas del chasis)
-const EXTERNAL_IDS = new Set(['solar-deploy', 'rtg-mini', 'comm-uhf', 'comm-x', 'prop-cold', 'prop-green', 'prop-ion']);
+let view = null;            // referencias al DOM del visor
+const pieceEls = new Map(); // id de pieza → bloque 3D (se reutiliza para que los bloques se deslicen en vez de reaparecer)
 
-function svgEl(tag, attrs = {}) {
-  const el = document.createElementNS(SVG_NS, tag);
-  for (const [k, v] of Object.entries(attrs)) el.setAttribute(k, v);
-  return el;
+function box(cls, label) {
+  const b = document.createElement('div');
+  b.className = `n2-box ${cls}`;
+  for (const f of ['fr', 'bk', 'lf', 'rt', 'tp', 'bt']) {
+    const face = document.createElement('i');
+    face.className = `n2-f ${f}`;
+    b.append(face);
+  }
+  if (label) b.querySelector('.fr').textContent = label;
+  return b;
 }
 
-function getChassisGeom(formFactorId) {
-  const GEOMS = {
-    'struct-3u':  { cols: 1, rows: 3 },
-    'struct-6u':  { cols: 2, rows: 3 },
-    'struct-12u': { cols: 2, rows: 6 },
-  };
-  const g = GEOMS[formFactorId] || GEOMS['struct-3u'];
-  const w = g.cols * U_SIZE;
-  const h = g.rows * U_SIZE;
-  const x = 240 - w / 2;
-  const y = 300 - h / 2;
-  return { ...g, w, h, x, y };
+function init3D() {
+  const sat = $('n2-sat');
+  const shell = box('n2-shell');
+  const inner = document.createElement('div');
+  const wings = ['l', 'r'].map((s) => { const w = document.createElement('div'); w.className = `n2-wing n2-wing-${s}`; w.dataset.id = 'solar-deploy'; return w; });
+  const thrust = document.createElement('div');
+  thrust.className = 'n2-thrust';
+  for (const cls of ['', ' x']) {
+    for (const part of ['cone', 'flame']) {
+      const e = document.createElement('div');
+      e.className = `n2-${part}${cls}`;
+      thrust.append(e);
+    }
+  }
+  sat.append(shell, inner, ...wings, thrust);
+  view = { scene: $('n2-scene'), fit: $('n2-fit'), sat, shell, inner, thrust, empty: $('n2-empty'), hud: $('n2-hud'), layout: null };
+  if (typeof ResizeObserver !== 'undefined') new ResizeObserver(fitView).observe(view.scene);
+
+  // Hover bidireccional: tarjeta del catálogo ↔ bloque 3D (misma pieza = mismo data-id)
+  const catalog = $('n2-catalog');
+  catalog.addEventListener('mouseover', (e) => setHover(e.target.closest('.n2-piece-wrap')?.querySelector('.n2-piece')?.dataset.id ?? null));
+  catalog.addEventListener('mouseleave', () => setHover(null));
+  catalog.addEventListener('focusin', (e) => setHover(e.target.closest('.n2-piece-wrap')?.querySelector('.n2-piece')?.dataset.id ?? null));
+  catalog.addEventListener('focusout', () => setHover(null));
+  sat.addEventListener('mouseover', (e) => setHover(e.target.closest('[data-id]')?.dataset.id ?? null, true));
+  sat.addEventListener('mouseleave', () => setHover(null));
 }
 
-/** Piezas internas: solo las que ocupan celdas del chasis */
-function getInternalPieces(pieceIds) {
-  const INTERNAL_CATS = new Set(['power', 'adcs', 'obc', 'instrument']);
-  return pieceIds
-    .map((id) => data.pieces.find((p) => p.id === id))
-    .filter((p) => p && INTERNAL_CATS.has(p.category) && !EXTERNAL_IDS.has(p.id));
+let hoverId = null;
+function paintHover(scroll = false) {
+  for (const el of document.querySelectorAll('.is-hover')) el.classList.remove('is-hover');
+  if (!hoverId) return;
+  for (const el of document.querySelectorAll(`[data-id="${CSS.escape(hoverId)}"]`)) el.classList.add('is-hover');
+  // Desde el 3D: la tarjeta puede estar fuera de vista en la columna con scroll
+  if (scroll) document.querySelector(`.n2-piece[data-id="${CSS.escape(hoverId)}"]`)?.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
+}
+function setHover(id, scroll = false) {
+  if (id === hoverId) return;
+  hoverId = id;
+  paintHover(scroll);
 }
 
-/**
- * Distribuye las piezas internas en las celdas del chasis.
- * Para 1 col apila todo en la única columna; para 2 cols
- * alterna hacia la columna con menos altura acumulada.
- */
-function packInternal(pieces, geom) {
-  const colW = geom.w / geom.cols;
-  const cols = Array.from({ length: geom.cols }, () => ({ y: 4 }));
-  return pieces.map((piece, idx) => {
-    const h = Math.max(MIN_PIECE_H, Math.round(piece.volumeU * U_SIZE));
-    const ci = geom.cols === 1 ? 0 : cols[0].y <= cols[1].y ? 0 : 1;
-    const col = cols[ci];
-    const px = geom.x + ci * colW + 3;
-    const py = geom.y + col.y;
-    const overflow = col.y + h > geom.h - 4;
-    col.y += h + PIECE_GAP;
-    return { piece, x: px, y: py, w: colW - 6, h, overflow, idx };
-  });
+/** Viñeta roja (la del Nivel 1) cuando el jugador se pasa de un límite (ver alertingMeters). El CSS solo anima opacity. */
+function paintAlert(M, x) {
+  document.body.classList.toggle('has-danger', alertingMeters(M, x).length > 0);
 }
 
-function hexAlpha(hex, a) {
-  const r = parseInt(hex.slice(1, 3), 16);
-  const g = parseInt(hex.slice(3, 5), 16);
-  const b = parseInt(hex.slice(5, 7), 16);
-  return `rgba(${r},${g},${b},${a})`;
+// El catálogo y el panel se reconstruyen en cada cambio. Sin esto el foco del teclado caería al <body>
+// y quien navega con Tab tendría que empezar de nuevo desde arriba después de cada pieza.
+let pendingFocus = null; // clave de foco que deja un «Aplicar», porque su botón desaparece con la ventana
+function focusKey(el) {
+  if (!el || el === document.body) return null;
+  const wrap = el.closest?.('.n2-piece-wrap');
+  if (wrap) return `${el.classList.contains('n2-info') ? 'info' : 'piece'}:${wrap.querySelector('.n2-piece')?.dataset.id}`;
+  if (el.matches?.('.n2-row')) return `row:${el.dataset.check}`;
+  if (el.matches?.('.n2-tip')) return `tip:${el.dataset.hint}`;
+  if (el.matches?.('.n2-prop input')) return 'slider';
+  if (el.matches?.('.n2-footer .n2-btn-primary')) return 'launch';
+  return null;
+}
+function restoreFocus(key) {
+  if (!key) return;
+  const [kind, id] = key.split(':');
+  const sel = {
+    piece: `.n2-piece[data-id="${id}"]`,
+    info: `.n2-piece-wrap:has(.n2-piece[data-id="${id}"]) .n2-info`,
+    row: `.n2-row[data-check="${id}"]`,
+    tip: `.n2-tip[data-hint="${id}"]`,
+    slider: '.n2-prop input',
+    launch: '.n2-footer .n2-btn-primary',
+  }[kind];
+  // Un consejo que ya no existe (se resolvió) deja el foco en el siguiente
+  (document.querySelector(sel) ?? (kind === 'tip' ? document.querySelector('.n2-tip') : null))?.focus({ preventScroll: true });
 }
 
-function renderSVG() {
-  const root = $('n2-cubesat');
-  root.replaceChildren();
-  palette();
+/** Barra vertical de la batería: Wh que piden eclipses y quemados contra los Wh usables (50 % de la capacidad). */
+function paintBattery(x) {
+  const dest = data.missions.find((d) => d.id === m.missionId);
+  const B = meterData(x, dest, m.budget.space).battery;
+  for (const bar of view.inner.querySelectorAll('.n2-batt')) {
+    bar.dataset.level = B.level;
+    bar.style.setProperty('--pct', `${B.level === 'pending' ? 0 : Math.round(B.pct)}%`);
+    bar.setAttribute('aria-label', `${t('battery')}: ${Math.round(B.pct)} %`);
+  }
+}
+
+/** Escala y centra el modelo para que quepa siempre en la columna central (sin scroll). */
+function fitView() {
+  if (!view?.layout) return;
+  const { top, bottom, width } = view.layout;
+  const w = view.scene.clientWidth;
+  const h = view.scene.clientHeight;
+  if (!w || !h) return;
+  const s = Math.min(2.2, (h - 56) / ((bottom - top) * 1.2), (w - 24) / (width * 1.55));
+  view.fit.style.transform = `scale(${Math.max(s, 0.1)}) translateY(${-(top + bottom) / 2}px)`;
+}
+
+function render3D(result) {
   const sat = m.satellite;
-
-  if (!sat.formFactor) {
-    // Placeholder antes de elegir estructura
-    const icon = svgEl('text', { x: '240', y: '268', 'text-anchor': 'middle', 'font-size': '52', opacity: '0.18' });
-    icon.textContent = '🛰️';
-    const hint = svgEl('text', {
-      x: '240', y: '300', 'text-anchor': 'middle',
-      fill: C.muted, 'font-size': '12.5',
-      'font-family': '"Space Grotesk",system-ui,sans-serif',
-    });
-    hint.textContent = t('pickStructure') + ' →';
-    root.append(icon, hint);
-    return;
-  }
-
-  const geom = getChassisGeom(sat.formFactor);
-
-  // ── 1. CHASIS: rejilla de celdas ──────────────────────────
-  const chassisG = svgEl('g');
-
-  const chassisRect = svgEl('rect', {
-    id: 'n2-chassis',
-    x: geom.x, y: geom.y, width: geom.w, height: geom.h,
-    fill: C.surface, stroke: C.info, 'stroke-width': '1.5', rx: '4',
-  });
-  chassisG.append(chassisRect);
-
-  // Líneas de celda U (rejilla interna)
-  for (let col = 0; col <= geom.cols; col++) {
-    const lx = geom.x + col * U_SIZE;
-    const line = svgEl('line', { x1: lx, y1: geom.y, x2: lx, y2: geom.y + geom.h, stroke: C.border, 'stroke-width': '0.6' });
-    chassisG.append(line);
-  }
-  for (let row = 0; row <= geom.rows; row++) {
-    const ly = geom.y + row * U_SIZE;
-    const line = svgEl('line', { x1: geom.x, y1: ly, x2: geom.x + geom.w, y2: ly, stroke: C.border, 'stroke-width': '0.6' });
-    chassisG.append(line);
-  }
-
-  // Etiqueta del factor de forma encima del chasis
   const struct = data.pieces.find((p) => p.id === sat.formFactor);
-  const hasAntenna = sat.pieces.includes('comm-uhf') || sat.pieces.includes('comm-x');
-  const ffLbl = svgEl('text', {
-    x: geom.x + geom.w / 2, y: geom.y - (hasAntenna ? 62 : 10),
-    'text-anchor': 'middle', fill: C.info,
-    'font-family': '"JetBrains Mono",monospace', 'font-size': '11', 'font-weight': '500',
-  });
-  ffLbl.textContent = struct ? tx(struct.name) : '';
-  chassisG.append(ffLbl);
+  $('n2-viewer').setAttribute('aria-label', t('viewerLabel'));
+  // Destino: el ventanal muestra la Luna, Marte o Europa al fondo (is-moon | is-mars | is-europa)
+  for (const id of ['moon', 'mars', 'europa']) $('n2-viewer').classList.toggle(`is-${id}`, id === m.missionId);
+  view.fit.hidden = !struct;
+  view.empty.hidden = !!struct;
+  view.hud.hidden = !struct;
+  view.empty.textContent = `← ${t('pickStructure')}`;
+  if (!struct) { view.layout = null; return; }
 
-  root.append(chassisG);
+  const capU = struct.volumeU;
+  const length = capU * U_PX;
+  view.shell.style.setProperty('--h', `${length}px`);
+  view.shell.dataset.id = struct.id;
 
-  // ── 2. PIEZAS INTERNAS: bloques animados en las celdas ────
-  const internalPieces = getInternalPieces(sat.pieces);
-  const packed = packInternal(internalPieces, geom);
-  const internalG = svgEl('g');
-
-  packed.forEach(({ piece, x, y, w, h, overflow, idx }) => {
-    const color = pieceColor(piece);
-    const g = svgEl('g', {
-      class: 'n2-svg-piece',
-      style: `animation-delay:${idx * 0.06}s`,
-    });
-    const rect = svgEl('rect', {
-      x, y, width: w, height: h,
-      fill: hexAlpha(color, 0.22),
-      stroke: overflow ? C.danger : color,
-      'stroke-width': overflow ? '1.5' : '0.9',
-      rx: '3',
-      class: overflow ? 'n2-svg-overflow' : '',
-    });
-    const fontSize = Math.min(9.5, h * 0.42);
-    const lbl = svgEl('text', {
-      x: x + w / 2, y: y + h / 2 + fontSize * 0.38,
-      'text-anchor': 'middle', fill: color,
-      'font-family': '"JetBrains Mono",monospace',
-      'font-size': fontSize, 'font-weight': '500',
-    });
-    lbl.textContent = PIECE_ABBR[piece.id] || piece.id.toUpperCase();
-    g.append(rect, lbl);
-    internalG.append(g);
-  });
-  root.append(internalG);
-
-  // ── 3. PANELES SOLARES ────────────────────────────────────
-  if (sat.pieces.includes('solar-deploy')) {
-    const panelW = 88;   // ancho total de cada panel
-    const panelH = 34;   // alto del panel
-    const panelY = geom.y + (geom.h - panelH) / 2;  // centrado vertical en el chasis
-    const nSegs = 3;
-    const segW = (panelW - (nSegs - 1) * 2) / nSegs;
-
-    const drawPanel = (cls, startX) => {
-      const g = svgEl('g', { class: cls });
-      for (let i = 0; i < nSegs; i++) {
-        const sx = startX + i * (segW + 2);
-        const seg = svgEl('rect', {
-          x: sx, y: panelY, width: segW, height: panelH,
-          fill: hexAlpha(C.info, 0.28), stroke: C.info,
-          'stroke-width': '0.75', rx: '1.5',
-        });
-        // Línea central de la celda solar (aspecto de panel fotovoltaico)
-        const mid = svgEl('line', {
-          x1: sx, y1: panelY + panelH / 2,
-          x2: sx + segW, y2: panelY + panelH / 2,
-          stroke: C.info, 'stroke-width': '0.4', opacity: '0.6',
-        });
-        // Línea vertical
-        const vm = svgEl('line', {
-          x1: sx + segW / 2, y1: panelY,
-          x2: sx + segW / 2, y2: panelY + panelH,
-          stroke: C.info, 'stroke-width': '0.4', opacity: '0.6',
-        });
-        g.append(seg, mid, vm);
-      }
-      return g;
-    };
-
-    const leftG = drawPanel('n2-svg-panel-l', geom.x - panelW);
-    const rightG = drawPanel('n2-svg-panel-r', geom.x + geom.w + 2);
-    root.append(leftG, rightG);
-  }
-
-  // ── 4. PROPULSOR ─────────────────────────────────────────
-  const propId = sat.pieces.find((id) => data.pieces.find((p) => p.id === id)?.category === 'propulsion');
-  if (propId) {
-    const thrusterG = svgEl('g', { class: 'n2-svg-thruster' });
-    // Dimensiones según tipo
-    const BW = propId === 'prop-ion' ? 22 : propId === 'prop-cold' ? 16 : 30;
-    const BH = propId === 'prop-ion' ? 44 : propId === 'prop-cold' ? 26 : 36;
-    const tx0 = geom.x + geom.w / 2 - BW / 2;
-    const ty0 = geom.y + geom.h + 2;
-
-    // Cuerpo del motor
-    const body = svgEl('rect', {
-      x: tx0, y: ty0, width: BW, height: BH * 0.55,
-      fill: hexAlpha(C.accent, 0.18), stroke: C.accent,
-      'stroke-width': '1', rx: '2',
-    });
-    // Tobera (polígono que se ensancha)
-    const nW = BW * 1.6;
-    const nH = BH * 0.45;
-    const nx = tx0 + BW / 2;
-    const ny0 = ty0 + BH * 0.55;
-    const nozzle = svgEl('polygon', {
-      points: `${nx - BW / 2},${ny0} ${nx + BW / 2},${ny0} ${nx + nW / 2},${ny0 + nH} ${nx - nW / 2},${ny0 + nH}`,
-      fill: hexAlpha(C.accent, 0.12), stroke: C.accent, 'stroke-width': '0.75',
-    });
-    // Llama animada
-    const flameG = svgEl('g', { class: 'n2-svg-flame' });
-    const flameBase = ny0 + nH;
-    const flame1 = svgEl('polygon', {
-      points: `${nx - BW * 0.35},${flameBase} ${nx + BW * 0.35},${flameBase} ${nx},${flameBase + 22}`,
-      fill: C.accent, opacity: '0.65',
-    });
-    const flame2 = svgEl('polygon', {
-      points: `${nx - BW * 0.2},${flameBase} ${nx + BW * 0.2},${flameBase} ${nx},${flameBase + 14}`,
-      fill: C.warn, opacity: '0.9',
-    });
-    flameG.append(flame1, flame2);
-
-    // Etiqueta
-    const lbl = svgEl('text', {
-      x: nx, y: flameBase + 30,
-      'text-anchor': 'middle', fill: C.accent,
-      'font-family': '"JetBrains Mono",monospace', 'font-size': '8.5',
-    });
-    lbl.textContent = propId === 'prop-ion' ? 'ION ⚡' : propId === 'prop-cold' ? 'GAS' : 'MONO';
-
-    thrusterG.append(body, nozzle, flameG, lbl);
-    root.append(thrusterG);
-  }
-
-  // ── 5. ANTENAS ───────────────────────────────────────────
-  const hasUHF = sat.pieces.includes('comm-uhf');
-  const hasXBand = sat.pieces.includes('comm-x');
-
-  if (hasUHF || hasXBand) {
-    const antG = svgEl('g', { class: 'n2-svg-antenna' });
-    const topY = geom.y - 4;
-
-    if (hasUHF) {
-      // Dipolo UHF: vástago + brazo en T + ondas
-      const ax = hasXBand ? geom.x + geom.w * 0.32 : geom.x + geom.w * 0.5;
-      const uhfG = svgEl('g');
-      uhfG.append(svgEl('line', { x1: ax, y1: topY, x2: ax, y2: topY - 26, stroke: C.info, 'stroke-width': '1.5' }));
-      uhfG.append(svgEl('line', { x1: ax - 10, y1: topY - 26, x2: ax + 10, y2: topY - 26, stroke: C.info, 'stroke-width': '1.5' }));
-      for (let i = 0; i < 3; i++) {
-        const sig = svgEl('circle', {
-          cx: ax, cy: topY - 26, r: (i + 1) * 5.5,
-          fill: 'none', stroke: C.info,
-          'stroke-width': '0.6', opacity: '0.55',
-          class: 'n2-svg-signal',
-          style: `animation-delay:${i * 0.52}s`,
-        });
-        uhfG.append(sig);
-      }
-      antG.append(uhfG);
+  // Bloques internos apilados desde arriba. El que no cabe entero se sale por la base y se pinta en rojo.
+  const parts = sat.pieces.map((id) => data.pieces.find((p) => p.id === id)).filter(Boolean);
+  let usedU = 0;
+  let spill = false;
+  for (const p of parts) {
+    const vol = p.volumeU || 0;
+    const y = -length / 2 + usedU * U_PX + (vol * U_PX) / 2;
+    const over = usedU + vol > capU + 1e-6;
+    spill ||= over;
+    usedU += vol;
+    let el = pieceEls.get(p.id);
+    if (!el) {
+      el = box('n2-b is-new', PIECE_ABBR[p.id] || p.id);
+      el.dataset.id = p.id;
+      el.style.setProperty('--c', CAT_COLOR[p.category] || '#9aa6cf');
+      if (p.storageWh) el.querySelector('.fr').append(Object.assign(document.createElement('b'), { className: 'n2-batt', innerHTML: '<i></i>' }));
+      if (p.category === 'propulsion') el.querySelector('.fr').append(Object.assign(document.createElement('b'), { className: 'n2-fuel' }));
+      el.addEventListener('animationend', (e) => { if (e.target === el) el.classList.remove('is-new'); });
+      pieceEls.set(p.id, el);
+      view.inner.append(el);
     }
-
-    if (hasXBand) {
-      // Plato parabólico banda X + ondas
-      const ax = hasUHF ? geom.x + geom.w * 0.68 : geom.x + geom.w * 0.5;
-      const xbG = svgEl('g');
-      xbG.append(svgEl('line', { x1: ax, y1: topY, x2: ax, y2: topY - 18, stroke: C.info, 'stroke-width': '1.5' }));
-      xbG.append(svgEl('path', {
-        d: `M ${ax - 14} ${topY - 18} Q ${ax} ${topY - 34} ${ax + 14} ${topY - 18}`,
-        fill: hexAlpha(C.info, 0.18), stroke: C.info, 'stroke-width': '1.4',
-      }));
-      for (let i = 0; i < 3; i++) {
-        const sig = svgEl('circle', {
-          cx: ax, cy: topY - 34, r: (i + 1) * 5,
-          fill: 'none', stroke: C.info,
-          'stroke-width': '0.6', opacity: '0.55',
-          class: 'n2-svg-signal',
-          style: `animation-delay:${i * 0.52}s`,
-        });
-        xbG.append(sig);
-      }
-      antG.append(xbG);
-    }
-    root.append(antG);
+    const h = Math.max(6, vol * U_PX - GAP);
+    el.style.setProperty('--h', `${h}px`);
+    el.querySelector('.fr').style.fontSize = `${Math.min(8.5, h - 3)}px`;
+    el.style.transform = `translate3d(${over ? 20 : 0}px, ${y}px, 0)`;
+    el.classList.toggle('is-over', over);
+  }
+  for (const [id, el] of pieceEls) {
+    if (!sat.pieces.includes(id)) { el.remove(); pieceEls.delete(id); }
   }
 
-  // ── 6. RTG ───────────────────────────────────────────────
-  if (sat.pieces.includes('rtg-mini')) {
-    const rtgG = svgEl('g', { class: 'n2-svg-rtg' });
-    const rx0 = geom.x + geom.w + 10;
-    const ry0 = geom.y + geom.h * 0.5 - 25;
+  // Paneles desplegables, propulsión y error
+  const hasWings = sat.pieces.includes('solar-deploy');
+  const prop = parts.find((p) => p.category === 'propulsion');
+  const stackEnd = -length / 2 + usedU * U_PX;
+  const baseY = Math.max(length / 2, stackEnd) + 2;
+  view.sat.classList.toggle('has-wings', hasWings);
+  view.sat.classList.toggle('has-prop', !!prop);
+  view.sat.classList.toggle('is-error', result.checks.some((c) => (c.id === 'mass' || c.id === 'volume') && !c.ok));
+  if (prop) view.sat.dataset.prop = prop.id; else delete view.sat.dataset.prop;
+  paintBattery(result.metrics);
+  view.sat.style.setProperty('--wh', `${Math.min(300, Math.max(100, length * 0.85))}px`);
+  view.sat.style.setProperty('--fuel', String(prop?.maxPropellantKg ? sat.propellantKg / prop.maxPropellantKg : 0));
+  view.thrust.style.transform = `translateY(${baseY}px)`;
 
-    // Soporte de conexión al chasis
-    rtgG.append(svgEl('line', {
-      x1: geom.x + geom.w, y1: ry0 + 25,
-      x2: rx0, y2: ry0 + 25,
-      stroke: C.accent, 'stroke-width': '1.2', 'stroke-dasharray': '3,2',
-    }));
-    // Cuerpo
-    rtgG.append(svgEl('rect', {
-      x: rx0, y: ry0, width: 18, height: 50,
-      fill: hexAlpha(C.accent, 0.18), stroke: C.accent,
-      'stroke-width': '1', rx: '3',
-    }));
-    // Aletas de disipación naranja
-    for (let i = 0; i < 4; i++) {
-      rtgG.append(svgEl('rect', {
-        x: rx0 + 18, y: ry0 + i * 12 + 2,
-        width: 9, height: 8,
-        fill: hexAlpha(C.accent, 0.3), stroke: C.accent,
-        'stroke-width': '0.5', rx: '1',
-      }));
-    }
-    const rtgLbl = svgEl('text', {
-      x: rx0 + 9, y: ry0 + 60,
-      'text-anchor': 'middle', fill: C.accent,
-      'font-family': '"JetBrains Mono",monospace', 'font-size': '8',
-    });
-    rtgLbl.textContent = 'RTG';
-    rtgG.append(rtgLbl);
-    root.append(rtgG);
-  }
+  const x = result.metrics;
+  const bad = !result.checks.find((c) => c.id === 'volume').ok || !result.checks.find((c) => c.id === 'mass').ok;
+  view.hud.classList.toggle('is-error', bad);
+  view.hud.textContent = `${tx(struct.name)} · ${t('volume')} ${+usedU.toFixed(2)} / ${capU} U · ${t('mass')} ${grams(x.wet)} / ${grams(x.massCap)} g`;
 
-  // ── 7. INDICADOR DE VOLUMEN EXCEDIDO ─────────────────────
-  if (struct) {
-    const usedU = internalPieces.reduce((s, p) => s + (p.volumeU || 0), 0);
-    if (usedU > struct.volumeU) {
-      const ovfl = svgEl('text', {
-        x: '240', y: '586',
-        'text-anchor': 'middle', fill: C.danger,
-        'font-family': '"JetBrains Mono",monospace', 'font-size': '10',
-        class: 'n2-svg-overflow',
-        filter: 'url(#n2-glow-sm)',
-      });
-      ovfl.textContent = `⚠ ${usedU.toFixed(1)}U / ${struct.volumeU}U`;
-      root.append(ovfl);
-    }
-  }
+  view.layout = { top: -length / 2, bottom: prop ? baseY + FLAME_H : Math.max(baseY, stackEnd), width: hasWings ? SAT_W + 240 : SAT_W + (spill ? 40 : 0) };
+  fitView();
 }
 
 // ═════════════════════════════════════════════════════════
 // CATÁLOGO — columna izquierda
 // ═════════════════════════════════════════════════════════
-
-const popId = (p) => `n2-trl-${p.id}`;
-
-function trlPopover(p) {
-  const pop = document.createElement('div');
-  pop.className = 'n2-pop';
-  pop.id = popId(p);
-  pop.setAttribute('popover', '');
-  pop.innerHTML = `
-    <h3>${tx(p.name)} · TRL ${p.trl}</h3>
-    <p class="n2-pop-level">${t(`trlLevels.${p.trl}`)}</p>
-    <h4>${t('trlWhatTitle')}</h4>
-    <p>${t('trlWhat')}</p>
-    <h4>${t('trlWhyTitle')}</h4>
-    <p>${tx(p.desc)}</p>
-    <button type="button" class="n2-btn n2-btn-primary" popovertarget="${pop.id}" popovertargetaction="hide">${t('gotIt')}</button>`;
-  return pop;
-}
 
 function pieceButton(p, solarFactor) {
   const sat = m.satellite;
@@ -508,16 +332,15 @@ function pieceButton(p, solarFactor) {
   info.type = 'button';
   info.className = 'n2-info';
   info.textContent = 'i';
-  info.setAttribute('popovertarget', popId(p));
+  info.addEventListener('click', () => openInfo(infoPiece(p), info));
   info.setAttribute('aria-label', t('trlInfo', { name: tx(p.name), n: p.trl }));
   wrap.append(b, info);
   return wrap;
 }
 
-function renderCatalog() {
+function renderCatalog(solarFactor) {
   const box = $('n2-catalog');
   box.replaceChildren();
-  const { solarFactor } = validateDesign(m, data).metrics.power;
   for (const cat of CATEGORIES) {
     const h = document.createElement('p');
     h.className = 'n2-cat-heading';
@@ -527,9 +350,6 @@ function renderCatalog() {
     for (const p of data.pieces.filter((x) => x.category === cat)) list.append(pieceButton(p, solarFactor));
     box.append(h, list);
   }
-  const pops = $('n2-pops');
-  pops.replaceChildren();
-  for (const p of data.pieces) pops.append(trlPopover(p));
 }
 
 // ═════════════════════════════════════════════════════════
@@ -579,13 +399,14 @@ function metersHTML(mission) {
       : meterHTML({ label: t('mass'), d: M.mass, value: `${grams(x.wet)} / ${grams(M.mass.cap)} g`, aria: `${grams(x.wet)} g / ${grams(M.mass.cap)} g` }),
     meterHTML({
       label: t('power'), d: M.power,
-      value: M.power.level === 'pending' ? '—' : signedW(M.power.net),
+      // Positivo pero bajo el mínimo del destino: «+3.5 W» en rojo confunde; mejor decir cuánto falta
+      value: M.power.level === 'pending' ? '—' : M.power.net >= 0 && M.power.powerLow ? t('powerMissing', { n: fmt(M.power.minW - x.power.generated) }) : signedW(M.power.net),
       aria: `${signedW(M.power.net)}: ${use}`,
       note: [M.power.powerLow ? t('minPower', { n: M.power.minW }) : '', use, sun].filter(Boolean).join(' · '),
     }),
     M.battery.level === 'pending'
       ? meterHTML({ label: t('battery'), d: M.battery, value: '—', aria: t('noBattery'), note: t('noBattery') })
-      : meterHTML({ label: t('battery'), d: M.battery, value: `${fmt(s.neededWh, 0)} / ${fmt(s.usableWh, 0)} Wh`, aria: storeUse, note: storeUse }),
+      : meterHTML({ label: t('battery'), d: M.battery, value: s.capacityWh > 0 ? `${fmt(s.neededWh, 0)} / ${fmt(s.usableWh, 0)} Wh` : t('noBatteryShort', { n: fmt(s.neededWh, 0) }), aria: storeUse, note: storeUse }),
     meterHTML({ label: t('cost'), d: M.cost, value: `$${x.cost}M / $${mission.budget.space}M`, aria: `$${x.cost}M / $${mission.budget.space}M` }),
     rocketOverload(x, rocket)
       ? `<p class="n2-alert" role="alert">🚫 ${t('rocketLimit', { name: tx(rocket.name), n: grams(rocket.maxPayloadKg) })}</p>`
@@ -593,10 +414,270 @@ function metersHTML(mission) {
   ].join('');
 }
 
+// ═════════════════════════════════════════════════════════
+// VENTANA DE INFORMACIÓN — una sola, reutilizable (verificaciones, consejos, piezas y lanzamiento)
+// No se vuelve a calcular el diseño: todo sale de `last`, lo que render() ya calculó.
+// ═════════════════════════════════════════════════════════
+
+const HAS_POPOVER = typeof HTMLElement !== 'undefined' && typeof HTMLElement.prototype.showPopover === 'function';
+let infoPop = null;
+let infoBackdrop = null;
+let lastOpener = null;
+let popActions = []; // acciones de los botones «Aplicar» de la ventana abierta
+
+const hasText = (path) => path.split('.').reduce((o, k) => o?.[k], TEXTOS.es) !== undefined;
+const thousands = (n) => String(n).replace(/\B(?=(\d{3})+(?!\d))/g, ' ');
+const nameOf = (id) => tx(data.pieces.find((p) => p.id === id)?.name);
+
+function initInfo() {
+  // Sin soporte de `popover` (navegadores viejos) la ventana se muestra con clases CSS: .n2-no-popover / .is-open
+  if (!HAS_POPOVER) document.documentElement.classList.add('n2-no-popover');
+  infoPop = document.createElement('div');
+  infoPop.className = 'n2-pop';
+  infoPop.id = 'n2-info';
+  infoPop.setAttribute('popover', '');
+  infoPop.setAttribute('role', 'dialog');
+  infoBackdrop = document.createElement('div');
+  infoBackdrop.className = 'n2-pop-backdrop';
+  infoBackdrop.hidden = true;
+  $('n2-pops').replaceChildren(infoPop, infoBackdrop);
+  infoBackdrop.addEventListener('click', closeInfo);
+  document.addEventListener('keydown', (e) => { if (e.key === 'Escape' && !HAS_POPOVER && infoOpen()) closeInfo(); });
+  infoPop.addEventListener('toggle', (e) => { if (e.newState === 'closed') afterInfoClosed(); });
+  infoPop.addEventListener('click', (e) => {
+    const b = e.target.closest('[data-act]');
+    if (!b) return;
+    if (b.dataset.act === 'close') return closeInfo();
+    if (b.dataset.act === 'launch') { closeInfo(); return doLaunch(); }
+    if (b.dataset.act === 'apply') { const act = popActions[Number(b.dataset.i)]; pendingFocus = focusKey(lastOpener); closeInfo(); applyAction(act); }
+  });
+}
+
+const infoOpen = () => (HAS_POPOVER ? infoPop.matches(':popover-open') : infoPop.classList.contains('is-open'));
+
+function openInfo(html, opener) {
+  popActions = [];
+  infoPop.innerHTML = typeof html === 'function' ? html() : html;
+  lastOpener = opener || document.activeElement;
+  clearNudge();
+  if (HAS_POPOVER) { try { infoPop.showPopover(); } catch { /* ya estaba abierta */ } }
+  else { infoPop.classList.add('is-open'); infoBackdrop.hidden = false; }
+  infoPop.querySelector('button')?.focus({ preventScroll: true });
+}
+
+function closeInfo() {
+  if (HAS_POPOVER) { try { infoPop.hidePopover(); } catch { /* ya cerrada */ } return; }
+  infoPop.classList.remove('is-open');
+  infoBackdrop.hidden = true;
+  afterInfoClosed();
+}
+
+function afterInfoClosed() {
+  armNudge();
+  const o = lastOpener;
+  lastOpener = null;
+  if (o?.isConnected) o.focus({ preventScroll: true });
+}
+
+/** Aplica la acción de un consejo con las mismas funciones que usa el catálogo (el visor 3D reacciona solo). */
+function applyAction(action) {
+  const next = nextSatellite(m.satellite, action, data.pieces);
+  setSatellite({ formFactor: next.formFactor, pieces: next.pieces, propellantKg: next.propellantKg });
+}
+
+function actionLabel(a) {
+  if (a.type === 'setStructure') return t('actions.setStructure', { name: nameOf(a.id) });
+  if (a.type === 'setPropellant') return t('actions.setPropellant', { kg: fmt(a.kg) });
+  if (a.type === 'swap') return t('actions.swap', { from: nameOf(a.remove), to: nameOf(a.add) });
+  return a.kg != null ? t('actions.addKg', { name: nameOf(a.id), kg: fmt(a.kg) }) : t('actions.add', { name: nameOf(a.id) });
+}
+
+// Los consejos que proponen el mismo cambio (p. ej. «cambia a 6U» por masa y por volumen) se muestran una sola vez
+const uniqueByAction = (hints) => {
+  const seen = new Set();
+  return hints.filter((h) => {
+    if (!h.action) return true;
+    const k = JSON.stringify(h.action);
+    return seen.has(k) ? false : seen.add(k);
+  });
+};
+
+function hintTexts(h) {
+  const key = h.key === 'volume' && !h.vars.next ? 'volumeCut' : h.key === 'dvTank' && !h.vars.alt ? 'dvTankNoAlt' : h.key;
+  const vars = { dest: tx(last.dest?.name), ...h.vars };
+  return { title: t(`tips.${key}.title`, vars), why: t(`tips.${key}.why`, vars) };
+}
+
+/** Valor contra límite de una verificación, con barra. */
+function detailHTML(d) {
+  if (d.state === 'pending') return `<p class="n2-pop-muted">${t('popup.pendingNow')}</p>`;
+  if (d.limit == null) return `<p class="${d.ok ? 'n2-ok' : 'n2-bad'}">${d.ok ? '✔' : '✘'} ${t(`checks.${d.id}`)}</p>`;
+  const num = (n) => (d.unit === 'g' ? thousands(n) : n);
+  const withUnit = (n) => (d.unit === '$M' ? `$${n}M` : `${num(n)}${d.unit ? ` ${d.unit}` : ''}`);
+  const extra = d.id === 'power'
+    ? `<small class="n2-note">${t('powerUse', { g: fmt(d.value), c: fmt(d.use) })}${d.minW ? ` · ${t('minPower', { n: d.minW })}` : ''}</small>` : '';
+  return `<div class="n2-meter lvl-${d.ok ? 'ok' : 'danger'}">
+      <div class="n2-meter-head"><span>${t('popup.valueLimit')}</span><b>${withUnit(d.value)} / ${withUnit(d.limit)}</b></div>
+      <div class="n2-track"><div class="n2-fill" style="width:${d.pct}%"></div></div>${extra}</div>`;
+}
+
+function hintBlock(h) {
+  const { title, why } = hintTexts(h);
+  let btn = `<small class="n2-pop-muted">${t('popup.noFix')}</small>`;
+  if (h.action) {
+    const i = popActions.push(h.action) - 1;
+    btn = `<button type="button" class="n2-btn n2-btn-primary" data-act="apply" data-i="${i}">${t('popup.apply')}: ${actionLabel(h.action)}</button>`;
+  }
+  return `<div class="n2-hint-block"><b>${title}</b><p>${why}</p>${btn}</div>`;
+}
+
+const closeBtn = (label = t('gotIt')) => `<button type="button" class="n2-btn n2-btn-ghost n2-pop-close" data-act="close">${label}</button>`;
+
+function infoCheck(c) {
+  const d = checkDetail(c, last.result.metrics, last.dest, m.budget.space);
+  const related = last.allHints.filter((h) => h.check === c.id);
+  const fix = related.length
+    ? related.map(hintBlock).join('')
+    : `<p>${d.ok ? t('popup.haveOk') : t(`checkInfo.${c.id}.fix`)}</p>`;
+  return `<h3>${t(`checks.${c.id}`)}</h3>
+    <h4>${t('popup.what')}</h4><p>${t(`checkInfo.${c.id}.what`)}</p>
+    <h4>${t('popup.formula')}</h4><p class="n2-formula">${t(`checkInfo.${c.id}.formula`)}</p>
+    <h4>${t('popup.now')}</h4>${detailHTML(d)}
+    ${d.ok && d.state !== 'pending' ? '' : `<h4>${t('popup.fix')}</h4>${fix}`}
+    ${closeBtn()}`;
+}
+
+function infoHint(h) {
+  const { title, why } = hintTexts(h);
+  const c = last.result.checks.find((x) => x.id === h.check);
+  const i = h.action ? popActions.push(h.action) - 1 : -1;
+  return `<h3>${title}</h3>
+    <h4>${t('popup.why')}</h4><p>${why}</p>
+    ${c ? `<h4>${t('popup.now')}</h4>${detailHTML(checkDetail(c, last.result.metrics, last.dest, m.budget.space))}` : ''}
+    ${h.action
+    ? `<button type="button" class="n2-btn n2-btn-primary n2-pop-apply" data-act="apply" data-i="${i}">${t('popup.apply')}: ${actionLabel(h.action)}</button>`
+    : `<p class="n2-pop-muted">${t('popup.noFix')}</p>`}
+    ${closeBtn()}`;
+}
+
+const FACT_MARK = { ok: '✔', warn: '▲', bad: '✘', info: '•' };
+function factText(f) {
+  const key = f.key === 'structCap' && f.vars.byRocket ? 'structCapRocket' : f.key;
+  const lvl = `facts.${key}_${f.level}`;
+  return t(hasText(lvl) ? lvl : `facts.${key}`, { dest: tx(last.dest?.name), ...f.vars });
+}
+
+function infoPiece(p) {
+  const info = data.workshop.pieceInfo?.[p.id];
+  const installed = p.id === m.satellite.formFactor || m.satellite.pieces.includes(p.id);
+  const fit = instrumentStatus(p, m, data.workshop.instrumentFit);
+  const facts = pieceFacts(p, { mission: last.dest, metrics: last.result.metrics, budgetSpace: m.budget.space, rocket: last.rocket, installed });
+  const lines = facts.map((f) => `<li class="lvl-${f.level}"><span aria-hidden="true">${FACT_MARK[f.level]}</span> ${factText(f)}</li>`);
+  if (fit.why) lines.push(`<li class="lvl-${fit.compatible ? 'ok' : 'bad'}"><span aria-hidden="true">${fit.compatible ? '✔' : '✘'}</span> ${tx(fit.why)}</li>`);
+  return `<header class="n2-pop-head"><h3>${tx(p.name)}</h3>
+      <span class="n2-chip">${t(`categories.${p.category}`)}</span><span class="n2-chip n2-chip-trl">TRL ${p.trl} · ${t(`trlShort.${p.trl}`)}</span></header>
+    <h4>${t('piece.real')}</h4><p>${info ? tx(info.real) : tx(p.desc)}</p>
+    <h4>${t('piece.mission')}</h4><ul class="n2-facts">${lines.join('')}</ul>
+    ${info ? `<h4>${t('piece.tradeoff')}</h4><p>${tx(info.tradeoff)}</p>` : ''}
+    <details class="n2-trl-note"><summary>${t('piece.trlWhat')}</summary><p>${t('trlWhat')}</p></details>
+    ${closeBtn()}`;
+}
+
+function infoLaunchEmpty() {
+  const h = last.allHints.find((x) => x.check === 'structure');
+  const i = h?.action ? popActions.push(h.action) - 1 : -1;
+  return `<h3>${t('launchEmpty.title')}</h3><p>${t('launchEmpty.body')}</p>
+    ${h?.action ? `<button type="button" class="n2-btn n2-btn-primary n2-pop-apply" data-act="apply" data-i="${i}">${t('popup.apply')}: ${actionLabel(h.action)}</button>` : ''}
+    ${closeBtn(t('launchEmpty.ok'))}`;
+}
+
+function infoLaunchConfirm() {
+  const bad = last.result.checks.filter((c) => checkState(c, last.result.metrics) === 'bad');
+  return `<h3>${t('launchConfirm.title', { n: bad.length })}</h3><p>${t('launchConfirm.body')}</p>
+    <ul class="n2-facts">${bad.map((c) => `<li class="lvl-bad"><span aria-hidden="true">✘</span> ${t(`checks.${c.id}`)}</li>`).join('')}</ul>
+    <div class="n2-pop-actions">
+      <button type="button" class="n2-btn n2-btn-primary" data-act="close">${t('launchConfirm.keep')}</button>
+      <button type="button" class="n2-btn n2-btn-ghost" data-act="launch">${t('launchConfirm.go')}</button>
+    </div>`;
+}
+
+function doLaunch() {
+  const { result, rocket } = last;
+  const satellite = satelliteSummary(m.satellite, result, rocket);
+  // Contrato: solo `satellite`. En demo se guarda la misión de ejemplo, pero nunca sobre datos reales.
+  if (!demo) saveMission({ satellite });
+  else if (!loadMission()) saveMission({ missionId: m.missionId, rocketId: m.rocketId, budget: m.budget, plan: m.plan, satellite });
+  location.href = levelHref(3);
+}
+
+/** Lanzar siempre responde: sin estructura explica qué falta; con rojos pide confirmar; en verde lanza. */
+function onLaunch(btn) {
+  if (!m.satellite.formFactor) return openInfo(infoLaunchEmpty, btn);
+  if (!last.result.valid) return openInfo(infoLaunchConfirm, btn);
+  doLaunch();
+}
+
+// ═════════════════════════════════════════════════════════
+// EMPUJÓN POR INACTIVIDAD — si el jugador no toca nada, la primera verificación en rojo y el primer consejo laten
+// ═════════════════════════════════════════════════════════
+
+const NUDGE_MS = 8000;
+let nudgeTimer = 0;
+function clearNudge() {
+  clearTimeout(nudgeTimer);
+  for (const el of document.querySelectorAll('.is-nudge')) el.classList.remove('is-nudge');
+}
+function armNudge() {
+  clearNudge();
+  nudgeTimer = setTimeout(showNudge, NUDGE_MS);
+}
+function showNudge() {
+  if (infoOpen()) return armNudge();
+  document.querySelector('.n2-row.is-bad')?.classList.add('is-nudge');
+  document.querySelector('.n2-tip')?.classList.add('is-nudge');
+}
+
+// ═════════════════════════════════════════════════════════
+// TELEMETRÍA — columna derecha
+// ═════════════════════════════════════════════════════════
+
+function guideSection(result, tips) {
+  const x = result.metrics;
+  const sec = document.createElement('div');
+  sec.className = 'n2-telem-section n2-guide';
+  const MARK = { ok: '✔', bad: '✘', pending: '○' };
+  const states = result.checks.map((c) => checkState(c, x));
+  const okN = states.filter((s) => s === 'ok').length;
+  const rows = result.checks.map((c, i) => {
+    const label = t(`checks.${c.id}`);
+    return `<button type="button" class="n2-row is-${states[i]}" data-check="${c.id}" aria-label="${t(`guide.state.${states[i]}`)}: ${label}">
+      <span class="n2-row-mark" aria-hidden="true">${MARK[states[i]]}</span><span class="n2-row-txt">${label}</span><span class="n2-row-go" aria-hidden="true">›</span></button>`;
+  }).join('');
+  const pending = states.includes('pending') ? `<p class="n2-pending-note">${m.satellite.formFactor ? t('pendingBattery') : t('pendingHint')}</p>` : '';
+  const tipsHTML = tips.length
+    ? `<p class="n2-telem-heading n2-guide-next">${t('guide.next')}</p><div class="n2-tips">${tips.map((h, i) => {
+      const { title, why } = hintTexts(h);
+      return `<button type="button" class="n2-tip" data-hint="${i}"><span class="n2-tip-n" aria-hidden="true">${i + 1}</span>
+        <span class="n2-tip-body"><b>${title}</b><small>${why}</small></span><span class="n2-row-go" aria-hidden="true">›</span></button>`;
+    }).join('')}</div>`
+    : result.valid ? `<p class="n2-allgreen">✔ ${t('guide.allGreen')}</p>` : '';
+  sec.innerHTML = `<div class="n2-guide-head"><p class="n2-telem-heading">${t('guide.title')}</p><span class="n2-guide-count">${t('guide.ok', { n: okN, t: result.checks.length })}</span></div>
+    <div class="n2-guide-bar" aria-hidden="true"><i style="width:${(okN / result.checks.length) * 100}%"></i></div>
+    ${tipsHTML}<div class="n2-rows">${rows}</div>${pending}<p class="n2-pop-muted n2-guide-tap">${t('guide.tapHint')}</p>`;
+  sec.addEventListener('click', (e) => {
+    const row = e.target.closest('.n2-row');
+    if (row) return openInfo(() => infoCheck(last.result.checks.find((c) => c.id === row.dataset.check)), row);
+    const tip = e.target.closest('.n2-tip');
+    if (tip) openInfo(() => infoHint(last.tips[Number(tip.dataset.hint)]), tip);
+  });
+  return sec;
+}
+
 function renderTelem() {
   const telem = $('n2-telem');
   telem.replaceChildren();
   const sat = m.satellite;
+  const { result, tips } = last;
 
   // — Slider de propelente —
   const prop = data.pieces.find((p) => sat.pieces.includes(p.id) && p.category === 'propulsion');
@@ -611,7 +692,8 @@ function renderTelem() {
     ph.className = 'n2-telem-heading';
     ph.textContent = t('propellant');
     const propRow = document.createElement('label');
-    propRow.className = 'n2-prop';
+    propRow.className = `n2-prop${flashProp ? ' is-new' : ''}`;
+    flashProp = false;
     propRow.innerHTML = `
       <div class="n2-prop-row">
         <span>${t('propellant')}</span>
@@ -623,7 +705,12 @@ function renderTelem() {
       propRow.querySelector('output').textContent = `${fmt(e.target.value)} kg`;
       const preview = { ...m, satellite: { ...sat, propellantKg: Number(e.target.value) } };
       metersDiv.innerHTML = metersHTML(preview);
-      renderMini(validateDesign(preview, data));
+      const pr = validateDesign(preview, data);
+      const pm = pr.metrics;
+      view.sat.style.setProperty('--fuel', String(Number(e.target.value) / prop.maxPropellantKg));
+      paintBattery(pm);
+      paintAlert(meterData(pm, last.dest, m.budget.space), pm);
+      renderMini(pr);
     });
     input.addEventListener('change', (e) => setSatellite({ propellantKg: Number(e.target.value) }));
     propSec.append(ph, propRow);
@@ -639,48 +726,11 @@ function renderTelem() {
   metersSec.append(mh, metersDiv);
   telem.append(metersSec);
 
-  // — Verificaciones —
-  const result = validateDesign(m, data);
-  const checksSec = document.createElement('div');
-  checksSec.className = 'n2-telem-section';
-  const ch = document.createElement('p');
-  ch.className = 'n2-telem-heading';
-  ch.textContent = t('checksTitle');
-  const list = document.createElement('ul');
-  list.className = 'n2-checks';
-  const MARK = { ok: '✔', bad: '✘', pending: '○' };
-  for (const c of result.checks) {
-    const state = checkState(c, result.metrics);
-    const li = document.createElement('li');
-    li.className = `n2-${state}`;
-    li.textContent = `${MARK[state]} ${t(`checks.${c.id}`)}`;
-    list.append(li);
-  }
-  const pendingNote = document.createElement('p');
-  pendingNote.className = 'n2-pending-note';
-  pendingNote.hidden = !result.checks.some((c) => checkState(c, result.metrics) === 'pending');
-  pendingNote.textContent = sat.formFactor ? t('pendingBattery') : t('pendingHint');
-
-  const dest = data.missions.find((d) => d.id === m.missionId);
-  const parts = resolvePieces([sat.formFactor, ...sat.pieces].filter(Boolean), data.pieces);
-  const tips = tradeHints(result, parts, data.pieces, dest, m.budget.space, {
-    nameOf: (p) => tx(p.name),
-    allowed: (p) => instrumentStatus(p, m, data.workshop.instrumentFit).compatible,
-  });
-  const tipsBox = document.createElement('ul');
-  tipsBox.className = 'n2-tips';
-  tipsBox.hidden = !tips.length;
-  for (const tip of tips) {
-    const li = document.createElement('li');
-    li.textContent = `💡 ${t(`tips.${tip.key}`, { dest: tx(dest?.name), ...tip.vars })}`;
-    tipsBox.append(li);
-  }
-
-  checksSec.append(ch, list, pendingNote, tipsBox);
-  telem.append(checksSec);
+  // — Panel guía: verificaciones + qué hacer ahora —
+  telem.append(guideSection(result, tips));
   renderMini(result);
 
-  // — Botones Atrás / Lanzar —
+  // — Botones Atrás / Lanzar (siempre activo) —
   const footer = document.createElement('div');
   footer.className = 'n2-footer';
   const back = document.createElement('a');
@@ -689,17 +739,10 @@ function renderTelem() {
   back.textContent = t('back');
   const launch = document.createElement('button');
   launch.type = 'button';
-  launch.className = 'n2-btn n2-btn-primary';
+  launch.className = `n2-btn n2-btn-primary${result.valid ? '' : ' is-risky'}`;
   launch.textContent = t('launch');
-  launch.disabled = !result.valid;
   launch.title = t('launchHelp');
-  launch.addEventListener('click', () => {
-    const rocket = data.rockets.find((r) => r.id === m.rocketId);
-    const satellite = satelliteSummary(m.satellite, result, rocket);
-    if (!demo) saveMission({ satellite });
-    else if (!loadMission()) saveMission({ missionId: m.missionId, rocketId: m.rocketId, budget: m.budget, plan: m.plan, satellite });
-    location.href = levelHref(3);
-  });
+  launch.addEventListener('click', () => onLaunch(launch));
   footer.append(back, launch);
   telem.append(footer);
 }
@@ -731,6 +774,8 @@ function renderMini(result) {
 // ═════════════════════════════════════════════════════════
 
 function render() {
+  const focusBefore = pendingFocus ?? focusKey(document.activeElement);
+  pendingFocus = null;
   const dest = data.missions.find((d) => d.id === m.missionId);
   const target = dest?.scienceTargets?.[m.plan?.scienceTargetIdx];
   const brand = lang === 'en' ? 'Orbit Explorers' : 'Exploradores de Órbita';
@@ -744,7 +789,6 @@ function render() {
   $('n2-reset').title = t('reset');
   $('n2-reset').setAttribute('aria-label', t('reset'));
   $('n2-catalog').setAttribute('aria-label', t('a11y.catalog'));
-  document.querySelector('.n2-col-viewer').setAttribute('aria-label', t('a11y.viewer'));
   $('n2-telem').setAttribute('aria-label', t('a11y.telem'));
 
   // Objetivo en la barra superior
@@ -761,9 +805,48 @@ function render() {
   $('n2-notice').hidden = !removedIds.length;
   if (removedIds.length) $('n2-notice').textContent = t('removed', { list: removedIds.map((id) => tx(data.pieces.find((p) => p.id === id).name)).join(', ') });
 
-  renderCatalog();
-  renderSVG();
+  // Se calcula UNA vez por render; todo lo demás (catálogo, visor, panel, ventanas) lee de `last`.
+  const result = validateDesign(m, data);
+  const parts = resolvePieces([m.satellite.formFactor, ...m.satellite.pieces].filter(Boolean), data.pieces);
+  const allHints = tradeHints(result, parts, data.pieces, dest, m.budget.space, {
+    nameOf: (p) => tx(p.name),
+    allowed: (p) => instrumentStatus(p, m, data.workshop.instrumentFit).compatible,
+    max: 99,
+  });
+  last = {
+    result, dest, allHints,
+    rocket: data.rockets.find((r) => r.id === m.rocketId),
+    M: meterData(result.metrics, dest, m.budget.space),
+    tips: uniqueByAction(allHints).slice(0, 3),
+  };
+
+  renderCatalog(result.metrics.power.solarFactor);
+  render3D(result);
   renderTelem();
+  paintAlert(last.M, result.metrics);
+  paintHover();
+  armNudge();
+  restoreFocus(focusBefore);
+}
+
+// --- ↺ Reiniciar: aviso con «Deshacer» durante unos segundos ---------------------------
+let undoTimer = 0;
+function hideUndo() {
+  clearTimeout(undoTimer);
+  const el = $('n2-undo');
+  if (el) el.hidden = true;
+}
+function showUndo(snapshot) {
+  const el = $('n2-undo');
+  const btn = document.createElement('button');
+  btn.type = 'button';
+  btn.className = 'n2-undo-btn';
+  btn.textContent = t('undo');
+  btn.addEventListener('click', () => { setSatellite(snapshot); }); // setSatellite oculta el aviso
+  el.replaceChildren(`${t('resetDone')} `, btn);
+  el.hidden = false;
+  clearTimeout(undoTimer);
+  undoTimer = setTimeout(hideUndo, 7000);
 }
 
 // ═════════════════════════════════════════════════════════
@@ -790,9 +873,15 @@ async function boot() {
   });
 
   $('n2-reset').addEventListener('click', () => {
+    const before = { formFactor: m.satellite.formFactor, pieces: [...m.satellite.pieces], propellantKg: m.satellite.propellantKg };
     setSatellite({ formFactor: null, pieces: [], propellantKg: 0 });
+    if (before.formFactor || before.pieces.length) showUndo(before);
   });
 
+  initInfo();
+  init3D();
+  // Cualquier gesto del jugador reinicia la cuenta del empujón
+  for (const ev of ['pointerdown', 'keydown', 'wheel']) document.addEventListener(ev, armNudge, { passive: true, capture: true });
   render();
 }
 

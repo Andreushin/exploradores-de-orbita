@@ -30,6 +30,7 @@ Simulación del viaje al destino y de la inserción orbital.
 | `nivel3/index.html` | Página aislada: header, canvas, HUD, panel de decisiones y bitácora |
 | `nivel3/nivel3.css` | Estilos con prefijo `n3-` y sus propios tokens de la identidad |
 | `nivel3/nivel3.js` | Lógica del nivel: estado de la travesía, fases, canvas y persistencia |
+| `nivel3/vuelo.js` | Fase 1: minijuego en primera persona de la nave nodriza en el campo de asteroides (lógica y dibujo) |
 | `nivel3/textos.js` | Textos ES/EN (`{ es, en }`, con interpolación `{nombre}`) |
 
 Reutiliza, importándolos: `js/physics.js` (`deltaV`, `propellantFor`, `insertionOutcome`, masas, Isp), `js/mision-store.js` y `data/{missions,pieces,events}.json`.
@@ -55,6 +56,7 @@ kg = m · (1 − e^(−Δv / (Isp · g₀)))
 
 ## 4. Fases y decisiones
 
+0. **Campo de asteroides (nave nodriza, primera persona):** antes del presupuesto, el jugador pilota desde la cabina la nave que lleva el CubeSat hasta el punto de despliegue (25 s). Se maneja con flechas/WASD o moviendo el ratón o el dedo sobre el canvas; la retícula marca el tamaño de la nave y el radar marca en rojo las rocas que vienen hacia ella. El escudo aguanta 5 impactos: si se agota, se puede reintentar o saltar al despliegue. Al superarlo, "Desplegar CubeSat" pasa al presupuesto. **No gasta propelente del satélite ni cambia `journey`**; solo deja una línea en la bitácora. "Reintentar travesía" vuelve al presupuesto, no a los asteroides.
 1. **Presupuesto de Δv** (antes de volar, estilo GMAT): masa seca, propelente, Isp, Δv disponible y una tabla con la corrección temprana y la inserción, los kg estimados y el margen.
 2. **Corrección de trayectoria (TCM)** al 25 % del viaje:
    - temprana: 4 % del Δv de inserción;
@@ -75,13 +77,17 @@ Aparece si el tanque se vacía antes de lograr la órbita (en la TCM, en un even
 ## 6. Visualización
 
 - **Marte y Europa:** vista heliocéntrica con la órbita de la Tierra, la del destino y la transferencia de Hohmann. El destino avanza según la 3.ª ley de Kepler.
-- **Luna:** vista geocéntrica.
+- **Luna:** vista geocéntrica, con la nave nodriza al centro.
+- En Marte y Europa la nave nodriza queda dibujada en el punto de despliegue, de donde sale el CubeSat.
+- **Fase 1 (asteroides):** cabina en primera persona con estelas de estrellas, rocas en perspectiva, radar y barras de escudo y avance. Con `prefers-reduced-motion` no hay sacudida, giro ni estelas.
 - Al terminar se dibuja la órbita lograda (verde o amarilla), el sobrevuelo o el choque.
 - Respeta `prefers-reduced-motion`.
 
 ## 7. Constantes para balancear
 
 Todas al inicio de `nivel3/nivel3.js`: `TCM_FRACTION`, `TCM_LATE_FACTOR`, `SKIP_PENALTY`, `RISK_DV`, `BURN_RATE`, `CRUISE_SECONDS`, `TCM_AT` y `EVENT_AT`.
+
+Las del campo de asteroides están al inicio de `nivel3/vuelo.js`: `FLIGHT_SECONDS`, `FLIGHT_HITS`, `SPEED0`/`SPEED1`, `SPAWN0`/`SPAWN1` y `AIMED` (fracción de rocas que van directo a la nave). Con los valores actuales, quedarse quieto siempre pierde y esquivar con el radar gana con ≈1 impacto.
 
 ## 8. Cómo probarlo
 

@@ -75,5 +75,52 @@
   "learn": "Cada kilo extra exige más propelente (ecuación del cohete), la energía solar cae con el cuadrado de la distancia y el presupuesto de Tierra y Usuario decide cuánta ciencia llega realmente a los científicos.",
   "mainMenu": "Menú principal",
   "redesign": "Rediseñar CubeSat",
-  "newMission": "Nueva misión"
+  "newMission": "Nueva misión",
+  "heroBadge": {
+    "orbit": "Transmisión activa establecida",
+    "eccentric": "Transmisión intermitente",
+    "flyby": "Transmisión breve",
+    "crash": "Señal perdida",
+    "no-fuel": "Transmisión breve"
+  },
+  "heroSub": {
+    "orbit": "Todos los subsistemas se desplegaron con éxito según la telemetría del Centro de Vuelo Espacial.",
+    "eccentric": "El CubeSat está en órbita, pero en cada vuelta se aleja y los datos llegan con interrupciones.",
+    "flyby": "El CubeSat no frenó lo suficiente: solo envió datos durante unos minutos al pasar.",
+    "crash": "La telemetría se cortó en el momento del impacto. No llegaron datos científicos.",
+    "no-fuel": "Sin propelente para frenar, el CubeSat solo pudo enviar datos al pasar junto al destino."
+  },
+  "linkLabel": "Estatus de enlace",
+  "link": {
+    "orbit": "ONLINE",
+    "eccentric": "INTERMITENTE",
+    "flyby": "PARCIAL",
+    "crash": "OFFLINE",
+    "no-fuel": "PARCIAL"
+  },
+  "orbitLabel": "Órbita",
+  "orbitType": {
+    "orbit": "Estable",
+    "eccentric": "Excéntrica",
+    "flyby": "Ninguna",
+    "crash": "Ninguna",
+    "no-fuel": "Ninguna"
+  },
+  "cmlSubtitle": "Escala estándar para formulación y viabilidad de misiones aeroespaciales",
+  "cmlState": {
+    "done": "Completado ✓",
+    "max": "MÁXIMO",
+    "current": "ACTUAL",
+    "pending": "Pendiente"
+  },
+  "cmlTab": "¡Nivel alcanzado!",
+  "scienceEyebrow": "Simulación de instrumentos",
+  "scoreLabel": "Puntaje científico",
+  "bonusLabel": "Bonificación",
+  "penaltyLabel": "Penalización",
+  "telemetryEyebrow": "Telemetría de vuelo",
+  "maturityLabel": "Madurez del Nivel 1",
+  "maturityCap": "(tope CML {cap})",
+  "maturityMax": "Capacidad máx",
+  "maturityPenalty": "−{penalty} pts"
 }

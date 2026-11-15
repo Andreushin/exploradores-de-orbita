@@ -30,6 +30,7 @@
   <div class="n2-toasts" aria-live="polite">
     <p class="n2-toast n2-toast-demo"  id="n2-demo"   hidden></p>
     <p class="n2-toast n2-toast-warn"  id="n2-notice" role="status" hidden></p>
+    <p class="n2-toast n2-toast-undo"  id="n2-undo"   hidden></p>
   </div>
 
   <!-- ── Workspace: 3 columnas ──────────────────────────────── -->
@@ -38,25 +39,22 @@
     <!-- Col izquierda: catálogo con scroll propio -->
     <section class="n2-col-catalog" id="n2-catalog" aria-label="Catálogo de piezas"></section>
 
-    <!-- Col central: visor SVG — NUNCA scroll -->
-    <div class="n2-col-viewer" role="img" aria-label="Vista del CubeSat ensamblado">
-      <svg id="n2-svg" viewBox="0 0 480 600" preserveAspectRatio="xMidYMid meet" aria-hidden="true">
-        <defs>
-          <pattern id="n2-bg-grid" width="24" height="24" patternUnits="userSpaceOnUse">
-            <path d="M24 0L0 0 0 24" fill="none" stroke="#263362" stroke-width="0.4" opacity="0.5"/>
-          </pattern>
-          <filter id="n2-glow" x="-20%" y="-20%" width="140%" height="140%">
-            <feGaussianBlur stdDeviation="2.5" result="blur"/>
-            <feMerge><feMergeNode in="blur"/><feMergeNode in="SourceGraphic"/></feMerge>
-          </filter>
-          <filter id="n2-glow-sm" x="-30%" y="-30%" width="160%" height="160%">
-            <feGaussianBlur stdDeviation="1.5" result="blur"/>
-            <feMerge><feMergeNode in="blur"/><feMergeNode in="SourceGraphic"/></feMerge>
-          </filter>
-        </defs>
-        <rect width="480" height="600" fill="url(#n2-bg-grid)"/>
-        <g id="n2-cubesat"></g>
-      </svg>
+    <!-- Col central: visor 3D — NUNCA scroll -->
+    <div class="n2-col-viewer" id="n2-viewer" role="img" aria-label="Vista 3D del CubeSat ensamblado">
+      <!-- Ventanal de la estación: fondo decorativo (CSS puro). Capas: estrellas 0 · planeta y piso 1 · brazos 2-5 · modelo 10 -->
+      <div class="n2-bay" aria-hidden="true">
+        <i class="n2-bay-planet"></i>
+        <i class="n2-bay-rays"></i>
+        <i class="n2-bay-floor"></i>
+        <div class="n2-bay-arm n2-bay-arm-l"><i><b></b></i></div>
+        <div class="n2-bay-arm n2-bay-arm-r"><i><b></b></i></div>
+        <i class="n2-bay-dust"></i><i class="n2-bay-dust"></i><i class="n2-bay-dust"></i>
+      </div>
+      <div class="n2-scene" id="n2-scene">
+        <div class="n2-fit" id="n2-fit"><div class="n2-tilt"><div class="n2-sat" id="n2-sat"></div></div></div>
+      </div>
+      <p class="n2-empty" id="n2-empty"></p>
+      <p class="n2-hud" id="n2-hud" aria-live="polite"></p>
     </div>
 
     <!-- Col derecha: telemetría con scroll si hace falta -->
@@ -69,6 +67,9 @@
 
   <!-- Popover TRL (contenedor de popovers generados por JS) -->
   <div id="n2-pops" class="n2-pops"></div>
+
+  <!-- Viñeta roja de pantalla completa (mismo efecto que el Nivel 1 al pasarse) -->
+  <div class="n2-alarm" id="n2-alarm" aria-hidden="true"></div>
 
   <script type="module" src="nivel2.js"></script>
 </body>
