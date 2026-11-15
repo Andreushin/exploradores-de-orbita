@@ -48,6 +48,7 @@ let objetivo = null;   // lugar al que apunta el piloto «hacia el lugar»
 let faseAnterior = 'espera';
 let senalAnterior = true;
 let finMostrado = false;
+let giroManual = false; // el jugador ya giró la nave a mano en esta misión (deja de seguir la trayectoria sola)
 let cuadroN = 0;
 let ultimoReal = 0;
 let timerDescubrimiento = null;
@@ -157,32 +158,47 @@ function pintarSelectorMisiones() {
  * grande y en movimiento frente al cohete, guardando un punto de respaldo para capturar siempre sin fallos.
  */
 function prepararLlegadaVisible(mObj) {
-  const escAnt = mObj.escala;
+  // El recorrido EMPIEZA LEJOS (llegada.radiosIniciales: 3,5–4 radios), con el cuerpo completo a la vista; el cohete
+  // se acerca en una aproximación acelerada (actualizarCinematicaVuelo). Aparte se calcula, sobre una copia, el punto
+  // de respaldo cercano (~58 s antes del encendido en PE) para reponer la aproximación si el cohete se pasa del frenado.
+  const orientar = orientarPrograda;
+  const copia = { ...mObj, r: [...mObj.r], v: [...mObj.v] };
   let pasos = 0;
-  while (pasos < 600) {
-    const df = M.datosFrenado(mObj);
+  while (pasos < 3000) {
+    const df = M.datosFrenado(copia);
     if (df.yaPaso || df.tParaEncendido <= 58) break;
     const h = Math.max(1, Math.min(12, (df.tParaEncendido - 56) * 0.5));
-    const s = F.paso({ r: mObj.r, v: mObj.v }, mObj.cuerpo.mu, h);
-    mObj.r = s.r;
-    mObj.v = s.v;
-    mObj.t += h;
+    const s = F.paso({ r: copia.r, v: copia.v }, copia.cuerpo.mu, h);
+    copia.r = s.r;
+    copia.v = s.v;
+    copia.t += h;
     pasos++;
   }
-  const vUnit = F.unitario(mObj.v);
-  const haciaCuerpo = F.esc(F.unitario(mObj.r), -1);
-  const u = F.unitario(F.resta(haciaCuerpo, F.esc(vUnit, F.punto(haciaCuerpo, vUnit))));
-  mObj.fwd = vUnit;
-  mObj.up = u;
-  mObj.escala = Math.min(escAnt, 8);
+  orientar(copia);
+  orientar(mObj);
+  mObj.escala = ESCALA_LLEGADA_MIN;
   estadoLlegadaReserva = {
-    t: mObj.t,
-    r: [...mObj.r],
-    v: [...mObj.v],
-    fwd: [...mObj.fwd],
-    up: [...mObj.up],
+    t: copia.t,
+    r: [...copia.r],
+    v: [...copia.v],
+    fwd: [...copia.fwd],
+    up: [...copia.up],
   };
 }
+
+/** Nariz hacia donde va la nave (prógrado) y «arriba» hacia el cuerpo. */
+function orientarPrograda(o) {
+  const vUnit = F.unitario(o.v);
+  const haciaCuerpo = F.esc(F.unitario(o.r), -1);
+  o.fwd = vUnit;
+  o.up = F.unitario(F.resta(haciaCuerpo, F.esc(vUnit, F.punto(haciaCuerpo, vUnit))));
+}
+
+// Aproximación acelerada: el tiempo corre rápido lejos (el cuerpo crece en pantalla) y se frena al llegar.
+// escala = tiempo que falta al encendido / ESCALA_LLEGADA_DIV, entre ×8 y ×300 → ≈20 s reales desde 4 radios.
+const ESCALA_LLEGADA_MIN = 8;
+const ESCALA_LLEGADA_MAX = 300;
+const ESCALA_LLEGADA_DIV = 3;
 
 function restaurarLlegadaSiYaPaso(umbralSeg = 32) {
   const el = M.elementosActuales(m);
@@ -444,6 +460,7 @@ function cambiarMision(nuevoDestinoId, { abrirBriefing = false } = {}) {
   secuenciaCaptura = { activa: false, tInicioPeri: 1, dvTotalQuema: 1, dvInicioQuema: 0, etapa: 1, progreso: 0 };
   registro = [];
   finMostrado = false;
+  giroManual = false;
   faseAnterior = 'espera';
   senalAnterior = true;
   objetivo = m.dest.lugares[0]?.id ?? null;
@@ -513,7 +530,8 @@ function controles() {
 }
 
 // --- Cinemática de 3 Fases para la Inserción Orbital Automática ----------------------------------------------
-function actualizarCinematicaVuelo() {
+/** @param {{guinada?:number, cabeceo?:number, alabeo?:number}} c controles del jugador en este cuadro */
+function actualizarCinematicaVuelo(c = {}) {
   const el = M.elementosActuales(m);
 
   // 1) Si el piloto automático de captura está activo, animamos las 3 fases con claridad total
@@ -539,7 +557,8 @@ function actualizarCinematicaVuelo() {
           pitido(660);
         }
         secuenciaCaptura.progreso = Math.max(0.06, Math.min(0.99, 1 - tEnc / Math.max(1, secuenciaCaptura.tInicioPeri)));
-        m.escala = Math.max(15, Math.min(120, Math.round(tEnc / 1.3)));
+        // Desde lejos (inicio a 3,5–4 radios) puede faltar más de una hora de misión: hasta ×300 para no hacerse eterno
+        m.escala = Math.max(15, Math.min(ESCALA_LLEGADA_MAX, Math.round(tEnc / 1.3)));
       }
     } else if (m.captura.fase === 'quemando') {
       // Fase 3/3: Quema del motor principal en el Periapsis (~2.2 segundos reales con llama 3D y vibración)
@@ -555,16 +574,20 @@ function actualizarCinematicaVuelo() {
     return;
   }
 
-  // 2) Durante la aproximación inicial sin piloto de captura, mantenemos movimiento fluido (×8)
-  // y si el usuario está explorando la cámara o leyendo los paneles y la nave se acerca demasiado al PE,
+  // 2) Durante la aproximación sin piloto de captura: rápida lejos y fluida (×8) cerca del PE.
+  // Si el usuario está explorando la cámara o leyendo los paneles y la nave se acerca demasiado al PE,
   // reponemos automáticamente la aproximación para que los botones de misión funcionen siempre
   if (!el.ligada && m.motor === 0) {
     const df = M.datosFrenado(m);
     if (df.yaPaso || df.tParaEncendido <= 32) {
       restaurarLlegadaSiYaPaso(36);
     } else if (!escalaManual) {
-      m.escala = 8;
+      m.escala = Math.round(Math.max(ESCALA_LLEGADA_MIN, Math.min(ESCALA_LLEGADA_MAX, df.tParaEncendido / ESCALA_LLEGADA_DIV)));
     }
+    // En la aproximación libre la nariz sigue la trayectoria (si no, al curvarse hacia el cuerpo la cámara miraría al vacío),
+    // hasta que el jugador gire la nave a mano: desde ahí se respeta su orientación
+    if (c.guinada || c.cabeceo || c.alabeo) giroManual = true;
+    if (m.piloto === null && !giroManual) orientarPrograda(m);
   }
 }
 
@@ -1213,7 +1236,7 @@ function cuadro(ahora) {
       secuenciaCaptura.activa = false;
       M.fijarPiloto(m, null);
     }
-    actualizarCinematicaVuelo();
+    actualizarCinematicaVuelo(c);
     M.avanzar(m, dt, c);
     vigilarEventos();
   }
@@ -1368,7 +1391,7 @@ async function arrancar() {
 
   try {
     const esNode = typeof process !== 'undefined' && Boolean(process.versions?.node);
-    const { crearEscenaPilotaje } = await import(esNode ? './cuerpos.js' : './cuerpos.js?v=9');
+    const { crearEscenaPilotaje } = await import(esNode ? './cuerpos.js' : './cuerpos.js?v=11');
     escena = crearEscenaPilotaje($('pil-canvas'), m, {
       reducirMovimiento,
       renderer: globalThis.__pilotajeRenderer ?? null,

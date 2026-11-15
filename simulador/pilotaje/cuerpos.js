@@ -524,6 +524,11 @@ export function crearEscenaPilotaje(canvas, m, { reducirMovimiento = false, rend
   let modoVista = 'orbita'; // 'orbita' (3ra persona viendo tu cohete y el planeta) | 'cabina' (1ra persona escáner)
   const anguloOrbita = { azimut: 0.22, elevacion: 0.20, zoom: 11.5 };
   let dirCoheteSuave = null;
+  // Aproximación desde lejos (la misión empieza a 3,5–4 radios): lejos, la cámara de persecución mira hacia el centro
+  // del cuerpo (cohete delante y el cuerpo COMPLETO detrás); al acercarse vuelve poco a poco a seguir la nariz del cohete.
+  const LEJOS_R = 2.8;   // a esta distancia (en radios) o más, mira de lleno al cuerpo
+  const CERCA_R = 1.5;   // a esta distancia o menos, vista de persecución de siempre
+  const PESO_LEJOS = 0.97;
 
   function trayectoria() {
     const p = F.predecir({ r: m.r, v: m.v }, m.cuerpo.mu, { dt: 24, pasos: 360, radioCuerpo: m.cuerpo.radio });
@@ -603,10 +608,14 @@ export function crearEscenaPilotaje(canvas, m, { reducirMovimiento = false, rend
     if (modoVista === 'orbita') {
       nave3D.raiz.visible = true;
       camara.fov = 52;
-      // En vista exterior, la referencia base sigue la orientación natural del cohete e incluye el planeta al fondo
-      const dirRef = m.piloto === 'lugar' || m.piloto === null
-        ? dirCoheteSuave.clone().multiplyScalar(0.72).addScaledVector(haciaPlaneta, 0.28).normalize()
-        : vel3.clone().multiplyScalar(0.62).addScaledVector(haciaPlaneta, 0.38).normalize();
+      // En vista exterior, la referencia base sigue la orientación natural del cohete e incluye el planeta al fondo.
+      // Lejos (inicio de la aproximación) pesa casi solo la dirección al cuerpo, para verlo completo detrás del cohete.
+      const R = m.cuerpo.radio / KM;
+      const lejania = Math.max(0, Math.min(1, (posNaveKm.length() / R - CERCA_R) / (LEJOS_R - CERCA_R)));
+      const libre = m.piloto === 'lugar' || m.piloto === null;
+      const base = libre ? 0.28 : 0.38;
+      const peso = base + (PESO_LEJOS - base) * lejania;
+      const dirRef = (libre ? dirCoheteSuave : vel3).clone().multiplyScalar(1 - peso).addScaledVector(haciaPlaneta, peso).normalize();
       const upRef = new THREE.Vector3(0, 1, 0);
       let derRef = new THREE.Vector3().crossVectors(dirRef, upRef);
       if (derRef.lengthSq() < 1e-6) derRef.set(1, 0, 0);
@@ -627,7 +636,10 @@ export function crearEscenaPilotaje(canvas, m, { reducirMovimiento = false, rend
       }
       camara.up.copy(arribaLocal);
       const mira = posNaveKm.clone().addScaledVector(dirCoheteSuave, 1.4);
-      camara.lookAt(mira);
+      // Lejos, la mirada gira hacia el centro del cuerpo (por ángulo, no por punto: el cuerpo está a miles de km)
+      const haciaMira = mira.clone().sub(camara.position).normalize();
+      const haciaCentro = camara.position.clone().negate().normalize();
+      camara.lookAt(camara.position.clone().add(haciaMira.lerp(haciaCentro, lejania).normalize()));
     } else {
       // Modo 'cabina' / Telescopio Escáner en 1ra persona
       nave3D.raiz.visible = false;

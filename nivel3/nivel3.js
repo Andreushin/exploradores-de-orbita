@@ -247,28 +247,41 @@ const btn = (label, cls, on) => { const b = document.createElement('button'); b.
 /** Nombre del cohete para los textos (viene de data/missions.json → simRocket). */
 const rocketName = () => (launch.rocketId === mission.simRocket?.id ? tx(mission.simRocket.name) : launch.rocketId);
 
-/** El mismo iframe sirve al despegue y al pilotaje (este último, más alto). */
-function openFrame(src, isPilot) {
+/**
+ * El mismo iframe sirve al despegue y al pilotaje, a pantalla completa (cubre la ventana). El panel del nivel
+ * pasa a ser una barra flotante con el idioma y la acción (saltar / continuar); su texto queda para lectores de pantalla.
+ */
+function openFrame(src) {
   const f = $('n3-sim');
-  f.classList.toggle('is-pilot', isPilot);
   f.src = src;
   f.hidden = false;
+  document.body.classList.add('n3-fullsim');
 }
 
-/** Cierra el simulador del iframe (libera su WebGL). */
+/** Cierra el simulador del iframe (libera su WebGL) y vuelve a la página normal. */
 function closeFrame() {
   const f = $('n3-sim');
   f.src = 'about:blank';
   f.hidden = true;
-  f.classList.remove('is-pilot');
+  document.body.classList.remove('n3-fullsim');
   panel().innerHTML = '';
+}
+
+/** Botones de la barra flotante: idioma (la cabecera queda tapada) y la acción, con icono y texto. */
+function floatButtons(row, label, cls, on) {
+  const l = btn(esc(t('lang')), 'n3-btn-ghost', toggleLang);
+  l.setAttribute('aria-label', t('langLabel'));
+  l.dataset.lang = '1';
+  const a = btn(`<span aria-hidden="true">⏭</span> <span class="n3-btn-txt">${label}</span>`, cls, on);
+  a.setAttribute('aria-label', label);
+  row.append(l, a);
 }
 
 /** Abre el simulador con el cohete de la misión fijado: el jugador no lo puede cambiar. */
 function startSim() {
   run.phase = 'sim';
   if (!sat.demo) saveMission({ simulation: { rocketId: launch.rocketId, locked: true } });
-  openFrame(`../simulador/?rocket=${encodeURIComponent(launch.rocketId)}&lock=1&embed=1`, false);
+  openFrame(`../simulador/?rocket=${encodeURIComponent(launch.rocketId)}&lock=1&embed=1`);
   renderOverlay();
   renderSim();
 }
@@ -280,11 +293,11 @@ function renderSim() {
   if (launch.result) {
     p.innerHTML = `<h2 class="n3-ok">${t('simDoneTitle')}</h2>
       <p>${t('simDoneText', { rocket, p: fmt(launch.result.perigeoKm ?? 0, 0), a: fmt(launch.result.apogeoKm ?? 0, 0) })}</p>`;
-    row.append(btn(t('simContinue'), 'n3-btn-primary', closeSim));
+    floatButtons(row, t('simContinue'), 'n3-btn-primary', closeSim);
   } else {
     p.innerHTML = `<span class="n3-tag">${t('simTag')}</span><h2>${t('simTitle', { rocket })}</h2>
       <p>${t('simText', { rocket, dest: esc(tx(mission.name)) })}</p>`;
-    row.append(btn(t('simSkip'), 'n3-btn-ghost', () => finishSim({ skipped: true })));
+    floatButtons(row, t('simSkip'), 'n3-btn-ghost', () => finishSim({ skipped: true }));
   }
   p.append(row);
 }
@@ -340,11 +353,9 @@ const pilotPending = () => Boolean(launch.destino) && !launch.pilotDone;
 function startPilot() {
   run.phase = 'pilot';
   if (!sat.demo) saveMission({ simulation: { pilot: { done: false, result: null } } });
-  openFrame(`../simulador/pilotaje/?destino=${encodeURIComponent(launch.destino)}&lock=1&embed=1`, true);
+  openFrame(`../simulador/pilotaje/?destino=${encodeURIComponent(launch.destino)}&lock=1&embed=1`);
   renderOverlay();
   renderPilot();
-  // Es más alto que el escenario: se alinea abajo para que se vean sus controles (Concluir, Pausa…) sin desplazar
-  $('n3-sim').scrollIntoView({ block: 'end', behavior: reduceMotion ? 'auto' : 'smooth' });
 }
 
 function renderPilot() {
@@ -353,7 +364,7 @@ function renderPilot() {
   p.innerHTML = `<span class="n3-tag">${t('pilotTag')}</span><h2>${t('pilotTitle', { dest })}</h2>
     <p>${t('pilotText', { dest, rocket: esc(rocketName()) })}</p>`;
   const row = document.createElement('div'); row.className = 'n3-choices';
-  row.append(btn(t('pilotSkip'), 'n3-btn-ghost', () => finishPilot({ skipped: true })));
+  floatButtons(row, t('pilotSkip'), 'n3-btn-ghost', () => finishPilot({ skipped: true }));
   p.append(row);
 }
 
@@ -770,23 +781,26 @@ async function boot() {
   canvas.addEventListener('pointerdown', steer);
   canvas.addEventListener('pointerleave', () => { input.pointer = null; });
   canvas.addEventListener('pointerup', (e) => { if (e.pointerType !== 'mouse') input.pointer = null; });
-  $('n3-lang').addEventListener('click', () => {
-    lang = lang === 'es' ? 'en' : 'es';
-    try { localStorage.setItem(LANG_KEY, lang); } catch { /* ignore */ }
-    applyLang();
-    // Re-dibuja el panel de la fase actual en el nuevo idioma
-    if (run.phase === 'sim' || run.phase === 'pilot') {
-      if (run.phase === 'sim') renderSim(); else renderPilot();
-      $('n3-sim').contentWindow?.postMessage({ type: SIM_LANG, lang }, location.origin);
-    } else if (run.phase === 'flight') renderOverlay();
-    else if (run.phase === 'brief') renderBrief();
-    else if (run.phase === 'result' && run.outcome === 'no-fuel') renderNoFuel();
-    else if (run.phase === 'result') renderResult();
-    else if (run.phase === 'moi') renderMoi();
-    else if (run.phase === 'decision' && !run.tcm) renderTcm();
-    else if (run.phase === 'decision' && run.currentEvent) renderEvent(run.currentEvent);
-  });
+  $('n3-lang').addEventListener('click', toggleLang);
   requestAnimationFrame(frame);
+}
+
+/** Cambia ES/EN y re-dibuja el panel de la fase actual (y el simulador incrustado, si lo hay). */
+function toggleLang() {
+  lang = lang === 'es' ? 'en' : 'es';
+  try { localStorage.setItem(LANG_KEY, lang); } catch { /* ignore */ }
+  applyLang();
+  if (run.phase === 'sim' || run.phase === 'pilot') {
+    if (run.phase === 'sim') renderSim(); else renderPilot();
+    $('n3-sim').contentWindow?.postMessage({ type: SIM_LANG, lang }, location.origin);
+    panel().querySelector('[data-lang]')?.focus({ preventScroll: true }); // el foco sigue en el botón de idioma
+  } else if (run.phase === 'flight') renderOverlay();
+  else if (run.phase === 'brief') renderBrief();
+  else if (run.phase === 'result' && run.outcome === 'no-fuel') renderNoFuel();
+  else if (run.phase === 'result') renderResult();
+  else if (run.phase === 'moi') renderMoi();
+  else if (run.phase === 'decision' && !run.tcm) renderTcm();
+  else if (run.phase === 'decision' && run.currentEvent) renderEvent(run.currentEvent);
 }
 
 boot().catch((err) => {

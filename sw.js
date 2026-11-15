@@ -6,7 +6,7 @@
 // Si agregas o quitas archivos: `node scripts/precache.mjs` actualiza el bloque de abajo.
 
 /* PRECACHE:INICIO — generado por scripts/precache.mjs, no editar a mano */
-const VERSION = "22819c29a6";
+const VERSION = "db46893512";
 const NUCLEO = [
   "",
   "nivel2/",
