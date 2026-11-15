@@ -140,9 +140,13 @@ function draw() {
   g.fillStyle = 'rgba(238,242,255,0.6)';
   for (const [x, y, r] of stars) { g.beginPath(); g.arc(x, y, r, 0, 7); g.fill(); }
   // Cuerpo central: Sol o Tierra
-  g.fillStyle = G.moon ? '#3b82f6' : '#fbbf24';
-  g.shadowColor = g.fillStyle; g.shadowBlur = 24;
-  g.beginPath(); g.arc(G.cx, G.cy, G.moon ? 12 : 10, 0, 7); g.fill(); g.shadowBlur = 0;
+  if (G.moon) {
+    spaceship(G.cx, G.cy, 1);
+  } else {
+    g.fillStyle = '#fbbf24';
+    g.shadowColor = g.fillStyle; g.shadowBlur = 24;
+    g.beginPath(); g.arc(G.cx, G.cy, 10, 0, 7); g.fill(); g.shadowBlur = 0;
+  }
   // Órbitas
   g.strokeStyle = 'rgba(154,166,207,0.35)'; g.lineWidth = 1; g.setLineDash([3, 5]);
   if (!G.moon) { g.beginPath(); g.arc(G.cx, G.cy, G.r1, 0, 7); g.stroke(); }
@@ -174,6 +178,29 @@ function draw() {
     const [sx, sy] = ship(G, p);
     dot(sx, sy, run.burning);
   }
+}
+/** Nave espacial (cohete) centrada en (x, y), apuntando hacia arriba. */
+function spaceship(x, y, k) {
+  g.save();
+  g.translate(x, y); g.scale(k, k);
+  g.shadowColor = '#3b82f6'; g.shadowBlur = 18;
+  // Aletas
+  g.fillStyle = '#ef4444';
+  g.beginPath(); g.moveTo(-5, 4); g.lineTo(-12, 15); g.lineTo(-5, 12); g.closePath(); g.fill();
+  g.beginPath(); g.moveTo(5, 4); g.lineTo(12, 15); g.lineTo(5, 12); g.closePath(); g.fill();
+  // Fuselaje
+  g.fillStyle = '#e2e8f0';
+  g.beginPath(); g.moveTo(0, -18); g.quadraticCurveTo(8, -8, 6, 12); g.lineTo(-6, 12); g.quadraticCurveTo(-8, -8, 0, -18); g.closePath(); g.fill();
+  g.shadowBlur = 0;
+  // Punta
+  g.fillStyle = '#ef4444';
+  g.beginPath(); g.moveTo(0, -18); g.quadraticCurveTo(4, -13, 5, -9); g.lineTo(-5, -9); g.quadraticCurveTo(-4, -13, 0, -18); g.closePath(); g.fill();
+  // Ventana
+  g.fillStyle = '#3b82f6'; g.beginPath(); g.arc(0, -2, 3, 0, 7); g.fill();
+  g.strokeStyle = '#94a3b8'; g.lineWidth = 1; g.stroke();
+  // Tobera
+  g.fillStyle = '#64748b'; g.fillRect(-3.5, 12, 7, 3);
+  g.restore();
 }
 function body(x, y, r, color, label) {
   g.fillStyle = color; g.beginPath(); g.arc(x, y, r, 0, 7); g.fill();
