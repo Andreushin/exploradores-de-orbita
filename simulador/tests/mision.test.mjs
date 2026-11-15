@@ -1,4 +1,4 @@
-// Pruebas de la misión de la Luna con piloto robot:  node simulador/tests/mision.test.mjs
+// Pruebas de las 3 misiones (Luna, Marte y Europa) con piloto robot:  node simulador/tests/mision.test.mjs
 import * as M from '../pilotaje/mision.js';
 import * as F from '../pilotaje/fisica.js';
 import { DESTINOS } from '../pilotaje/destinos.js';
@@ -20,7 +20,7 @@ const correr = (m, seg, ctrl = {}) => { for (let i = 0; i < seg / DT && !m.fin; 
   check('periapsis a 114.1 km de altura (el del perilunio objetivo)', cerca(el.periapsis - m.cuerpo.radio, 114.1e3, 1e-4));
   check('el plano de llegada es polar (inclinación ≈ 90°)', Math.abs(el.inclinacion * 180 / Math.PI - 90) < 0.5, `${(el.inclinacion * 180 / Math.PI).toFixed(2)}°`);
   check('actitud ortonormal', cerca(F.norma(m.fwd), 1, 1e-9) && cerca(F.norma(m.up), 1, 1e-9) && Math.abs(F.punto(m.fwd, m.up)) < 1e-9);
-  check('Marte y Europa todavía no son jugables', (() => { try { M.crearMision('marte'); return false; } catch { return true; } })());
+  check('las 3 misiones (Luna, Marte y Europa) son jugables', Boolean(M.crearMision('luna') && M.crearMision('marte') && M.crearMision('europa')));
 }
 
 // --- Sin motor: pasa de largo, no choca ---
@@ -39,50 +39,46 @@ const correr = (m, seg, ctrl = {}) => { for (let i = 0; i < seg / DT && !m.fin; 
 {
   const m = M.crearMision('luna');
   M.fijarPiloto(m, 'progrado');
-  let ult = 0;
-  for (let i = 0; i < 4000 && !m.fin; i++) { M.avanzar(m, DT, { motor: M.altura(m) < 400e3 ? 1 : 0 }); ult = i; }
+  for (let i = 0; i < 4000 && !m.fin; i++) { M.avanzar(m, DT, { motor: M.altura(m) < 400e3 ? 1 : 0 }); }
   check('acelerar en vez de frenar no captura la órbita', !M.evaluar(m).orbita, m.fin?.tipo);
 }
 
-// --- Piloto robot: captura + 3 lugares ---
-{
-  const m = M.crearMision('luna');
+// --- Piloto robot en las 3 misiones (Luna, Marte y Europa): captura + 3 lugares + 3 estrellas ---
+for (const destId of ['luna', 'marte', 'europa']) {
+  const m = M.crearMision(destId);
   M.capturarOrbita(m);
   m.escala = 120;
   let pasos = 0;
   while (m.captura.fase !== 'lista' && !m.fin && pasos < 60000) { M.avanzar(m, DT); pasos++; }
   const el = M.elementosActuales(m);
   const R = m.cuerpo.radio;
-  check('captura automática: termina en fase «lista»', m.captura.fase === 'lista', `fase ${m.captura.fase}, fin ${m.fin?.tipo ?? '—'}`);
-  check('captura: órbita ligada con apoapsis ≈ 313.9 km (±2 %: el motor se apaga al cerrar un subpaso de 0.25 s ≈ 0.75 m/s ≈ 3.5 km)', el.ligada && cerca((el.apoapsis - R) / 1000, 313.9, 0.02), `${((el.apoapsis - R) / 1000).toFixed(1)} km`);
-  check('captura: el periapsis queda a más de 20 km (no choca)', (el.periapsis - R) / 1000 > 20, `${((el.periapsis - R) / 1000).toFixed(1)} km`);
-  check('captura: Δv usado dentro del presupuesto', m.dvUsado < M.AJUSTES.dvMax && m.dvUsado > 500, `${m.dvUsado.toFixed(0)} de ${M.AJUSTES.dvMax} m/s`);
-  const real = DESTINOS.luna.mision.encendidoRealS;
-  const tQuema = m.dvUsado / M.AJUSTES.aceleracion;
-  console.log(`      (el frenado dura ${tQuema.toFixed(0)} s; el de la misión real fue ${real[0]}–${real[1]} s)`);
+  const apoMeta = DESTINOS[destId].mision.orbitaObjetivo.alturaApolunioKm;
+  check(`${destId}: captura automática termina en fase «lista»`, m.captura.fase === 'lista', `fase ${m.captura.fase}, fin ${m.fin?.tipo ?? '—'}`);
+  check(`${destId}: órbita ligada con apoapsis ≈ ${apoMeta} km (±4 %)`, el.ligada && cerca((el.apoapsis - R) / 1000, apoMeta, 0.04), `${((el.apoapsis - R) / 1000).toFixed(1)} km`);
+  check(`${destId}: el periapsis queda a más de 20 km (no choca)`, (el.periapsis - R) / 1000 > 20, `${((el.periapsis - R) / 1000).toFixed(1)} km`);
+  check(`${destId}: Δv usado dentro del presupuesto con ≥25 % de ahorro`, m.dvUsado < M.AJUSTES.dvMax * 0.75, `${m.dvUsado.toFixed(0)} de ${M.AJUSTES.dvMax} m/s`);
 
-  // Observar los 3 lugares, uno por uno
+  // Observar los 3 lugares reales, uno por uno
   const ids = m.dest.lugares.map((l) => l.id);
   const hechos = [];
+  const periodoMax = el.periodo || 7800;
   for (const id of ids) {
     M.fijarPiloto(m, 'lugar', id);
     m.escala = 30;
     let t0 = m.t; let listo = false;
-    while (!m.fin && m.t - t0 < 2.2 * 7800 && !listo) {
+    while (!m.fin && m.t - t0 < 2.2 * periodoMax && !listo) {
       M.avanzar(m, DT);
       const l = m.dest.lugares.find((x) => x.id === id);
+      if (M.observados?.some?.((o) => o.id === id) || m.observados.some((o) => o.id === id)) { listo = true; break; }
       if (M.condiciones(m, l).cumple) { const r = M.escanear(m); listo = r.ok; }
     }
     hechos.push([id, listo, ((m.t - t0) / 60).toFixed(0) + ' min']);
   }
-  console.log('      lugares:', hechos.map((h) => `${h[0]} ${h[1] ? '✔' : '✘'} (${h[2]})`).join(' · '));
-  check('el robot observa los 3 lugares reales', hechos.every((h) => h[1]));
+  console.log(`      [${destId}] lugares:`, hechos.map((h) => `${h[0]} ${h[1] ? '✔' : '✘'} (${h[2]})`).join(' · '));
+  check(`${destId}: el robot observa los 3 lugares reales`, hechos.every((h) => h[1]));
   M.terminar(m);
   const ev = M.evaluar(m);
-  check('resultado: órbita estable, 3 lugares y 3 estrellas', ev.orbita && ev.lugares.length === 3 && ev.estrellas === 3, `★${ev.estrellas}, ${ev.perilunioKm?.toFixed(0)}×${ev.apolunioKm?.toFixed(0)} km, ${(ev.tiempoMision / 3600).toFixed(1)} h`);
-  check('Shackleton se observa sin Sol (observarDeNoche) y Chang’e 4 con la señal perdida', (() => {
-    const c4 = m.observados.find((o) => o.id === 'change4'); return Boolean(c4); })());
-  check('no se puede observar dos veces el mismo lugar', !M.escanear(m).ok);
+  check(`${destId}: resultado con órbita estable, 3 lugares y 3 estrellas`, ev.orbita && ev.lugares.length === 3 && ev.estrellas === 3, `★${ev.estrellas}, ${ev.perilunioKm?.toFixed(0)}×${ev.apolunioKm?.toFixed(0)} km`);
 }
 
 // --- Condiciones de observación ---

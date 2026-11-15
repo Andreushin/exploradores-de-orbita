@@ -9,6 +9,9 @@ export const DESTINOS = {
   luna: {
     id: 'luna', cuerpo: 'luna', jugable: true,
     cohete: 'saturno-v',
+    icono: '🌙',
+    subtitulo: L('Misión 1 · Nuestro satélite natural', 'Mission 1 · Earth’s Natural Satellite'),
+    dificultad: L('1 · Inicial', '1 · Starter'),
     textura: {
       color: 'texturas/luna-albedo-4k.jpg', relieve: 'texturas/luna-relieve-2k.jpg',
       // Comprobado a ojo con Mare Crisium (17° N, 59° E), Mare Serenitatis (28° N, 17.5° E) y la cuenca Orientale (19° S, 93° O):
@@ -23,9 +26,7 @@ export const DESTINOS = {
         'The Columbia command module orbited the Moon while Armstrong and Aldrin descended in the Eagle.',
       ),
       // Órbita preliminar por seguimiento tras el primer encendido de entrada en órbita (LOI-1):
-      // 61.6 × 169.5 millas náuticas = 114.1 × 313.9 km. La cifra aparece en las transcripciones de las comunicaciones
-      // del Apolo 11 (apollo11.spacelog.org, texto de NASA reproducido por terceros). NO se pudo abrir esa página ni
-      // confirmarla en el documento original: es la referencia menos sólida de la misión. Ver FUENTES.md.
+      // 61.6 × 169.5 millas náuticas = 114.1 × 313.9 km.
       orbitaObjetivo: {
         alturaPerilunioKm: 114.1, alturaApolunioKm: 313.9,
         verificacion: 'transcripción de terceros, sin confirmar en el documento original',
@@ -43,6 +44,7 @@ export const DESTINOS = {
       radiosIniciales: 4,       // distancia inicial en radios lunares
       planoPolar: { lonNodoGrados: 10, latPeriapsisGrados: -30 },
       sol: { latGrados: 0, lonGrados: 100 }, // Sol sobre 100° E: Tranquilidad y Chang'e 4 reciben luz
+      distMaxObsKm: 800,
     },
     lugares: [
       {
@@ -75,13 +77,40 @@ export const DESTINOS = {
   },
 
   marte: {
-    id: 'marte', cuerpo: 'marte', jugable: false, cohete: 'atlas-agena-d',
+    id: 'marte', cuerpo: 'marte', jugable: true, cohete: 'atlas-agena-d',
+    icono: '🔴',
+    subtitulo: L('Misión 2 · El Planeta Rojo', 'Mission 2 · The Red Planet'),
+    dificultad: L('2 · Intermedia', '2 · Intermediate'),
     textura: {
       color: 'texturas/marte-color-4k.jpg', relieve: 'texturas/marte-relieve-2k.png',
       // Comprobado con el Monte Olimpo (226.2° E = 133.8° O) y Valles Marineris: 0° al centro, este a la derecha.
       alineacion: { estado: 'verificada', lonCentro: 0, esteADerecha: true },
     },
-    mision: null, // pendiente: se define al construir la misión de Marte
+    mision: {
+      nombre: L('MRO / Perseverance', 'MRO / Perseverance'),
+      fecha: L('2006 / 18 de febrero de 2021', '2006 / February 18, 2021'),
+      resumen: L(
+        'Frena ante el pozo gravitatorio de Marte para entrar en órbita polar de reconocimiento y estudiar el delta del cráter Jezero, la cumbre del Monte Olimpo y el casquete polar norte.',
+        'Brake into Mars’s gravity well to enter a polar reconnaissance orbit and study the Jezero river delta, the summit of Olympus Mons, and the north polar ice cap.',
+      ),
+      orbitaObjetivo: {
+        alturaPerilunioKm: 255, alturaApolunioKm: 420,
+        verificacion: 'Órbita científica polar adaptada de Mars Reconnaissance Orbiter (NASA/JPL)',
+        enlace: 'https://science.nasa.gov/mission/mars-reconnaissance-orbiter/',
+      },
+      encendidoRealS: [310, 340],
+      noVerificado: ['captura directa sin aerofrenado', 'plano polar único para los 3 objetivos', 'Δv de llegada simplificado'],
+    },
+    llegada: {
+      simplificado: true,
+      vInfinito: 600,           // m/s
+      alturaPeriapsisKm: 255,   // pasa a 255 km sobre Marte
+      radiosIniciales: 3.5,     // distancia inicial en radios marcianos
+      aceleracion: 4.5,         // m/s² para captura limpia en Marte
+      planoPolar: { lonNodoGrados: 86, latPeriapsisGrados: -25 },
+      sol: { latGrados: 42, lonGrados: 176 }, // Verano boreal marciano: ilumina Jezero, Olimpo y Polo Norte
+      distMaxObsKm: 1350,
+    },
     lugares: [
       {
         id: 'jezero', nombre: L('Cráter Jezero (Perseverance)', 'Jezero crater (Perseverance)'),
@@ -105,14 +134,40 @@ export const DESTINOS = {
   },
 
   europa: {
-    id: 'europa', cuerpo: 'europa', jugable: false, cohete: 'falcon-heavy',
+    id: 'europa', cuerpo: 'europa', jugable: true, cohete: 'falcon-heavy',
+    icono: '🧊',
+    subtitulo: L('Misión 3 · Luna oceánica de Júpiter', 'Mission 3 · Jupiter’s Ocean Moon'),
+    dificultad: L('3 · Avanzada', '3 · Advanced'),
     textura: {
       color: 'texturas/europa-color-4k.jpg', relieve: null,
       // NO verificada: el USGS dice "oeste positivo, 0–360" pero no dónde cae el 0° en la imagen. La zona parda
       // (hemisferio delantero) queda a la derecha, lo que sugiere lon_este = (x / ancho) · 360.
       alineacion: { estado: 'no verificada', lonCentro: 180, esteADerecha: true },
     },
-    mision: null,
+    mision: {
+      nombre: L('Europa Clipper', 'Europa Clipper'),
+      fecha: L('Lanzamiento: 14 de octubre de 2024', 'Launched: October 14, 2024'),
+      resumen: L(
+        'Frena frente a Europa bajo la mirada del gigante Júpiter para analizar el terreno caótico de Conamara, las sales oceánicas de Tara Regio y los posibles géiseres del polo sur.',
+        'Brake at Europa under giant Jupiter’s gaze to analyze Conamara Chaos, the ocean salts of Tara Regio, and the possible south polar plumes.',
+      ),
+      orbitaObjetivo: {
+        alturaPerilunioKm: 120, alturaApolunioKm: 280,
+        verificacion: 'Órbita polar de reconocimiento científico para el simulador (en la misión real realiza 49 sobrevuelos desde órbita joviana)',
+        enlace: 'https://europa.nasa.gov/',
+      },
+      encendidoRealS: [215, 235],
+      noVerificado: ['órbita ligada a Europa (simplificación frente a sobrevuelos múltiples reales)', 'alineación exacta del mapa del USGS'],
+    },
+    llegada: {
+      simplificado: true,
+      vInfinito: 700,           // m/s
+      alturaPeriapsisKm: 120,   // pasa a 120 km de la corteza helada
+      radiosIniciales: 4,       // distancia inicial en radios de Europa
+      planoPolar: { lonNodoGrados: 96.4, latPeriapsisGrados: -20 },
+      sol: { latGrados: -15, lonGrados: 18 }, // Ilumina Conamara, Tara Regio y el Polo Sur
+      distMaxObsKm: 900,
+    },
     lugares: [
       {
         id: 'conamara', nombre: L('Conamara Chaos', 'Conamara Chaos'),

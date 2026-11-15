@@ -1,12 +1,13 @@
 /* OWNER: Rol 3 (@JU4NMAX) — Simulador de pilotaje. Clases con prefijo pil-; colores de la identidad del juego. */
 :root {
-  --pil-bg: #000;
-  --pil-panel: rgba(8, 13, 32, 0.78);
-  --pil-borde: rgba(79, 195, 247, 0.35);
+  --pil-bg: #02040a;
+  --pil-panel: rgba(8, 14, 34, 0.84);
+  --pil-panel-fuerte: rgba(10, 18, 42, 0.94);
+  --pil-borde: rgba(79, 195, 247, 0.36);
   --pil-texto: #eef2ff;
-  --pil-tenue: #9aa6cf;
+  --pil-tenue: #9aa8d1;
   --pil-acento: #ff6b35;
-  --pil-info: #4fc3f7;
+  --pil-info: #38bdf8;
   --pil-ok: #4ade80;
   --pil-aviso: #fbbf24;
   --pil-peligro: #ff7a7a;
@@ -15,102 +16,389 @@
 }
 * { box-sizing: border-box; }
 html, body { margin: 0; height: 100%; overflow: hidden; }
-body.pil { background: var(--pil-bg); color: var(--pil-texto); font: 15px/1.45 var(--pil-font); }
-.pil-canvas { position: fixed; inset: 0; width: 100%; height: 100%; display: block; touch-action: none; cursor: crosshair; }
+body.pil { background: var(--pil-bg); color: var(--pil-texto); font: 14.5px/1.45 var(--pil-font); user-select: none; }
+.pil-canvas { position: fixed; inset: 0; width: 100%; height: 100%; display: block; touch-action: none; cursor: grab; }
+.pil-canvas:active { cursor: grabbing; }
 
-/* Marco de la cabina y viñeta */
-.pil-marco { position: fixed; inset: 0; pointer-events: none; background:
-  radial-gradient(ellipse at center, transparent 55%, rgba(0, 0, 0, 0.55) 100%),
-  linear-gradient(180deg, rgba(0, 0, 0, 0.55), transparent 14%, transparent 80%, rgba(0, 0, 0, 0.6)); }
-.pil-llama { position: fixed; inset: 0; pointer-events: none; opacity: 0; transition: opacity 0.2s;
-  background: radial-gradient(ellipse at 50% 120%, rgba(255, 150, 60, 0.55), transparent 55%); }
+/* Marco de la cabina y viñeta suave */
+.pil-marco {
+  position: fixed; inset: 0; pointer-events: none;
+  background:
+    radial-gradient(ellipse at center, transparent 62%, rgba(0, 0, 0, 0.52) 100%),
+    linear-gradient(180deg, rgba(2, 6, 18, 0.65), transparent 14%, transparent 82%, rgba(2, 6, 18, 0.72));
+}
+.pil-llama {
+  position: fixed; inset: 0; pointer-events: none; opacity: 0; transition: opacity 0.2s;
+  background: radial-gradient(ellipse at 50% 118%, rgba(255, 138, 48, 0.45), transparent 52%);
+}
 .pil-llama.on { opacity: 1; }
-.pil-mira { position: fixed; left: 50%; top: 50%; width: var(--pil-cono, 180px); height: var(--pil-cono, 180px); transform: translate(-50%, -50%);
-  border: 1px dashed rgba(79, 195, 247, 0.45); border-radius: 50%; pointer-events: none; }
-.pil-mira::before, .pil-mira::after { content: ""; position: absolute; background: rgba(79, 195, 247, 0.7); }
-.pil-mira::before { left: 50%; top: 40%; width: 1px; height: 20%; }
-.pil-mira::after { top: 50%; left: 40%; height: 1px; width: 20%; }
-.pil-mira i { position: absolute; inset: 0; border-radius: 50%; }
-.pil-mira.listo { border-color: var(--pil-ok); box-shadow: 0 0 14px rgba(74, 222, 128, 0.5); }
 
-/* Etiquetas de lugares */
-.pil-etiquetas { position: fixed; inset: 0; pointer-events: none; overflow: hidden; }
-.pil-etiq { position: absolute; transform: translate(-50%, -100%); padding: 3px 8px; border-radius: 6px; font-size: 0.78rem; white-space: nowrap;
-  background: var(--pil-panel); border: 1px solid var(--pil-borde); color: var(--pil-texto); }
+/* Mira central con progreso circular y flecha direccional */
+.pil-mira {
+  position: fixed; left: 50%; top: 52%;
+  width: var(--pil-cono, 170px); height: var(--pil-cono, 170px);
+  transform: translate(-50%, -50%);
+  border-radius: 50%; pointer-events: none; z-index: 2;
+  transition: transform 0.18s ease, filter 0.2s ease;
+}
+.pil-mira::before, .pil-mira::after {
+  content: ""; position: absolute; background: rgba(56, 189, 248, 0.65);
+}
+.pil-mira::before { left: 50%; top: 43%; width: 1px; height: 14%; transform: translateX(-50%); }
+.pil-mira::after { top: 50%; left: 43%; height: 1px; width: 14%; transform: translateY(-50%); }
+.pil-mira-svg { width: 100%; height: 100%; transform: rotate(-90deg); overflow: visible; }
+.pil-mira-base {
+  fill: none; stroke: rgba(56, 189, 248, 0.42); stroke-width: 1.4; stroke-dasharray: 4 3;
+}
+.pil-mira-prog {
+  fill: none; stroke: var(--pil-ok); stroke-width: 3.2;
+  stroke-linecap: round; stroke-dasharray: 289; stroke-dashoffset: 289;
+  transition: stroke-dashoffset 0.08s linear;
+}
+.pil-mira.listo .pil-mira-base {
+  stroke: var(--pil-ok); stroke-width: 2.2; stroke-dasharray: none;
+  filter: drop-shadow(0 0 10px rgba(74, 222, 128, 0.7));
+}
+.pil-mira-txt {
+  position: absolute; left: 50%; bottom: -26px; transform: translateX(-50%);
+  font: 600 0.74rem var(--pil-mono); color: var(--pil-info); white-space: nowrap;
+  background: rgba(5, 10, 26, 0.78); padding: 2px 8px; border-radius: 999px;
+  border: 1px solid rgba(56, 189, 248, 0.3);
+}
+.pil-mira.listo .pil-mira-txt {
+  color: #052e16; background: var(--pil-ok); border-color: var(--pil-ok);
+}
+.pil-flecha {
+  position: absolute; left: 50%; top: 50%;
+  font-size: 1.35rem; color: var(--pil-aviso);
+  text-shadow: 0 0 10px rgba(251, 191, 36, 0.85);
+  transform-origin: center center;
+}
+
+/* Etiquetas 3D de lugares sobre el planeta */
+.pil-etiquetas { position: fixed; inset: 0; pointer-events: none; overflow: hidden; z-index: 2; }
+.pil-etiq {
+  position: absolute; transform: translate(-50%, -120%);
+  padding: 4px 10px; border-radius: 999px; font-size: 0.78rem; font-weight: 600; white-space: nowrap;
+  background: rgba(8, 14, 34, 0.88); border: 1px solid var(--pil-borde); color: var(--pil-texto);
+  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.5);
+}
+.pil-etiq.objetivo { border-color: var(--pil-aviso); color: var(--pil-aviso); }
 .pil-etiq.hecho { border-color: var(--pil-ok); color: var(--pil-ok); }
-.pil-etiq.listo { border-color: var(--pil-ok); }
+.pil-etiq.listo {
+  border-color: var(--pil-ok); background: rgba(20, 83, 45, 0.92); color: #dcfce7;
+  box-shadow: 0 0 16px rgba(74, 222, 128, 0.55);
+}
 
-/* Barra superior */
-.pil-top { position: fixed; top: 0; left: 0; right: 0; display: flex; align-items: center; gap: 12px; padding: 8px 12px; z-index: 3; }
-.pil-brand { display: inline-flex; align-items: center; gap: 8px; color: var(--pil-texto); font-weight: 700; text-decoration: none; }
+/* Barra superior con selector de las 3 misiones */
+.pil-top {
+  position: fixed; top: 0; left: 0; right: 0; z-index: 10; pointer-events: auto;
+  display: flex; align-items: center; justify-content: space-between; gap: 10px;
+  padding: 8px 14px;
+  background: linear-gradient(180deg, rgba(4, 8, 22, 0.92), rgba(4, 8, 22, 0.45) 85%, transparent);
+  backdrop-filter: blur(6px);
+}
+.pil-brand {
+  display: inline-flex; align-items: center; gap: 8px;
+  color: var(--pil-texto); font-weight: 700; text-decoration: none; font-size: 0.95rem;
+}
 .pil-brand img { border-radius: 6px; }
-.pil-mision { margin-left: auto; font: 500 0.8rem var(--pil-mono); color: var(--pil-tenue); }
-.pil-btn { font: inherit; color: var(--pil-texto); background: var(--pil-panel); border: 1px solid var(--pil-borde); border-radius: 10px; padding: 7px 12px; cursor: pointer; }
-.pil-btn:hover:not(:disabled) { border-color: var(--pil-info); }
+.pil-misiones-tabs {
+  display: inline-flex; align-items: center; gap: 6px;
+  background: rgba(8, 14, 34, 0.85); padding: 4px; border-radius: 12px;
+  border: 1px solid var(--pil-borde);
+}
+.pil-tab-mision {
+  font: 600 0.8rem var(--pil-font); color: var(--pil-tenue);
+  background: transparent; border: 1px solid transparent; border-radius: 8px;
+  padding: 5px 10px; cursor: pointer; display: inline-flex; align-items: center; gap: 6px;
+  transition: all 0.15s ease;
+}
+.pil-tab-mision small {
+  font-size: 0.68rem; opacity: 0.82; font-family: var(--pil-mono);
+}
+.pil-tab-mision:hover { color: var(--pil-texto); background: rgba(56, 189, 248, 0.12); }
+.pil-tab-mision.activa {
+  color: #061024; background: var(--pil-info); border-color: var(--pil-info); font-weight: 700;
+  box-shadow: 0 0 12px rgba(56, 189, 248, 0.4);
+}
+.pil-mision { display: none; }
+.pil-top-acciones { display: flex; align-items: center; gap: 6px; }
+
+/* Botones generales */
+.pil-btn {
+  font: 600 0.84rem var(--pil-font); color: var(--pil-texto);
+  background: var(--pil-panel); border: 1px solid var(--pil-borde);
+  border-radius: 10px; padding: 7px 12px; cursor: pointer;
+  transition: all 0.15s ease;
+}
+.pil-btn-sm { padding: 5px 10px; font-size: 0.78rem; border-radius: 8px; }
+.pil-btn:hover:not(:disabled) { border-color: var(--pil-info); background: rgba(18, 32, 72, 0.9); }
 .pil-btn:disabled { opacity: 0.45; cursor: not-allowed; }
-.pil-btn.activo { border-color: var(--pil-acento); box-shadow: 0 0 0 1px var(--pil-acento) inset; }
-.pil-btn.principal { background: var(--pil-acento); border-color: var(--pil-acento); color: #0a0f22; font-weight: 700; }
+.pil-btn.activo { border-color: var(--pil-acento); box-shadow: 0 0 0 1px var(--pil-acento) inset; color: #ffedd5; }
+.pil-btn.principal {
+  background: var(--pil-acento); border-color: var(--pil-acento); color: #090d1e; font-weight: 700;
+  box-shadow: 0 4px 14px rgba(255, 107, 53, 0.4);
+}
+.pil-btn.principal:hover:not(:disabled) { background: #ff8252; border-color: #ff8252; }
+.pil-btn.exito {
+  background: var(--pil-ok); border-color: var(--pil-ok); color: #052e16; font-weight: 700;
+  box-shadow: 0 0 16px rgba(74, 222, 128, 0.5);
+}
+.pil-btn.info {
+  background: rgba(56, 189, 248, 0.18); border-color: var(--pil-info); color: #e0f2fe;
+}
 .pil-btn:focus-visible, .pil-dialogo button:focus-visible { outline: 2px solid var(--pil-info); outline-offset: 2px; }
 
-/* HUD */
-.pil-hud, .pil-lugares, .pil-registro { position: fixed; z-index: 2; background: var(--pil-panel); border: 1px solid var(--pil-borde); border-radius: 12px; padding: 10px 12px; backdrop-filter: blur(4px); }
-.pil-hud { top: 52px; left: 12px; width: 270px; display: grid; gap: 2px; font: 500 0.82rem var(--pil-mono); }
-.pil-hud div { display: flex; justify-content: space-between; gap: 10px; }
-.pil-hud span { color: var(--pil-tenue); font-family: var(--pil-font); }
-.pil-hud .fase { display: block; font-family: var(--pil-font); color: var(--pil-info); margin-bottom: 4px; }
+/* Asistente Paso a Paso y Secuencia de Inserción Orbital (Centro Superior) */
+.pil-asistente {
+  position: fixed; top: 54px; left: 50%; transform: translateX(-50%);
+  width: min(580px, calc(100vw - 600px)); min-width: 340px;
+  z-index: 10; pointer-events: auto; background: var(--pil-panel-fuerte);
+  border: 1.5px solid var(--pil-borde); border-radius: 14px;
+  padding: 10px 14px; backdrop-filter: blur(8px);
+  box-shadow: 0 10px 28px rgba(0, 0, 0, 0.55);
+  display: grid; gap: 6px;
+}
+.pil-asistente.urgente { border-color: var(--pil-aviso); box-shadow: 0 0 20px rgba(251, 191, 36, 0.3); }
+.pil-asistente.listo { border-color: var(--pil-ok); box-shadow: 0 0 22px rgba(74, 222, 128, 0.35); }
+.pil-asistente.secuencia {
+  border-color: #fbbf24;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.65), 0 0 24px rgba(251, 191, 36, 0.38);
+}
+.pil-pasos {
+  display: grid; grid-template-columns: repeat(3, 1fr); gap: 6px;
+  font-size: 0.72rem; font-weight: 600; color: var(--pil-tenue);
+}
+.pil-paso {
+  padding: 3px 8px; border-radius: 6px; background: rgba(255, 255, 255, 0.05);
+  text-align: center; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+.pil-paso.activo { background: rgba(56, 189, 248, 0.2); color: var(--pil-info); border: 1px solid rgba(56, 189, 248, 0.45); }
+.pil-paso.hecho { background: rgba(74, 222, 128, 0.16); color: var(--pil-ok); }
+.pil-asist-cuerpo { display: flex; align-items: center; justify-content: space-between; gap: 10px; flex-wrap: wrap; }
+.pil-asist-txt { flex: 1 1 220px; }
+.pil-asist-txt strong { display: block; font-size: 0.88rem; color: var(--pil-texto); margin-bottom: 2px; }
+.pil-asist-txt p { margin: 0; font-size: 0.78rem; color: #cbd5f5; line-height: 1.35; }
+.pil-asist-botones { display: flex; gap: 6px; flex-wrap: wrap; align-items: center; }
+
+/* Barra de progreso animada para la secuencia de inserción orbital */
+.pil-sec-fases {
+  display: grid; grid-template-columns: repeat(3, 1fr); gap: 5px;
+  font: 600 0.68rem var(--pil-mono); margin-top: 2px;
+}
+.pil-sec-chip {
+  padding: 3px 6px; border-radius: 6px; text-align: center;
+  background: rgba(255, 255, 255, 0.05); color: var(--pil-tenue);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+}
+.pil-sec-chip.on {
+  background: rgba(251, 191, 36, 0.22); color: #fef08a; border-color: #fbbf24;
+}
+.pil-sec-chip.ok {
+  background: rgba(74, 222, 128, 0.18); color: var(--pil-ok); border-color: rgba(74, 222, 128, 0.5);
+}
+.pil-sec-barra {
+  height: 7px; border-radius: 999px; background: rgba(255, 255, 255, 0.12);
+  overflow: hidden; margin-top: 4px;
+}
+.pil-sec-barra i {
+  display: block; height: 100%;
+  background: linear-gradient(90deg, #38bdf8, #fbbf24, #ff6b35);
+  transition: width 0.08s linear;
+}
+
+/* Paneles laterales (HUD, Lugares, Radar, Registro) */
+.pil-hud, .pil-lugares, .pil-registro, .pil-radar {
+  position: fixed; z-index: 8; pointer-events: auto; background: var(--pil-panel);
+  border: 1px solid var(--pil-borde); border-radius: 12px;
+  padding: 10px 12px; backdrop-filter: blur(6px);
+}
+.pil-hud {
+  top: 54px; left: 12px; width: 258px;
+  display: grid; gap: 3px; font: 500 0.8rem var(--pil-mono);
+}
+.pil-hud div { display: flex; justify-content: space-between; gap: 8px; align-items: baseline; }
+.pil-hud span { color: var(--pil-tenue); font-family: var(--pil-font); font-size: 0.78rem; }
+.pil-hud .fase {
+  display: block; font: 700 0.84rem var(--pil-font); color: var(--pil-info);
+  padding-bottom: 4px; margin-bottom: 3px; border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+}
 .pil-hud .mal { color: var(--pil-peligro); }
 .pil-hud .bien { color: var(--pil-ok); }
+.pil-hud .cohete-tag { color: #fbbf24; font-weight: 700; }
 .pil-barra { height: 7px; border-radius: 999px; background: rgba(255, 255, 255, 0.12); overflow: hidden; margin: 2px 0 4px; }
-.pil-barra i { display: block; height: 100%; background: var(--pil-ok); }
+.pil-barra i { display: block; height: 100%; background: var(--pil-ok); transition: width 0.15s ease; }
 .pil-barra.bajo i { background: var(--pil-aviso); }
 .pil-barra.critico i { background: var(--pil-peligro); }
 
-.pil-lugares { top: 52px; right: 12px; width: 300px; display: grid; gap: 8px; }
-.pil-lugar { display: grid; gap: 2px; padding-bottom: 8px; border-bottom: 1px solid rgba(255, 255, 255, 0.08); font-size: 0.85rem; }
-.pil-lugar:last-child { border-bottom: 0; padding-bottom: 0; }
-.pil-lugar b { font-weight: 600; }
+/* Tarjetas interactivas de los 3 sitios científicos */
+.pil-lugares {
+  top: 54px; right: 12px; width: 295px;
+  display: grid; gap: 8px; max-height: calc(100vh - 340px); overflow-y: auto;
+}
+.pil-lugares-head {
+  font: 700 0.82rem var(--pil-font); color: var(--pil-info);
+  display: flex; justify-content: space-between; align-items: center;
+  padding-bottom: 4px; border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+}
+.pil-lugar {
+  display: grid; gap: 5px; padding: 8px 10px;
+  background: rgba(15, 23, 52, 0.65);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 10px; font-size: 0.82rem; cursor: pointer;
+  transition: border-color 0.15s ease, background 0.15s ease;
+}
+.pil-lugar:hover { border-color: var(--pil-info); background: rgba(22, 35, 76, 0.82); }
+.pil-lugar b { font-weight: 700; display: flex; justify-content: space-between; align-items: center; gap: 6px; }
+.pil-lugar-dato { margin: 0; font-size: 0.74rem; color: #c7d2fe; line-height: 1.3; }
+.pil-lugar.hecho { border-color: rgba(74, 222, 128, 0.55); background: rgba(16, 54, 38, 0.5); }
 .pil-lugar.hecho b { color: var(--pil-ok); }
-.pil-lugar.activo { outline: 1px solid var(--pil-acento); outline-offset: 4px; border-radius: 4px; }
+.pil-lugar.activo { border-color: var(--pil-aviso); box-shadow: 0 0 0 1px var(--pil-aviso) inset; }
+.pil-lugar.listo { border-color: var(--pil-ok); box-shadow: 0 0 14px rgba(74, 222, 128, 0.35); }
 .pil-chips { display: flex; flex-wrap: wrap; gap: 4px; }
-.pil-chip { padding: 1px 7px; border-radius: 999px; font-size: 0.72rem; border: 1px solid rgba(255, 255, 255, 0.18); color: var(--pil-tenue); }
-.pil-chip.si { color: var(--pil-ok); border-color: var(--pil-ok); }
-.pil-lugar small { color: var(--pil-tenue); font-family: var(--pil-mono); font-size: 0.72rem; }
+.pil-chip {
+  padding: 1px 6px; border-radius: 999px; font-size: 0.69rem;
+  border: 1px solid rgba(255, 255, 255, 0.16); color: var(--pil-tenue);
+}
+.pil-chip.si { color: var(--pil-ok); border-color: var(--pil-ok); background: rgba(74, 222, 128, 0.12); }
+.pil-lugar-pie { display: flex; justify-content: space-between; align-items: center; gap: 6px; margin-top: 2px; }
+.pil-lugar small { color: var(--pil-tenue); font-family: var(--pil-mono); font-size: 0.7rem; }
+.pil-lugar-acciones { display: flex; gap: 4px; }
+.pil-mini-btn {
+  font: 600 0.71rem var(--pil-font); padding: 3px 7px; border-radius: 6px;
+  border: 1px solid var(--pil-borde); background: rgba(8, 14, 34, 0.9); color: var(--pil-texto); cursor: pointer;
+}
+.pil-mini-btn:hover { border-color: var(--pil-info); background: rgba(56, 189, 248, 0.2); }
+.pil-mini-btn.ok { background: var(--pil-ok); border-color: var(--pil-ok); color: #052e16; font-weight: 700; }
 
-.pil-registro { left: 12px; bottom: 74px; width: min(420px, calc(100vw - 24px)); max-height: 28vh; overflow-y: auto; }
-.pil-registro ol { margin: 0; padding: 0; list-style: none; display: grid; gap: 4px; font-size: 0.85rem; }
+/* Radar Táctico Orbital 2D (Abajo Derecha) */
+.pil-radar {
+  right: 12px; bottom: 72px; width: 236px;
+  display: grid; gap: 4px; padding: 8px 10px;
+}
+.pil-radar-head { display: flex; flex-direction: column; gap: 1px; }
+.pil-radar-head b { font-size: 0.78rem; color: var(--pil-info); }
+.pil-radar-head span { font: 500 0.69rem var(--pil-mono); color: var(--pil-tenue); }
+#pil-mapa {
+  width: 214px; height: 185px; display: block; margin: 0 auto;
+  background: radial-gradient(circle at center, rgba(16, 28, 64, 0.65), rgba(4, 8, 20, 0.92));
+  border-radius: 8px; border: 1px solid rgba(56, 189, 248, 0.22);
+}
+.pil-radar-leyenda {
+  display: flex; justify-content: space-between; font-size: 0.68rem; color: var(--pil-tenue);
+}
+.pil-radar-leyenda span { display: inline-flex; align-items: center; gap: 4px; }
+.dot-pe { width: 7px; height: 7px; border-radius: 50%; background: var(--pil-aviso); display: inline-block; }
+.dot-obj { width: 10px; height: 2px; border-top: 2px dashed rgba(255, 255, 255, 0.55); display: inline-block; }
+
+/* Bitácora (Abajo Izquierda) */
+.pil-registro {
+  left: 12px; bottom: 72px; width: min(370px, calc(100vw - 270px));
+  max-height: 155px; overflow-y: auto;
+}
+.pil-registro ol { margin: 0; padding: 0; list-style: none; display: grid; gap: 4px; font-size: 0.8rem; }
 .pil-registro li.ok { color: var(--pil-ok); }
 .pil-registro li.mal { color: var(--pil-peligro); }
 
-.pil-botones { position: fixed; left: 50%; bottom: 28px; transform: translateX(-50%); z-index: 3; display: flex; gap: 8px; flex-wrap: wrap; justify-content: center; max-width: calc(100vw - 16px); }
-.pil-pie { position: fixed; left: 0; right: 0; bottom: 4px; margin: 0; text-align: center; font-size: 0.7rem; color: var(--pil-tenue); z-index: 3; padding: 0 12px; }
-.pil-aviso { position: fixed; left: 50%; top: 50%; transform: translate(-50%, -50%); margin: 0; padding: 14px 18px; border-radius: 12px; background: var(--pil-panel); border: 1px solid var(--pil-aviso); color: var(--pil-aviso); z-index: 4; max-width: 90vw; }
+/* Tarjeta emergente de descubrimiento científico */
+.pil-descubrimiento {
+  position: fixed; left: 50%; bottom: 88px; transform: translateX(-50%);
+  width: min(480px, 92vw); z-index: 5;
+  background: rgba(10, 26, 46, 0.96); border: 2px solid var(--pil-ok);
+  border-radius: 14px; padding: 12px 16px;
+  box-shadow: 0 12px 32px rgba(0, 0, 0, 0.7), 0 0 24px rgba(74, 222, 128, 0.35);
+}
+.pil-descubrimiento h4 { margin: 0 0 4px; color: var(--pil-ok); font-size: 0.95rem; }
+.pil-descubrimiento p { margin: 0; font-size: 0.82rem; color: var(--pil-texto); }
 
-/* Diálogos */
-.pil-dialogo { width: min(760px, 94vw); max-height: 92vh; overflow-y: auto; padding: 22px 24px; border: 1px solid var(--pil-borde); border-radius: 14px; background: #070b1a; color: var(--pil-texto); }
-.pil-dialogo::backdrop { background: rgba(0, 0, 0, 0.72); }
-.pil-dialogo h2 { margin: 0 0 6px; font-size: 1.5rem; }
-.pil-dialogo h3 { margin: 16px 0 6px; font-size: 0.95rem; color: var(--pil-info); }
+/* Barra inferior de controles */
+.pil-botones {
+  position: fixed; left: 50%; bottom: 24px; transform: translateX(-50%);
+  z-index: 10; pointer-events: auto; display: flex; gap: 6px; flex-wrap: wrap; justify-content: center;
+  max-width: calc(100vw - 16px);
+}
+.pil-pie {
+  position: fixed; left: 0; right: 0; bottom: 3px; margin: 0;
+  text-align: center; font-size: 0.68rem; color: var(--pil-tenue); z-index: 2; padding: 0 12px;
+  pointer-events: none;
+}
+.pil-aviso {
+  position: fixed; left: 50%; top: 50%; transform: translate(-50%, -50%);
+  margin: 0; padding: 14px 18px; border-radius: 12px;
+  background: var(--pil-panel-fuerte); border: 1px solid var(--pil-aviso); color: var(--pil-aviso);
+  z-index: 6; max-width: 90vw; pointer-events: none;
+}
+.pil-aviso[hidden], .pil-descubrimiento[hidden], .pil-dialogo:not([open]) {
+  display: none !important;
+  pointer-events: none !important;
+}
+
+/* Diálogos (Briefing y Resultado) */
+.pil-dialogo {
+  width: min(820px, 94vw); max-height: 92vh; overflow-y: auto;
+  padding: 22px 26px; border: 1px solid var(--pil-borde); border-radius: 16px;
+  background: #070c1e; color: var(--pil-texto);
+  box-shadow: 0 24px 60px rgba(0, 0, 0, 0.85);
+}
+.pil-dialogo::backdrop { background: rgba(0, 0, 0, 0.76); backdrop-filter: blur(4px); }
+.pil-dialogo h2 { margin: 0 0 4px; font-size: 1.45rem; }
+.pil-dialogo h3 { margin: 16px 0 8px; font-size: 0.95rem; color: var(--pil-info); }
 .pil-dialogo p, .pil-dialogo li { color: #d4dbf5; }
-.pil-dialogo ul { padding-left: 18px; margin: 4px 0; }
-.pil-dialogo .nota { color: var(--pil-tenue); font-size: 0.85rem; }
-.pil-dialogo dl { display: grid; grid-template-columns: max-content 1fr; gap: 3px 14px; margin: 4px 0; font-size: 0.88rem; }
+.pil-dialogo ul { padding-left: 18px; margin: 6px 0; display: grid; gap: 6px; }
+.pil-dialogo .nota { color: var(--pil-tenue); font-size: 0.82rem; margin: 4px 0; }
+.pil-dialogo dl { display: grid; grid-template-columns: max-content 1fr; gap: 4px 14px; margin: 6px 0; font-size: 0.85rem; }
 .pil-dialogo dt { color: var(--pil-tenue); }
 .pil-dialogo dd { margin: 0; font-family: var(--pil-mono); }
-.pil-pie-dialogo { display: flex; gap: 10px; justify-content: flex-end; margin-top: 18px; }
-.pil-estrellas { font-size: 2rem; color: var(--pil-aviso); letter-spacing: 4px; }
+.pil-pie-dialogo { display: flex; gap: 10px; justify-content: flex-end; margin-top: 18px; flex-wrap: wrap; }
+.pil-estrellas { font-size: 2.1rem; color: var(--pil-aviso); letter-spacing: 4px; margin: 6px 0; }
 .pil-estrellas .off { color: rgba(255, 255, 255, 0.18); }
 
-@media (max-width: 860px) {
-  .pil-hud { width: 215px; font-size: 0.74rem; padding: 8px 10px; }
-  .pil-lugares { width: 215px; font-size: 0.8rem; padding: 8px 10px; }
-  .pil-registro { bottom: 112px; max-height: 18vh; }
-  .pil-mision { display: none; }
+/* Selector visual de misiones dentro del diálogo */
+.pil-cards-misiones {
+  display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; margin: 10px 0 14px;
 }
-@media (max-width: 560px) {
-  .pil-lugares { top: auto; bottom: 168px; right: 8px; left: 8px; width: auto; grid-template-columns: repeat(3, 1fr); gap: 4px; }
-  .pil-lugar { border: 0; padding: 0; }
-  .pil-lugar small, .pil-lugar .pil-chips { display: none; }
-  .pil-hud { left: 8px; }
+.pil-card-mision {
+  text-align: left; padding: 12px; border-radius: 12px;
+  background: rgba(15, 25, 58, 0.7); border: 1.5px solid rgba(79, 195, 247, 0.25);
+  color: var(--pil-texto); cursor: pointer; transition: all 0.15s ease;
+  display: grid; gap: 4px;
+}
+.pil-card-mision:hover { border-color: var(--pil-info); transform: translateY(-2px); }
+.pil-card-mision.activa {
+  border-color: var(--pil-info); background: rgba(56, 189, 248, 0.16);
+  box-shadow: 0 0 18px rgba(56, 189, 248, 0.28);
+}
+.pil-card-mision .icono { font-size: 1.4rem; }
+.pil-card-mision strong { font-size: 0.95rem; }
+.pil-card-mision small { color: var(--pil-tenue); font-size: 0.76rem; }
+.pil-card-mision .cohete-badge {
+  display: inline-block; margin-top: 2px; padding: 2px 7px; border-radius: 999px;
+  font: 600 0.7rem var(--pil-mono); color: #fef08a; background: rgba(251, 191, 36, 0.15);
+  border: 1px solid rgba(251, 191, 36, 0.35); width: fit-content;
+}
+.pil-guia-grid {
+  display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; margin: 8px 0;
+}
+.pil-guia-item {
+  background: rgba(255, 255, 255, 0.04); border: 1px solid rgba(255, 255, 255, 0.08);
+  padding: 10px 12px; border-radius: 10px; font-size: 0.8rem; color: #dbeafe;
+}
+.pil-detalles-tec {
+  margin-top: 12px; padding-top: 8px; border-top: 1px solid rgba(255, 255, 255, 0.1);
+}
+.pil-detalles-tec summary { cursor: pointer; color: var(--pil-tenue); font-size: 0.82rem; }
+
+@media (max-width: 1120px) {
+  .pil-asistente { top: 50px; width: min(460px, calc(100vw - 24px)); position: fixed; }
+  .pil-hud { top: 158px; width: 220px; font-size: 0.74rem; }
+  .pil-lugares { top: 158px; width: 250px; max-height: calc(100vh - 410px); }
+}
+@media (max-width: 720px) {
+  .pil-cards-misiones, .pil-guia-grid { grid-template-columns: 1fr; }
+  .pil-radar { display: none; }
   .pil-registro { display: none; }
+  .pil-lugares { top: auto; bottom: 72px; left: 8px; right: 8px; width: auto; max-height: 28vh; }
+  .pil-hud { top: 155px; left: 8px; width: 195px; }
 }
-@media (prefers-reduced-motion: reduce) { .pil-llama { transition: none; } }
+@media (prefers-reduced-motion: reduce) { .pil-llama, .pil-mira { transition: none; } }

@@ -3,14 +3,14 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-  <!-- OWNER: Rol 3 (@JU4NMAX) — Simulador de pilotaje en primera persona (prototipo local, ver ../FUENTES.md). -->
-  <title>Simulador de pilotaje · Exploradores de Órbita</title>
-  <meta name="theme-color" content="#000000">
+  <!-- OWNER: Rol 3 (@JU4NMAX) — Simulador de misiones orbitales: Luna, Marte y Europa (ver ../FUENTES.md). -->
+  <title>Misiones Orbitales · Exploradores de Órbita</title>
+  <meta name="theme-color" content="#02040a">
   <link rel="icon" type="image/svg+xml" href="../../assets/logo.svg">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@500&family=Space+Grotesk:wght@400;600;700&display=swap">
-  <link rel="stylesheet" href="pilotaje.css">
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@500;700&family=Space+Grotesk:wght@400;500;600;700&display=swap">
+  <link rel="stylesheet" href="pilotaje.css?v=9">
   <script type="importmap">
     { "imports": {
       "three": "https://unpkg.com/three@0.160.0/build/three.module.js",
@@ -19,24 +19,71 @@
   </script>
 </head>
 <body class="pil">
-  <canvas class="pil-canvas" id="pil-canvas" aria-label="Vista desde la cabina"></canvas>
+  <canvas class="pil-canvas" id="pil-canvas" aria-label="Vista 3D de la misión espacial"></canvas>
   <div class="pil-marco" aria-hidden="true"></div>
-  <div class="pil-mira" id="pil-mira" aria-hidden="true"><i></i></div>
+
+  <!-- Mira central con anillo de progreso de escaneo y flecha guía fuera de pantalla -->
+  <div class="pil-mira" id="pil-mira" aria-hidden="true">
+    <svg class="pil-mira-svg" viewBox="0 0 100 100">
+      <circle class="pil-mira-base" cx="50" cy="50" r="46" />
+      <circle class="pil-mira-prog" id="pil-mira-prog" cx="50" cy="50" r="46" />
+    </svg>
+    <span class="pil-flecha" id="pil-flecha" hidden>➤</span>
+    <span class="pil-mira-txt" id="pil-mira-txt"></span>
+  </div>
+
   <div class="pil-etiquetas" id="pil-etiquetas" aria-hidden="true"></div>
   <div class="pil-llama" id="pil-llama" aria-hidden="true"></div>
 
+  <!-- Barra superior con selector directo de las 3 misiones espaciales -->
   <header class="pil-top">
-    <a class="pil-brand" href="../../"><img src="../../assets/logo.svg" alt="" width="26" height="26"><span id="pil-marca">Exploradores de Órbita</span></a>
+    <a class="pil-brand" href="../../">
+      <img src="../../assets/logo.svg" alt="" width="26" height="26">
+      <span id="pil-marca">Exploradores de Órbita</span>
+    </a>
+
+    <nav class="pil-misiones-tabs" id="pil-selector-misiones" aria-label="Misiones espaciales"></nav>
+
     <span class="pil-mision" id="pil-nombre-mision"></span>
-    <button class="pil-btn" id="pil-idioma" type="button">EN</button>
+
+    <div class="pil-top-acciones">
+      <button class="pil-btn pil-btn-sm" id="pil-b-vista" type="button">🛰️ Vista: Cohete 3D (V)</button>
+      <button class="pil-btn pil-btn-sm" id="pil-b-ficha" type="button">📋 Guía</button>
+      <button class="pil-btn pil-btn-sm" id="pil-idioma" type="button">EN</button>
+    </div>
   </header>
 
+  <!-- Asistente de Vuelo / Guía Paso a Paso (Centro Superior) -->
+  <section class="pil-asistente" id="pil-asistente" aria-live="polite"></section>
+
+  <!-- Panel Izquierdo: Telemetría clara -->
   <section class="pil-hud" id="pil-hud" aria-label="Instrumentos"></section>
+
+  <!-- Panel Derecho: Los 3 lugares científicos interactivos -->
   <section class="pil-lugares" id="pil-lugares" aria-label="Lugares por observar"></section>
+
+  <!-- Esquina Inferior Derecha: Radar Táctico Orbital 2D en tiempo real -->
+  <aside class="pil-radar" id="pil-radar" aria-label="Radar orbital">
+    <div class="pil-radar-head">
+      <b id="pil-radar-titulo">Radar Táctico Orbital</b>
+      <span id="pil-radar-estado"></span>
+    </div>
+    <canvas id="pil-mapa" width="210" height="210"></canvas>
+    <div class="pil-radar-leyenda">
+      <span><i class="dot-pe"></i> <span id="pil-leyenda-pe">PE: Frenado</span></span>
+      <span><i class="dot-obj"></i> <span id="pil-leyenda-obj">Órbita meta</span></span>
+    </div>
+  </aside>
+
+  <!-- Esquina Inferior Izquierda: Bitácora de comunicaciones -->
   <section class="pil-registro" aria-label="Registro">
     <ol id="pil-registro" aria-live="polite"></ol>
   </section>
 
+  <!-- Tarjeta emergente al descubrir un sitio científico -->
+  <aside class="pil-descubrimiento" id="pil-descubrimiento" hidden aria-live="assertive"></aside>
+
+  <!-- Controles inferiores -->
   <nav class="pil-botones" id="pil-botones" aria-label="Controles"></nav>
   <p class="pil-pie" id="pil-pie"></p>
   <p class="pil-aviso" id="pil-aviso" hidden></p>
@@ -44,6 +91,6 @@
   <dialog class="pil-dialogo" id="pil-briefing"></dialog>
   <dialog class="pil-dialogo" id="pil-resultado"></dialog>
 
-  <script type="module" src="cabina.js"></script>
+  <script type="module" src="cabina.js?v=9"></script>
 </body>
 </html>

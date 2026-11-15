@@ -1,9 +1,9 @@
 // OWNER: Rol 3 (@JU4NMAX) — Arma los modelos 3D con cada etapa y pieza desprendible como grupo separable.
 // Incluye cofias bipartitas (clamshell en 2 mitades), anillo interetapa S-IC/S-II y las sondas
 // espaciales (Mariner 4 y Europa Clipper) con paneles solares articulados dentro de la cofia.
-import { construir as saturnoV } from './saturno-v.js';
-import { construir as atlasAgena } from './atlas-agena-d.js';
-import { construir as falconHeavy } from './falcon-heavy.js';
+import { construir as saturnoV } from './saturno-v.js?v=9';
+import { construir as atlasAgena } from './atlas-agena-d.js?v=9';
+import { construir as falconHeavy } from './falcon-heavy.js?v=9';
 
 /** Radio aproximado de la geometría de una pieza (para distinguir faldones y cuerpos anchos). */
 function radioPieza(obj) {
