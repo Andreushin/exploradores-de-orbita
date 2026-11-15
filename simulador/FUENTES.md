@@ -81,3 +81,32 @@ Las dos capacidades **no se ajustaron a mano**: salen solas de los datos de las 
 | Cofia del Falcon (1 900 kg) | 0–3 000 kg cambia la carga máxima en ±1.5 % |
 | Regulación del núcleo central del Falcon | calibrada contra T+4:11 |
 | Cd = 0.5 y programa de cabeceo | calibrados contra los tiempos históricos |
+
+## Simulador de pilotaje (`pilotaje/`, en desarrollo)
+
+### Constantes físicas (`pilotaje/cuerpos-datos.js`)
+| Cuerpo | GM | Radio | Rotación | Fuente |
+|---|---|---|---|---|
+| Luna | 4 902.800 km³/s² | 1 737.4 km | 27.3217 d | [JPL SSD – parámetros de satélites](https://ssd.jpl.nasa.gov/sats/phys_par/) (GM, radio, DE440) y [NASA NSSDCA – Moon Fact Sheet](https://nssdc.gsfc.nasa.gov/planetary/factsheet/moonfact.html) (rotación sidérea 655.720 h) |
+| Marte | 4.2828×10¹³ m³/s² (= G·M) | 3 389.5 km | 24.6229 h | [NASA NSSDCA – Mars Fact Sheet](https://nssdc.gsfc.nasa.gov/planetary/factsheet/marsfact.html) (masa 0.64169×10²⁴ kg, radio medio volumétrico, rotación sidérea) |
+| Europa | 3 202.71210 km³/s² | 1 560.80 km | 3.55 d (sincrónica) | [JPL SSD – parámetros de satélites](https://ssd.jpl.nasa.gov/sats/phys_par/) (JUP365). La rotación sincrónica no viene de esa página: es una propiedad conocida de la luna, y el periodo se tomó de la ficha de NASA citada en el respaldo, **sin reconfirmar**; la ficha `galileanfact.html` devolvió 404 |
+
+Comprobaciones en `tests/pilotaje.test.mjs`: la gravedad y la velocidad de escape salen iguales a las fichas de NASA (Luna 1.62 m/s² y 2.38 km/s; Marte 3.73 m/s² y 5.03 km/s) y la densidad de Europa coincide con la de JPL (3.013 g/cm³).
+
+### Texturas (`texturas/`)
+Origen: los zips `Luna-`, `Marte-`, `Tierra-` y `Europa-3D-NASA-4K` que aportó JU4NMAX. Cada README cita datos de NASA/USGS (Blue Marble, Black Marble, MOLA, Viking, LROC WAC, LOLA, Galileo), **pero no da el enlace ni la licencia de cada imagen, y los archivos no traen metadatos de procedencia**. Por eso el origen exacto de cada archivo **no está confirmado**.
+
+| Archivo del simulador | Original | Tratamiento |
+|---|---|---|
+| `luna-color-4k.jpg`, `luna-relieve-2k.jpg` | `moon_map_4k.jpg`, `moon_bump_4k.jpg` (4000×2000) | JPG recomprimido; relieve a 2048 px |
+| `marte-color-4k.jpg` | `mars_surface_8k.jpg` (8192×4096) | reducido a 4096 px |
+| `marte-relieve-2k.png` | `mars_normal_4k.png` | a 2048 px **sin pérdida**: un JPG le quitaba casi la mitad del detalle (desviación de 5.3 a 3.1) |
+| `europa-color-4k.jpg` | `europa_surface_4k.png` (14.4 MB) | PNG a JPG |
+| `tierra-color-4k.jpg`, `tierra-nubes-2k.jpg`, `tierra-noche-2k.jpg` | `earth_surface_4k`, `earth_clouds_4k`, `earth_nightmap` | nubes y noche a 2048 px |
+
+**Fuentes oficiales equivalentes** (para sustituir cuando se confirme el origen):
+- Luna: [CGI Moon Kit, NASA SVS](https://svs.gsfc.nasa.gov/4720) (LROC color, LOLA).
+- Marte: [Mars Viking Colorized Global Mosaic 232 m, USGS](https://astrogeology.usgs.gov/search/map/mars_viking_colorized_global_mosaic_232m) (dominio público según el USGS).
+- Tierra: Blue Marble y Black Marble de [NASA Earth Observatory](https://earthobservatory.nasa.gov/features/BlueMarble/BlueMarble.php).
+
+**Licencia y crédito.** La NASA indica que [sus imágenes no son de dominio público](https://www.nasa.gov/multimedia/guidelines/index.html) y se usan según sus pautas de uso, con crédito. Antes de publicar: confirmar el origen de cada textura y acreditar a NASA (Earth Observatory para la Tierra).
