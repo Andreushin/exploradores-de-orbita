@@ -1,0 +1,84 @@
+<!doctype html>
+<!-- OWNER: Rol 2 — abrir en http://localhost:8000/tests/orbit-sim.test.html -->
+<html lang="es"><head><meta charset="utf-8"><title>Orbit sim tests</title>
+<style>body{font:14px monospace;background:#111;color:#ddd;padding:16px}.ok{color:#4ade80}.fail{color:#f87171}</style></head>
+<body><h1>orbit-sim.js</h1><ul id="out"></ul>
+<script type="module">
+import * as o from '../js/orbit-sim.js';
+import { deltaV, propellantFor } from '../js/physics.js';
+const out = document.getElementById('out');
+const check = (name, cond) => { const li = document.createElement('li'); li.className = cond ? 'ok' : 'fail'; li.textContent = (cond ? 'PASS ' : 'FAIL ') + name; out.append(li); };
+const missions = await fetch('../data/missions.json').then((r) => r.json());
+const near = (a, b, tol) => Math.abs(a - b) <= tol;
+
+// Gravedad: una órbita circular conserva su energía y su radio.
+{
+  const { mu } = o.BODIES.earth;
+  const s = o.circularState(mu, 6671);
+  const e0 = o.elements(s, mu).energy;
+  for (let i = 0; i < 27000; i++) o.step(s, mu, 2); // ≈ 10 vueltas
+  const el = o.elements(s, mu);
+  check('órbita circular: la energía deriva < 1 % en 10 vueltas', Math.abs(el.energy / e0 - 1) < 0.01);
+  check('órbita circular: sigue siendo circular (e < 0.001)', el.e < 0.001 && near(Math.hypot(s.x, s.y), 6671, 5));
+}
+
+// Empujar prógrado sube el lado opuesto; retrógrado lo baja.
+{
+  const { mu } = o.BODIES.earth;
+  const up = o.circularState(mu, 6671); o.step(up, mu, 1, 100);
+  const down = o.circularState(mu, 6671); down.angle += Math.PI; o.step(down, mu, 1, 100);
+  check('prógrado: el apoapsis sube y el periapsis se queda', o.elements(up, mu).ra > 6900 && near(o.elements(up, mu).rp, 6671, 5));
+  check('retrógrado: el periapsis baja', o.elements(down, mu).rp < 6450);
+}
+
+// Motor: el consumo sigue la ecuación del cohete de physics.js.
+{
+  const ship = { dry: 4.4, prop: 2.5, isp: 220, thrustN: 16 };
+  let dv = 0;
+  while (ship.prop > 1) dv += o.consume(ship, 0.5).dv;
+  const used = 2.5 - ship.prop;
+  check('el Δv logrado coincide con Tsiolkovsky', near(dv, deltaV(220, 6.9, 6.9 - used), 0.01));
+  check('el propelente gastado coincide con propellantFor (±2 %)', Math.abs(propellantFor(dv, 220, 6.9 - used) / used - 1) < 0.02);
+  const light = { dry: 4.4, prop: 2.5, isp: 220, thrustN: 16 };
+  const heavy = { dry: 9, prop: 2.5, isp: 220, thrustN: 16 };
+  let dvL = 0; let dvH = 0;
+  for (let i = 0; i < 100; i++) { dvL += o.consume(light, 0.5).dv; dvH += o.consume(heavy, 0.5).dv; }
+  check('una nave más pesada logra menos Δv con el mismo propelente', dvH < dvL * 0.75 && near(light.prop, heavy.prop, 1e-9));
+  const empty = { dry: 4.4, prop: 0.01, isp: 220, thrustN: 16 };
+  check('el tanque se vacía y avisa (out)', o.consume(empty, 60).out && empty.prop === 0);
+}
+
+// Salida: Δv ideal con orden de magnitud real.
+check('salida a la Luna ≈ 3.1 km/s (TLI)', near(o.departure('moon').dvIdeal, 3110, 60));
+check('salida a Marte ≈ 3.6 km/s', near(o.departure('mars').dvIdeal, 3600, 80));
+check('salida a Júpiter ≈ 6.3 km/s', near(o.departure('europa').dvIdeal, 6300, 120));
+
+// Llegada: en cada destino, el frenado nominal en el periapsis objetivo deja una órbita estable.
+for (const m of missions) {
+  const plan = o.arrival(m.id, m.dvRequired);
+  const { mu, radius } = plan.body;
+  const fly = (rp0, brake) => {
+    const s = o.arrivalState(plan, rp0);
+    let prev = Infinity;
+    for (;;) { const r = Math.hypot(s.x, s.y); if (r > prev || r <= radius) break; prev = r; o.step(s, mu, r < radius * 6 ? 1 : 20); }
+    const pg = o.prograde(s);
+    s.vx -= (brake / 1000) * Math.cos(pg); s.vy -= (brake / 1000) * Math.sin(pg);
+    return o.elements(s, mu);
+  };
+  const nominal = fly(plan.rpTarget, m.dvRequired);
+  check(`${m.id}: frenado nominal → órbita (razón ${o.insertionRatio(nominal, plan).toFixed(3)})`, o.captureOutcome(nominal, plan) === 'orbit' && near(o.insertionRatio(nominal, plan), 1, 0.02));
+  check(`${m.id}: sin frenar → sobrevuelo`, o.captureOutcome(fly(plan.rpTarget, 0), plan) === 'flyby');
+  check(`${m.id}: frenado al 85 % → órbita excéntrica o sobrevuelo`, ['eccentric', 'flyby'].includes(o.captureOutcome(fly(plan.rpTarget, m.dvRequired * 0.85), plan)));
+  check(`${m.id}: periapsis bajo la superficie → choque`, o.captureOutcome(fly(radius * 0.6, 0), plan) === 'crash');
+  // Corregir lejos es barato: el mismo empujón mueve más el periapsis a 22 radios que a 6.
+  const shift = (rStart) => {
+    const p2 = { ...plan, startR: rStart };
+    const s = o.arrivalState(p2, plan.rpTarget * 0.7);
+    const a = o.correctionAngle(s, plan);
+    const before = o.elements(s, mu).rp;
+    s.vx += 0.02 * Math.cos(a); s.vy += 0.02 * Math.sin(a);
+    return o.elements(s, mu).rp - before;
+  };
+  check(`${m.id}: corregir lejos mueve más el periapsis que corregir cerca`, shift(plan.startR) > shift(radius * 6) * 2 && shift(plan.startR) > 0);
+}
+</script></body></html>
