@@ -1,6 +1,7 @@
 // Pruebas del simulador:  node simulador/tests/simulador.test.mjs
 import { readFileSync } from 'node:fs';
 import * as A from '../ascenso.js';
+import { MODELOS, SUELTAS, INFO_ETAPAS } from '../modelos/index.js';
 
 const datos = JSON.parse(readFileSync(new URL('../cohetes.json', import.meta.url)));
 const C = datos.constantes;
@@ -62,6 +63,18 @@ for (const c of datos.cohetes) {
   const s = A.simular(c, datos, { masaNave: c.mision.masaNave * 3 });
   const llega = s.ok && (s.salida.llegaAsistido ?? s.salida.llegaDirecto);
   check(`${c.nombre}: con el triple de carga ya no llega`, !llega);
+  const etapasDef = MODELOS[c.id]?.etapas || [];
+  const tieneFichas = etapasDef.every((e) => INFO_ETAPAS[c.id]?.[e.id]?.titulo && INFO_ETAPAS[c.id]?.[e.id]?.datos?.length >= 3);
+  check(`${c.nombre}: todas las etapas 3D tienen ficha de inspección`, etapasDef.length > 0 && tieneFichas, `${etapasDef.length} etapas`);
+  const tieneSueltas = Object.values(SUELTAS[c.id] || {}).flat().every((id) => etapasDef.some((e) => e.id === id));
+  check(`${c.nombre}: eventos de separación mapeados a etapas 3D válidas`, tieneSueltas);
+  const sReal = A.simular(c, datos);
+  const evSueltas = sReal.eventos.filter((ev) => ev.tipo === 'separacion' || ev.tipo === 'suelta');
+  const todasDisparan = evSueltas.every((ev) => {
+    const clave = ev.tipo === 'separacion' ? ev.fase : ev.item;
+    return (SUELTAS[c.id]?.[clave]?.length ?? 0) > 0;
+  });
+  check(`${c.nombre}: todos los eventos de separación en vuelo disparan piezas 3D`, evSueltas.length > 0 && todasDisparan, `${evSueltas.length} eventos`);
 }
 
 console.log(`\n${pass} PASS · ${fail} FAIL`);

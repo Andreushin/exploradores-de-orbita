@@ -17,6 +17,7 @@ let corriendo = false;
 let pendientes = []; // eventos aún no mostrados
 let ultimoReal = 0;
 let etapaActual = '';
+let frenoSep = 0;    // ventana (s reales) de cámara lenta automática al desprender piezas
 
 // --- Pestañas y ficha -------------------------------------------------------------
 function pintarPestanas() {
@@ -68,7 +69,19 @@ function elegir(id) {
   reiniciarVista();
 }
 
-// --- HUD, bitácora y resultado -------------------------------------------------------
+// --- HUD, bitácora, inspección 3D y resultado ----------------------------------------
+function capaAtmosferica(e) {
+  const h = e.h ?? 0;
+  const vRel = e.vRel ?? Math.hypot(e.vr ?? 0, e.vt ?? 0);
+  if (h < 5 && (e.empuje ?? 0) === 0) return 'En plataforma · Venteo LOX';
+  if (h > 3500 && h < 18500 && vRel >= 280 && vRel <= 410) return '⚡ Régimen transónico (Max-Q)';
+  if (h < 11000) return 'Troposfera';
+  if (h < 50000) return 'Estratósfera';
+  if (h < 85000) return 'Mesósfera';
+  if (h < 100000) return 'Termósfera';
+  return '🌌 Espacio (> 100 km · Línea de Kármán)';
+}
+
 function hud(e) {
   $('sim-hud').innerHTML = `
     <span>Tiempo</span><b>${reloj(e.t)}</b>
@@ -77,7 +90,38 @@ function hud(e) {
     <span>Aceleración</span><b>${nf(e.a ?? 0, 1)} g</b>
     <span>Masa</span><b>${nf(e.masa / 1000, 1)} t</b>
     <span>Empuje</span><b>${nf((e.empuje ?? 0) / 1000)} kN</b>
-    ${etapaActual ? `<span class="sim-hud-etapa">${etapaActual}</span>` : ''}`;
+    <span class="sim-hud-capa">${capaAtmosferica(e)}</span>
+    ${etapaActual ? `<span class="sim-hud-etapa">${etapaActual}</span>` : '<span class="sim-hud-hint">💡 Clic en el cohete 3D para inspeccionar etapas</span>'}`;
+}
+
+function mostrarFichaEtapa(id, info) {
+  const card = $('sim-etapa-card');
+  if (!card) return;
+  if (!id || !info) {
+    card.hidden = true;
+    card.replaceChildren();
+    return;
+  }
+  const specs = (info.datos || [])
+    .map(([k, v]) => `<div><dt>${k}</dt><dd>${v}</dd></div>`)
+    .join('');
+  card.hidden = false;
+  card.innerHTML = `
+    <div class="sim-etapa-head">
+      <div>
+        <span class="sim-etapa-badge ${info.separada ? 'is-sep' : 'is-attached'}">${info.separada ? 'Etapa separada' : 'Unida al vehículo'}</span>
+        <h3>${info.titulo}</h3>
+        ${info.subtitulo ? `<p class="sim-etapa-sub">${info.subtitulo}</p>` : ''}
+      </div>
+      <button type="button" class="sim-etapa-close" id="sim-etapa-cerrar" aria-label="Cerrar inspección">✕</button>
+    </div>
+    ${info.detalle ? `<p class="sim-etapa-desc">${info.detalle}</p>` : ''}
+    ${specs ? `<dl class="sim-etapa-specs">${specs}</dl>` : ''}
+    <div class="sim-etapa-actions">
+      <button type="button" class="sim-btn" id="sim-etapa-enfocar">🔍 Enfocar etapa</button>
+    </div>`;
+  $('sim-etapa-cerrar')?.addEventListener('click', () => escena?.deseleccionar());
+  $('sim-etapa-enfocar')?.addEventListener('click', () => escena?.enfocarEtapa(id));
 }
 
 function registrar(e) {
@@ -162,10 +206,11 @@ function estadoEn(tt) {
   while (i < S.length - 2 && S[i + 1].t < tt) i++;
   const a = S[i]; const b = S[i + 1]; const k = (tt - a.t) / (b.t - a.t || 1);
   const out = { t: tt };
-  for (const key of ['x', 'y', 'h', 'vr', 'vt', 'masa', 'a', 'empuje', 'pitch']) {
+  for (const key of ['x', 'y', 'h', 'vr', 'vt', 'vRel', 'masa', 'a', 'empuje', 'pitch']) {
     out[key] = (a[key] ?? b[key] ?? 0) + ((b[key] ?? a[key] ?? 0) - (a[key] ?? b[key] ?? 0)) * k;
   }
   out.empuje = a.empuje; // el empuje cambia de golpe en las separaciones
+  out.grupo = a.grupo;
   return out;
 }
 
@@ -192,13 +237,16 @@ function detener() {
 
 function reiniciarVista() {
   t = 0;
+  frenoSep = 0;
   etapaActual = '';
   $('sim-log').replaceChildren();
   $('sim-resultado').innerHTML = '<h2>Resultado</h2><p class="sim-muted">Lanza el cohete para ver si llega a su destino.</p>';
   escena?.cargarCohete(cohete.id, cohete.mision.latitud);
   escena?.setCamara($('sim-camara').value === 'global' ? 'persecucion' : $('sim-camara').value);
   if ($('sim-camara').value === 'global') $('sim-camara').value = 'persecucion';
-  hud({ t: 0, h: 0, vr: 0, vt: 0, masa: 0, a: 0, empuje: 0 });
+  const masaInicial = cohete.fases.reduce((s, f) => s + f.seco + f.propelente + (f.extra || []).reduce((e, x) => e + x.masa, 0), 0)
+    + cohete.masasFijas.reduce((s, m) => s + m.masa, 0) + Number($('sim-carga').value || cohete.mision.masaNave);
+  hud({ t: 0, h: 0, vr: 0, vt: 0, vRel: 0, masa: masaInicial, a: 0, empuje: 0 });
 }
 
 function cuadro(ahora) {
@@ -206,16 +254,24 @@ function cuadro(ahora) {
   ultimoReal = ahora;
   let dtSim = 0;
   if (corriendo && sim) {
-    dtSim = dtReal * Number($('sim-velocidad').value);
+    const velUsuario = Number($('sim-velocidad').value);
+    const velEfectiva = frenoSep > 0 ? Math.min(velUsuario, 2.5) : velUsuario;
+    frenoSep = Math.max(0, frenoSep - dtReal);
+    dtSim = dtReal * velEfectiva;
     t = Math.min(t + dtSim, sim.serie.at(-1).t);
     const e = estadoEn(t);
+    escena?.ponerEstado(e);
+    let huboSuelta = false;
     while (pendientes.length && pendientes[0].t <= t) {
       const ev = pendientes.shift();
       registrar(ev);
-      if (ev.tipo === 'separacion') escena?.soltar(ev.fase, e);
-      if (ev.tipo === 'suelta') escena?.soltar(ev.item, e);
+      if (ev.tipo === 'separacion') { escena?.soltar(ev.fase, e); huboSuelta = true; }
+      if (ev.tipo === 'suelta') { escena?.soltar(ev.item, e); huboSuelta = true; }
     }
-    escena?.ponerEstado(e);
+    if (huboSuelta) {
+      frenoSep = 2.4;
+      escena?.ponerEstado(e);
+    }
     hud(e);
     if (t >= sim.serie.at(-1).t) {
       corriendo = false;
@@ -223,7 +279,7 @@ function cuadro(ahora) {
       mostrarOrbita();
     }
   }
-  escena?.dibujar(dtSim);
+  escena?.dibujar(dtSim, dtReal);
   requestAnimationFrame(cuadro);
 }
 
@@ -242,6 +298,7 @@ async function arrancar() {
   try {
     const { crearEscena } = await import('./escena.js');
     escena = crearEscena($('sim-canvas'), { reducirMovimiento: reducir });
+    escena.setSeleccion(mostrarFichaEtapa);
     addEventListener('resize', () => escena.tamano());
   } catch (err) {
     console.warn('Sin vista 3D:', err);
@@ -258,6 +315,7 @@ async function arrancar() {
   });
   $('sim-reiniciar').addEventListener('click', () => { detener(); reiniciarVista(); });
   $('sim-camara').addEventListener('change', (e) => escena?.setCamara(e.target.value));
+  $('sim-panorama')?.addEventListener('change', (e) => escena?.setPanorama(e.target.value));
   $('sim-carga').addEventListener('input', (e) => {
     const v = Number(e.target.value);
     $('sim-carga-val').textContent = `${nf(v)} kg${v === cohete.mision.masaNave ? ' (real)' : ''}`;

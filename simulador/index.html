@@ -32,6 +32,7 @@
     <div class="sim-stage">
       <canvas class="sim-canvas" id="sim-canvas" aria-label="Vista 3D del lanzamiento"></canvas>
       <div class="sim-hud" id="sim-hud" aria-hidden="true"></div>
+      <aside class="sim-etapa-card" id="sim-etapa-card" hidden aria-live="polite"></aside>
       <p class="sim-aviso" id="sim-aviso" hidden></p>
     </div>
 
@@ -44,8 +45,22 @@
       </label>
       <label class="sim-field">Cámara
         <select id="sim-camara">
-          <option value="persecucion">Persecución</option><option value="lateral">Lateral</option>
-          <option value="libre">Libre (arrastra)</option><option value="global">Global (Tierra)</option>
+          <option value="persecucion">Persecución</option>
+          <option value="panorama">Panorama del complejo</option>
+          <option value="heroica">Contrapicado (motores)</option>
+          <option value="torre">Torre umbilical</option>
+          <option value="onboard">A bordo (fuselaje)</option>
+          <option value="lateral">Lateral</option>
+          <option value="libre">Libre (arrastra)</option>
+          <option value="global">Global (Tierra)</option>
+        </select>
+      </label>
+      <label class="sim-field">Panorama
+        <select id="sim-panorama">
+          <option value="amanecer" selected>🌅 Amanecer dorado</option>
+          <option value="dia">☀️ Mediodía claro</option>
+          <option value="atardecer">🌇 Crepúsculo carmesí</option>
+          <option value="noche">🌃 Nocturno (reflectores)</option>
         </select>
       </label>
       <label class="sim-field sim-carga">Carga útil <output id="sim-carga-val"></output>

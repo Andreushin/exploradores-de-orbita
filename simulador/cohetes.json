@@ -1,5 +1,5 @@
 {
-  "_nota": "Masas en kg, empuje en kN, Isp en s, tiempos en s desde el despegue. Cada cohete trae `fuentes` (ver FUENTES.md). 'est.' = estimado cuando ninguna fuente lo da.",
+  "_nota": "Masas en kg, empuje en kN, Isp en s, tiempos en s desde el despegue. Todos los valores tienen fuente (FUENTES.md); los derivados de totales publicados lo indican en `derivada`.",
   "constantes": {
     "muTierra": 398600441800000.0,
     "radioTierra": 6378137,
@@ -43,9 +43,9 @@
       "cd": 0.5,
       "guiado": {
         "giroInicio": 12,
-        "tFin": 160,
-        "pitchFinal": 16,
-        "forma": 0.8,
+        "tFin": 190,
+        "pitchFinal": 22,
+        "forma": 1,
         "lazoCerradoDesdeGrupo": 1,
         "tau": 75,
         "_nota": "Programa de cabeceo calibrado buscando órbita circular de ~185 km y los tiempos históricos (ver FUENTES.md)."
@@ -54,11 +54,10 @@
         {
           "id": "les",
           "nombre": "Torre de escape (LES)",
-          "masa": 4170,
+          "masa": 4200,
           "suelta": {
             "t": 197.9
-          },
-          "est": true
+          }
         },
         {
           "id": "iu",
@@ -76,13 +75,13 @@
             {
               "nombre": "F-1",
               "n": 5,
-              "empujeVac": 7740,
               "ispSL": 263,
               "ispVac": 304,
               "apagaUno": {
                 "t": 135.2,
                 "texto": "Corte del motor central F-1"
-              }
+              },
+              "empujeSL": 6770
             }
           ],
           "alApagar": "Separación de la S-IC",
@@ -116,7 +115,7 @@
             {
               "nombre": "J-2",
               "n": 5,
-              "empujeVac": 1000,
+              "empujeVac": 1033.1,
               "ispSL": 200,
               "ispVac": 421,
               "apagaUno": {
@@ -141,7 +140,7 @@
             {
               "nombre": "J-2",
               "n": 1,
-              "empujeVac": 1000,
+              "empujeVac": 1033.1,
               "ispSL": 200,
               "ispVac": 421
             }
@@ -195,7 +194,7 @@
           "suelta": {
             "altitudKm": 110
           },
-          "est": true
+          "derivada": "117 934 kg totales (thisdayinaviation) − Atlas − Agena − Mariner 4; ver FUENTES.md"
         }
       ],
       "fases": [
@@ -299,8 +298,7 @@
           "masa": 1900,
           "suelta": {
             "altitudKm": 115
-          },
-          "est": true
+          }
         }
       ],
       "fases": [
