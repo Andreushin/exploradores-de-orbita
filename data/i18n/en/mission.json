@@ -145,5 +145,7 @@
     "overBudget": "Cut ${over}M: the mission exceeds its budget."
   },
   "ready": "\"{name}\" passes the review. Max reachable CML: {cml}.",
-  "validate": "Next: CubeSat Workshop →"
+  "validate": "Next: CubeSat Workshop →",
+  "simHint": "Curious about real rockets?",
+  "simLink": "See them in the 3D simulator (opens in a new tab) →"
 }

@@ -26,5 +26,12 @@
     "back": "← Inicio",
     "reset": "Reiniciar misión"
   },
-  "loadError": "No se pudo cargar el nivel ({msg}). Revisa tu conexión y vuelve a intentarlo."
+  "loadError": "No se pudo cargar el nivel ({msg}). Revisa tu conexión y vuelve a intentarlo.",
+  "explore": {
+    "title": "Explora más",
+    "rockets": "Simulador de cohetes reales",
+    "rocketsDesc": "Saturno V, Atlas-Agena D y Falcon Heavy con física real",
+    "orbital": "Misiones orbitales 3D",
+    "orbitalDesc": "Pilota hasta la Luna, Marte y Europa"
+  }
 }

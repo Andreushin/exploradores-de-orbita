@@ -10,9 +10,12 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@500&family=Space+Grotesk:wght@400;600;700&display=swap">
+  <link rel="icon" type="image/svg+xml" href="../assets/logo.svg">
+  <link rel="stylesheet" href="../assets/fonts/fonts.css">
   <link rel="stylesheet" href="nivel2.css">
 </head>
 <body class="n2">
+  <a class="n2-skip" id="n2-skip" href="#n2-main"></a>
 
   <!-- ── Barra superior 48 px ────────────────────────────────── -->
   <header class="n2-topbar">
@@ -30,16 +33,27 @@
   <div class="n2-toasts" aria-live="polite">
     <p class="n2-toast n2-toast-demo"  id="n2-demo"   hidden></p>
     <p class="n2-toast n2-toast-warn"  id="n2-notice" role="status" hidden></p>
+    <p class="n2-toast n2-toast-undo"  id="n2-undo"   hidden></p>
   </div>
 
   <!-- ── Workspace: 3 columnas ──────────────────────────────── -->
-  <div class="n2-workspace">
+  <main class="n2-workspace" id="n2-main" tabindex="-1">
+    <h1 class="n2-sr" id="n2-title"></h1>
 
     <!-- Col izquierda: catálogo con scroll propio -->
     <section class="n2-col-catalog" id="n2-catalog" aria-label="Catálogo de piezas"></section>
 
     <!-- Col central: visor 3D — NUNCA scroll -->
     <div class="n2-col-viewer" id="n2-viewer" role="img" aria-label="Vista 3D del CubeSat ensamblado">
+      <!-- Ventanal de la estación: fondo decorativo (CSS puro). Capas: estrellas 0 · planeta y piso 1 · brazos 2-5 · modelo 10 -->
+      <div class="n2-bay" aria-hidden="true">
+        <i class="n2-bay-planet"></i>
+        <i class="n2-bay-rays"></i>
+        <i class="n2-bay-floor"></i>
+        <div class="n2-bay-arm n2-bay-arm-l"><i><b></b></i></div>
+        <div class="n2-bay-arm n2-bay-arm-r"><i><b></b></i></div>
+        <i class="n2-bay-dust"></i><i class="n2-bay-dust"></i><i class="n2-bay-dust"></i>
+      </div>
       <div class="n2-scene" id="n2-scene">
         <div class="n2-fit" id="n2-fit"><div class="n2-tilt"><div class="n2-sat" id="n2-sat"></div></div></div>
       </div>
@@ -50,7 +64,7 @@
     <!-- Col derecha: telemetría con scroll si hace falta -->
     <aside class="n2-col-telem" id="n2-telem" aria-label="Telemetría y verificaciones"></aside>
 
-  </div>
+  </main>
 
   <!-- Celular: resumen fijo abajo (en escritorio la telemetría ya está a la vista) -->
   <div class="n2-mini" id="n2-mini"></div>
@@ -62,5 +76,6 @@
   <div class="n2-alarm" id="n2-alarm" aria-hidden="true"></div>
 
   <script type="module" src="nivel2.js"></script>
+  <script type="module" src="../js/sw-register.js"></script>
 </body>
 </html>

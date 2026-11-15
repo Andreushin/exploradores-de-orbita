@@ -1,0 +1,104 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <!-- OWNER: Rol 3 (@JU4NMAX) — Simulador 3D de cohetes reales (prototipo local, ver FUENTES.md). -->
+  <title>Simulador de cohetes reales · Exploradores de Órbita</title>
+  <meta name="theme-color" content="#070b1a">
+  <link rel="icon" type="image/svg+xml" href="../assets/logo.svg">
+  <link rel="stylesheet" href="../assets/fonts/fonts.css">
+  <link rel="stylesheet" href="simulador.css">
+  <script type="importmap">
+    { "imports": {
+      "three": "../js/vendor/three/three.module.js",
+      "three/addons/": "../js/vendor/three/addons/"
+    } }
+  </script>
+</head>
+<body class="sim">
+  <a class="sim-skip" href="#sim-main" data-i18n="skip">Saltar al simulador</a>
+  <header class="sim-header">
+    <a class="sim-brand" href="../"><img src="../assets/logo.svg" alt="" width="28" height="28"><span data-i18n="brand">Exploradores de Órbita</span></a>
+    <h1 class="sim-tag" data-i18n="title">Simulador de cohetes reales</h1>
+    <button class="sim-btn sim-lang" id="sim-lang" type="button" lang="en" aria-label="Cambiar idioma a inglés">EN</button>
+  </header>
+
+  <main class="sim-main" id="sim-main" tabindex="-1">
+    <div class="sim-tabs" role="tablist" aria-label="Cohete" data-i18n-aria="tabs" id="sim-tabs"></div>
+
+    <section class="sim-ficha" id="sim-ficha" aria-live="polite"></section>
+
+    <div class="sim-stage">
+      <canvas class="sim-canvas" id="sim-canvas" aria-label="Vista 3D del lanzamiento" data-i18n-aria="canvas"></canvas>
+      <div class="sim-hud" id="sim-hud" aria-hidden="true"></div>
+      <aside class="sim-etapa-card" id="sim-etapa-card" hidden aria-live="polite"></aside>
+      <p class="sim-aviso" id="sim-aviso" hidden></p>
+    </div>
+
+    <div class="sim-controls" id="sim-controls">
+      <button class="sim-btn sim-btn-primary" id="sim-lanzar" type="button" data-i18n="launch">▶ Lanzar</button>
+      <button class="sim-btn" id="sim-pausa" type="button" data-i18n="pause" disabled>⏸ Pausa</button>
+      <button class="sim-btn" id="sim-reiniciar" type="button" data-i18n="reset" disabled>↺ Reiniciar</button>
+      <label class="sim-field"><span data-i18n="speed">Velocidad</span>
+        <select id="sim-velocidad"><option value="1">×1</option><option value="10" selected>×10</option><option value="50">×50</option></select>
+      </label>
+      <label class="sim-field"><span data-i18n="camera">Cámara</span>
+        <select id="sim-camara">
+          <option value="persecucion" data-i18n="cam.persecucion">Persecución</option>
+          <option value="panorama" data-i18n="cam.panorama">Panorama del complejo</option>
+          <option value="heroica" data-i18n="cam.heroica">Contrapicado (motores)</option>
+          <option value="torre" data-i18n="cam.torre">Torre umbilical</option>
+          <option value="onboard" data-i18n="cam.onboard">A bordo (fuselaje)</option>
+          <option value="lateral" data-i18n="cam.lateral">Lateral</option>
+          <option value="libre" data-i18n="cam.libre">Libre (arrastra)</option>
+          <option value="global" data-i18n="cam.global">Global (Tierra)</option>
+        </select>
+      </label>
+      <label class="sim-field"><span data-i18n="scenery">Panorama</span>
+        <select id="sim-panorama">
+          <option value="amanecer" selected data-i18n="pan.amanecer">🌅 Amanecer dorado</option>
+          <option value="dia" data-i18n="pan.dia">☀️ Mediodía claro</option>
+          <option value="atardecer" data-i18n="pan.atardecer">🌇 Crepúsculo carmesí</option>
+          <option value="noche" data-i18n="pan.noche">🌃 Nocturno (reflectores)</option>
+        </select>
+      </label>
+      <label class="sim-field sim-carga"><span data-i18n="payload">Carga útil</span> <output id="sim-carga-val"></output>
+        <input id="sim-carga" type="range" min="0" step="1">
+      </label>
+      <button class="sim-btn" id="sim-modelo" type="button" data-i18n="model">🧩 Ver modelo armado / despiezado</button>
+    </div>
+
+    <div class="sim-panels">
+      <section class="sim-panel">
+        <h2 data-i18n="logTitle">Bitácora del vuelo</h2>
+        <p class="sim-muted" data-i18n="logHelp">Tiempo simulado y, al lado, el de la misión real cuando hay dato.</p>
+        <ol class="sim-log" id="sim-log" aria-live="polite"></ol>
+      </section>
+      <section class="sim-panel" id="sim-resultado" aria-live="polite">
+        <h2 data-i18n="resultTitle">Resultado</h2>
+        <p class="sim-muted" data-i18n="resultIdle">Lanza el cohete para ver si llega a su destino.</p>
+      </section>
+    </div>
+
+    <details class="sim-fuentes">
+      <summary data-i18n="sourcesTitle">Fuentes, modelo físico y simplificaciones</summary>
+      <p data-i18n-html="sources">Masas, motores y tiempos de NASA (informe de vuelo AS-506 del Apolo 11, JPL/NSSDCA) y fuentes contrastadas para el Atlas-Agena D y el Falcon Heavy. Ascenso en el plano de la trayectoria con gravedad, rotación terrestre, arrastre (atmósfera de NASA Glenn) y programa de cabeceo; salida al destino con la ecuación del cohete y transferencia de Hohmann. Detalle completo en <code>simulador/FUENTES.md</code>.</p>
+    </details>
+  </main>
+
+  <dialog class="sim-dialog" id="sim-dialog">
+    <div class="sim-dialog-head">
+      <div role="tablist" aria-label="Vista del modelo" data-i18n-aria="dlgTabs">
+        <button class="sim-btn" type="button" data-vista="modelo" data-i18n="assembled">Armado</button>
+        <button class="sim-btn" type="button" data-vista="despiece" data-i18n="exploded">Despiezado</button>
+      </div>
+      <button class="sim-btn" type="button" id="sim-cerrar" aria-label="Cerrar" data-i18n-aria="close">✕</button>
+    </div>
+    <iframe id="sim-iframe" title="Modelo 3D del cohete" data-i18n-title="iframe" allow="fullscreen"></iframe>
+  </dialog>
+
+  <script type="module" src="simulador.js"></script>
+  <script type="module" src="../js/sw-register.js"></script>
+</body>
+</html>

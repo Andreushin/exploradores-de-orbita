@@ -28,7 +28,7 @@
 #screen-report .hero-body { min-width: 0; }
 #screen-report .hero-badge {
   display: inline-flex; align-items: center; gap: 8px; padding: 4px 12px; border-radius: 999px;
-  font: 500 0.72rem var(--font-mono); letter-spacing: 0.1em; text-transform: uppercase;
+  font: 500 0.75rem var(--font-mono); letter-spacing: 0.1em; text-transform: uppercase;
   color: var(--tone); background: color-mix(in srgb, var(--tone) 12%, transparent);
   border: 1px solid color-mix(in srgb, var(--tone) 35%, transparent);
 }
@@ -41,7 +41,7 @@
 }
 #screen-report .hero-stat { padding: 0 22px; text-align: center; }
 #screen-report .hero-stat + .hero-stat { border-left: 1px solid var(--border); }
-#screen-report .hero-stat dt { font: 500 0.72rem var(--font-mono); letter-spacing: 0.1em; text-transform: uppercase; color: var(--muted); }
+#screen-report .hero-stat dt { font: 500 0.75rem var(--font-mono); letter-spacing: 0.1em; text-transform: uppercase; color: var(--muted); }
 #screen-report .hero-stat dd { margin: 4px 0 0; font: 600 1.25rem var(--font-mono); white-space: nowrap; }
 #screen-report .hero-stat dd.tone { color: var(--tone); }
 
@@ -80,7 +80,7 @@
 #screen-report .is-final .cml-desc { color: var(--text); opacity: 0.85; }
 #screen-report .cml-tab {
   position: absolute; top: -12px; right: 14px; padding: 2px 10px; border-radius: 999px;
-  font: 600 0.68rem var(--font-mono); letter-spacing: 0.12em; text-transform: uppercase;
+  font: 600 0.75rem var(--font-mono); letter-spacing: 0.12em; text-transform: uppercase;
   background: var(--surface-2); border: 1px solid rgba(238, 242, 255, 0.4); color: var(--text);
 }
 
@@ -118,7 +118,7 @@
 #screen-report .score-box { display: flex; flex: none; margin: 0; padding: 12px 6px; border-radius: 14px; background: var(--panel-2); border: 1px solid var(--border); }
 #screen-report .score-box > div { padding: 0 14px; display: grid; gap: 4px; }
 #screen-report .score-box > div + div { border-left: 1px solid var(--border); }
-#screen-report .score-box dt { font: 500 0.72rem var(--font-mono); letter-spacing: 0.08em; text-transform: uppercase; color: var(--muted); }
+#screen-report .score-box dt { font: 500 0.75rem var(--font-mono); letter-spacing: 0.08em; text-transform: uppercase; color: var(--muted); }
 #screen-report .score-box dd { margin: 0; font: 500 1rem var(--font-mono); color: var(--muted); }
 #screen-report .score-box dd b { font-size: 1.4rem; color: var(--text); }
 #screen-report .score-box dd.score-chip { padding: 2px 10px; border-radius: 6px; font-size: 0.9rem; }
@@ -134,7 +134,7 @@
 #screen-report .target-list .is-target { color: var(--text); font-weight: 600; border-color: rgba(238, 242, 255, 0.45); }
 #screen-report .is-target .target-dot { background: transparent; border: 3px solid var(--text); opacity: 1; }
 #screen-report .target-tag {
-  padding: 2px 10px; border-radius: 6px; font: 500 0.72rem var(--font-mono); letter-spacing: 0.1em;
+  padding: 2px 10px; border-radius: 6px; font: 500 0.75rem var(--font-mono); letter-spacing: 0.1em;
   text-transform: uppercase; background: var(--surface-2); color: var(--text);
 }
 
@@ -166,7 +166,7 @@
 #screen-report .stat-maturity { display: grid; grid-template-columns: 1fr auto; row-gap: 12px; }
 #screen-report .stat-maturity span { font-family: var(--font-display); display: grid; gap: 6px; white-space: nowrap; }
 #screen-report .stat-maturity b { display: grid; gap: 6px; justify-items: end; font-size: 1.05rem; }
-#screen-report .stat-maturity small { font: 500 0.72rem var(--font-mono); letter-spacing: 0.06em; color: var(--muted); }
+#screen-report .stat-maturity small { font: 500 0.75rem var(--font-mono); letter-spacing: 0.06em; color: var(--muted); }
 #screen-report .stat-maturity small.ok { color: var(--ok); text-transform: uppercase; }
 #screen-report .stat-maturity small.warn { color: var(--warn); }
 #screen-report .maturity-bar { grid-column: 1 / -1; height: 3px; border-radius: 3px; background: var(--surface-2); overflow: hidden; }

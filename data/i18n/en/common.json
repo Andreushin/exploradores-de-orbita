@@ -1,5 +1,6 @@
 {
   "appName": "Orbit Explorers",
+  "skip": "Skip to content",
   "footer": "Parche ColomboMexicano · NASA Space Apps 2026 · Gamified data based on NASA resources",
   "budgetHud": "Budget: ${spent}M / ${total}M",
   "levelsNav": "☰ Levels",

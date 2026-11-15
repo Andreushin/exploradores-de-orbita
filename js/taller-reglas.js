@@ -160,10 +160,13 @@ export function tradeHints(result, parts, catalog, mission, budgetSpace, { nameO
   const push = (check, key, vars, action = null) => out.push({ check, key, vars, action });
   const done = () => out.sort((a, b) => hintRank(a) - hintRank(b)).slice(0, max);
 
-  // Estructura: la más chica donde caben las piezas y su masa; sin piezas todavía, la de balance.
+  // Estructura: la más chica donde caben las piezas y su masa. Sin piezas todavía se elige por destino
+  // (Luna 6U; Marte y Europa 12U, como los diseños de referencia de docs/fuentes.md): así no se aconseja una
+  // estructura para cambiarla cinco pasos después.
   if (!structure) {
     const fit = structures.find((s) => s.volumeU >= used && s.volumeU * KG_PER_U >= x.wet + s.massKg);
-    const pick = used > 0 || x.wet > 0 ? (fit || structures[structures.length - 1]) : structures[1] || structures[0];
+    const byDestination = structures[Math.min(structures.length - 1, Math.max(1, mission?.difficulty || 1))] || structures[0];
+    const pick = used > 0 || x.wet > 0 ? (fit || structures[structures.length - 1]) : byDestination;
     if (pick) push('structure', 'noStructure', { name: nameOf(pick), u: pick.volumeU, kg: g(pick.volumeU * KG_PER_U) }, { type: 'setStructure', id: pick.id });
     return done();
   }
@@ -200,7 +203,19 @@ export function tradeHints(result, parts, catalog, mission, budgetSpace, { nameO
     const enough = cheapest(cands.filter((p) => gain(p) >= gap));
     const best = enough || [...cands].sort((a, b) => gain(b) - gain(a))[0];
     const vars = { gap: r1(gap), gen: r1(x.power.generated), use: r1(x.power.consumed) };
-    if (best) push('power', enough ? 'powerAdd' : 'powerPartial', { ...vars, name: nameOf(best), gain: r1(gain(best)), cost: best.cost }, { type: 'add', id: best.id });
+    // ¿La causa es un motor que gasta todo el tiempo (el iónico)? Si quitar su consumo cierra la brecha, cambiarlo
+    // por uno químico sale más barato que comprar un generador (un RTG cuesta $25M) y explica de dónde viene la falta.
+    const cont = parts.find((p) => p.category === 'propulsion' && !p.burnOnly && (p.powerW || 0) > 0);
+    const closes = cont && x.power.net + cont.powerW >= 0 && x.power.generated >= (mission?.minPowerW || 0);
+    const chem = closes && cheapest(catalog.filter((p) => {
+      if (p.category !== 'propulsion' || !p.burnOnly || !p.isp) return false;
+      const dry = x.dry - cont.massKg + p.massKg;
+      return propellantFor(req, p.isp, dry) <= (p.maxPropellantKg || 0) && dry + propellantFor(req, p.isp, dry) <= x.massCap && used - cont.volumeU + p.volumeU <= x.capU;
+    }));
+    if (chem) {
+      const kg = Math.ceil(propellantFor(req, chem.isp, x.dry - cont.massKg + chem.massKg) * 10) / 10;
+      push('power', 'powerSwapProp', { ...vars, name: nameOf(cont), alt: nameOf(chem), w: cont.powerW }, { type: 'swap', remove: cont.id, add: chem.id, kg });
+    } else if (best) push('power', enough ? 'powerAdd' : 'powerPartial', { ...vars, name: nameOf(best), gain: r1(gain(best)), cost: best.cost }, { type: 'add', id: best.id });
     else push('power', 'powerCut', vars);
   }
 
@@ -326,6 +341,23 @@ export function tradeHints(result, parts, catalog, mission, budgetSpace, { nameO
     if (pick) push('science', 'noScience', { name: nameOf(pick), cost: pick.cost, value: pick.scienceValue, left: Math.max(0, left) }, { type: 'add', id: pick.id });
   }
   return done();
+}
+
+/**
+ * Medidores en los que el jugador se PASÓ de un límite (alimenta la viñeta roja). No cuentan los que solo están
+ * incompletos: Δv sin motor o sin propelente, energía por debajo del mínimo del destino o todavía sin batería.
+ * Esos siguen en rojo en su barra, pero avisar con la pantalla entera mientras se arma el satélite cansa y se ignora.
+ * @param {object} M meterData(...)
+ * @param {object} x physics.validateDesign(...).metrics
+ * @returns {string[]} ids entre 'mass' | 'cost' | 'power' | 'battery'
+ */
+export function alertingMeters(M, x) {
+  const out = [];
+  if (M.mass.level === 'danger') out.push('mass');
+  if (M.cost.level === 'danger') out.push('cost');
+  if (M.power.level !== 'pending' && M.power.net < 0) out.push('power');
+  if (x.storage.capacityWh > 0 && M.battery.level === 'danger') out.push('battery');
+  return out;
 }
 
 /**
