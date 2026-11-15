@@ -323,10 +323,11 @@ export function adelantarAFrenado(m) {
   const escalaAnt = m.escala;
   m.escala = 60;
   let pasos = 0;
-  while (!m.fin && m.captura.fase === 'espera' && pasos < 4000) {
+  while (!m.fin && m.captura.fase === 'espera' && pasos < 1500) {
     const { tParaEncendido } = datosFrenado(m);
     if (tParaEncendido <= 18) break;
-    avanzar(m, 0.05);
+    const dtAvance = tParaEncendido > 100 ? 0.25 : 0.08;
+    avanzar(m, dtAvance);
     pasos++;
   }
   m.escala = Math.min(escalaAnt, 5);

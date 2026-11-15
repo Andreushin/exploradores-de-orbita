@@ -851,8 +851,9 @@ function pintarRadar() {
   ctx.stroke();
   ctx.restore();
 
-  // Trayectoria predicha
-  const pred = F.predecir({ r: m.r, v: m.v }, m.cuerpo.mu, { dt: 24, pasos: 320, radioCuerpo: R });
+  // Trayectoria predicha (reutiliza el cálculo de escena si existe para no duplicar integraciones)
+  const predPts = escena?.puntosPredichos()?.length ? escena.puntosPredichos() : null;
+  const pred = predPts ? { puntos: predPts, choca: escena.chocaPredicho() } : F.predecir({ r: m.r, v: m.v }, m.cuerpo.mu, { dt: 24, pasos: 200, radioCuerpo: R });
   if (pred.puntos.length > 1) {
     ctx.beginPath();
     pred.puntos.forEach((pt, idx) => {

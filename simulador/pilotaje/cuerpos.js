@@ -240,8 +240,8 @@ function crearJupiter() {
   tex.colorSpace = THREE.SRGBColorSpace;
   const radioJupKm = 69911;
   return new THREE.Mesh(
-    new THREE.SphereGeometry(radioJupKm, 64, 32),
-    new THREE.MeshStandardMaterial({ map: tex, roughness: 0.85, metalness: 0 }),
+    new THREE.SphereGeometry(radioJupKm, 32, 24),
+    new THREE.MeshBasicMaterial({ map: tex }),
   );
 }
 
@@ -465,14 +465,12 @@ export function crearEscenaPilotaje(canvas, m, { reducirMovimiento = false, rend
         metalness: 0.04,
       });
     } else if (m.destino === 'europa') {
-      // Textura 4K NASA Europa Clipper de Europa-3D-NASA-4K.zip con brillo criogénico de hielo
+      // Textura 4K NASA Europa Clipper con brillo criogénico de hielo
       const mapaEuropa = tex(`../${t.color}`);
       matCuerpo = new THREE.MeshStandardMaterial({
         map: mapaEuropa,
-        bumpMap: mapaEuropa,
-        bumpScale: 1.8,
-        roughness: 0.58,
-        metalness: 0.08,
+        roughness: 0.52,
+        metalness: 0.05,
       });
     } else {
       // Textura 4K NASA LRO/LOLA de Luna-3D-NASA-4K.zip
@@ -542,9 +540,13 @@ export function crearEscenaPilotaje(canvas, m, { reducirMovimiento = false, rend
       if (d < minR) { minR = d; mejorP = pt; }
     }
     if (mejorP && !el.ligada) {
+      const posPe = aTres(mejorP).multiplyScalar(1 / KM);
+      const posNave = aTres(m.r).multiplyScalar(1 / KM);
       periGrupo.visible = true;
-      periGrupo.position.copy(aTres(mejorP).multiplyScalar(1 / KM));
-      periGrupo.lookAt(aTres(m.r).multiplyScalar(1 / KM));
+      periGrupo.position.copy(posPe);
+      if (posPe.distanceToSquared(posNave) > 1e-4) {
+        periGrupo.lookAt(posNave);
+      }
     } else {
       periGrupo.visible = false;
     }
@@ -719,6 +721,7 @@ export function crearEscenaPilotaje(canvas, m, { reducirMovimiento = false, rend
       anguloOrbita.azimut = 0.22;
       anguloOrbita.elevacion = 0.20;
       anguloOrbita.zoom = 11.5;
+      nave3D.cargarModeloCohete(m.dest.cohete);
       construirCuerpo();
       actualizar();
     },
