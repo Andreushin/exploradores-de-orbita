@@ -6,7 +6,7 @@ Valores ludificados: conservan el orden de magnitud real pero se ajustan para qu
 `scienceScore` (js/physics.js) da de 0 a 100:
 
 **puntaje = (40 + instrumentos) × resultado × Tierra × Usuario** (con tope de 100)
-
+ 
 - **Instrumentos:** los `scienceValue` se ordenan de mayor a menor y se multiplican por 1 · 0.6 · 0.4 · 0.25 (`INSTRUMENT_WEIGHTS`). Cada instrumento extra suma, pero menos que el anterior (rendimientos decrecientes, como cuando varios instrumentos comparten masa, energía y enlace de datos).
 - **Resultado de la inserción:** órbita estable 1 · excéntrica 0.5 · sobrevuelo 0.15 · choque 0.
 - **Tierra y Usuario** (segmentos de *Design and Develop Science Missions*): cada uno va de 0.6 sin inversión a 1, de forma lineal, hasta $25M en Tierra (antenas y tiempo de DSN) y $12M en Usuario (procesamiento, calibración y archivo PDS). Esos topes (`GROUND_FULL` / `USER_FULL`) son la tarjeta más cara de cada segmento en el Nivel 1. Sin estos segmentos, los datos se pierden o no se aprovechan.
